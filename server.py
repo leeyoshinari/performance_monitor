@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#---!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 # 启动命令 nohup python -u server.py > server.log 2>&1 &
 import os
 import json
 from flask import Flask, request
-from draw_performance import read_data_from_mysql, delete_database
+from draw_performance import draw_data_from_mysql, delete_database
 from performance_monitor import PerMon
 
 server = Flask(__name__)
@@ -54,4 +54,4 @@ def dropTable():
     return json.dumps(res, ensure_ascii=False)
 
 
-server.run(port='5555', debug=True, host='192.168.75.136')  # 启动服务
+server.run(port='5555', debug=True, host='127.0.0.1')  # 启动服务

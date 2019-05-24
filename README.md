@@ -5,7 +5,7 @@ According to your need, you can save the monitoring results to the MySQL databas
 ## Usage
 1. clone performance-monitor repository
    ```shell
-   git clone https://github.com/leeyoshinari/performace_monitor.git
+   git clone https://github.com/leeyoshinari/performance_monitor.git
    
    cd performance-monitor
    ```
