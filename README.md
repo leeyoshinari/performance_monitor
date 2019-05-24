@@ -3,11 +3,11 @@ Continuously monitor the value of CPU, memory and IO of the specified port in th
 According to your need, you can save the monitoring results to the MySQL database.
 
 ## Usage
-1. clone linux-performance-monitor repository
+1. clone performance-monitor repository
    ```shell
-   git clone https://github.com/leeyoshinari/Small_Tool.git
+   git clone https://github.com/leeyoshinari/performace_monitor.git
    
-   cd Small_Tool/linux-performance-monitor
+   cd performance-monitor
    ```
 
 2. set the `PID`, `the monitoring time`, linux's `username` and `password`, etc.
