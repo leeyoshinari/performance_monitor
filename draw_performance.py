@@ -8,18 +8,21 @@ import pymysql
 import numpy as np
 import matplotlib.pyplot as plt
 from io import BytesIO
+import config as cfg
 
 
-def draw_data_from_mysql(ip, username, password, database_name, pid, times=None):
-    db = pymysql.connect(ip, username, password, database_name)  # 连接mysql数据库
+def draw_data_from_mysql(pid, start_time=None, duration=None):
+    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)  # connect MySQL
     cursor = db.cursor()
 
     c_time = []
     cpu = []
     mem = []
     IO = []
-    if times:
-        sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={} and time>'{}' and time<'{}';".format(pid, times[0], times[1])
+    if start_time and duration:
+        seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
+        end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
+        sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
     else:
         sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={};".format(pid)
     cursor.execute(sql)  # 执行mysql命令
@@ -94,8 +97,8 @@ def get_lines(cpu, mem, IO):
     return htmls
 
 
-def delete_database(ip, username, password, database_name):
-    db = pymysql.connect(ip, username, password, database_name)
+def delete_database():
+    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
     cursor = db.cursor()
     sql = "DROP TABLE performance;"
     cursor.execute(sql)
