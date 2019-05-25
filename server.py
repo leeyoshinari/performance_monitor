@@ -35,12 +35,16 @@ def startMonitor():
 # 停止监控
 @server.route('/stopMonitor', methods=['get'])
 def stopMonitor():
-    is_run = int(request.args.get('isRun'))
-    if is_run == 0:
-        permon.is_run = is_run
-        res = {'code': 0, 'data': 'success'}
-    else:
+    try:
+        is_run = int(request.args.get('isRun'))
+        if is_run == 0:
+            permon.is_run = is_run
+            res = {'code': 0, 'data': 'success'}
+        else:
+            res = {'code': -1, 'data': 'isRun must be 0'}
+    except:
         res = {'code': -1, 'data': 'isRun must be 0'}
+
     return json.dumps(res, ensure_ascii=False)
 
 

@@ -41,6 +41,9 @@ According to your need, you can save the monitoring results to the MySQL databas
 8. dropTable<br>
    Enter `http://ip:port/dropTable` in your browser. It drops the table that store the data of monitoring.
 
+## Note
+1. Your Linux must support the `top` and `iotop` command, if not, please install them.
+
 ## Requirements
 1. flask
 2. pymysql
