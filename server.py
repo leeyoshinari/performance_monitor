@@ -22,6 +22,9 @@ t.start()
 @server.route('/startMonitor', methods=['get'])
 def startMonitor():
     is_run = int(request.args.get('isRun'))
+    if is_run == 1:
+        delete_database()
+
     port = str(request.args.get('port'))
     total_time = int(request.args.get('totalTime'))
     permon.total_time = total_time

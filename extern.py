@@ -18,6 +18,6 @@ def port_to_pid(port):
 	result = os.popen('ps -ef|grep {} |tr -s " "'.format(port)).readlines()
 	res = [line for line in result if 'grep' not in line]
 	if str(port) in res[0]:
-		pid = res[0].split(' ')
+		pid = res[0].split(' ')[1]
 
 	return pid

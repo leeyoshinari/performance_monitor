@@ -70,15 +70,7 @@ class PerMon(object):
                      'mem FLOAT,' \
                      'io FLOAT);'
 
-        del_sql = "DROP TABLE performance;"
-
-        if self._is_run == 1:
-            self.cursor.execute(del_sql)
-            self.db.commit()
-            time.sleep(1)
-            self.cursor.execute(create_sql)
-        elif self._is_run == 2:
-            self.cursor.execute(create_sql)
+        self.cursor.execute(create_sql)
         self.db.commit()
 
     def get_data(self):
@@ -170,7 +162,7 @@ class PerMon(object):
             self.cursor = self.db.cursor()
 
         sql = "INSERT INTO performance(id, pid, time, cpu, mem, io) " \
-              "VALUES (default, {}, '{}', {}, {}, {}});".format(pid, search_time, cpu, mem, ioer)
+              "VALUES (default, {}, '{}', {}, {}, {});".format(pid, search_time, cpu, mem, ioer)
 
         try:
             self.cursor.execute(sql)
