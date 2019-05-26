@@ -1,5 +1,5 @@
 # performace_monitor
-Continuously monitor the value of CPU, memory and IO of the specified port in the Linux system.
+Continuously monitor the value of CPU, memory, IO and handle of the specified port in the Linux system.
 According to your need, you can save the monitoring results to the MySQL database.
 
 ## Usage
@@ -28,7 +28,7 @@ According to your need, you can save the monitoring results to the MySQL databas
    &emsp;&emsp;`totalTime`:the total time of monitoring. It's second.
 
 6. Stop monitor<br>
-   Enter `http://ip:port/startMonitor?isRun=1&port=123,456&totalTime=3600` in your browser<br>
+   Enter `http://ip:port/stopMonitor?isRun=0` in your browser<br>
    param:<br>
    &emsp;&emsp;`isRun=0`: stop monitor
    
@@ -36,13 +36,13 @@ According to your need, you can save the monitoring results to the MySQL databas
    Enter `http://ip:port/plotMonitor?type=port&num=1234&startTime=2019-05-21 08:08:08&duration=3600` in your browser<br>
    param:<br>
    &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid.<br>
-   &emsp;&emsp;`startTime` and `duration` is optional parameter, if you plot all time, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`.
+   &emsp;&emsp;`startTime` and `duration` are optional parameters, if you plot all time, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`.
 
 8. dropTable<br>
    Enter `http://ip:port/dropTable` in your browser. It drops the table that store the data of monitoring.
 
 ## Note
-1. Your Linux must support the `top` and `iotop` command, if not, please install them.
+1. Your Linux must support the `top`, `iotop` and `lsof` commands, if not, please install them.
 
 ## Requirements
 1. flask

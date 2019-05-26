@@ -68,7 +68,8 @@ class PerMon(object):
                      'time DATETIME, ' \
                      'cpu FLOAT,' \
                      'mem FLOAT,' \
-                     'io FLOAT);'
+                     'io FLOAT,' \
+                     'handles FLOAT);'
 
         self.cursor.execute(create_sql)
         self.db.commit()
@@ -98,9 +99,13 @@ class PerMon(object):
                                     if ioer is None:
                                         continue
 
+                                    handles = self.get_handle(pid)
+                                    if handles is None:
+                                        continue
+
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                    self.write_in_sql(search_time, pid, cpu, mem, ioer)
+                                    self.write_in_sql(search_time, pid, cpu, mem, ioer, handles)
 
                                 self.counter = 0
 
@@ -146,6 +151,15 @@ class PerMon(object):
 
         return ioer
 
+    def get_handle(self, pid):
+        result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
+        res = result[0].strip().split(' ')
+        handles = None
+        if str(pid) in res:
+            handles = int(res[0])
+
+        return handles
+
     def get_cpu_cores(self):
         result = os.popen('cat /proc/cpuinfo| grep "processor"| wc -l').readlines()[0]
 
@@ -156,13 +170,13 @@ class PerMon(object):
 
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
-    def write_in_sql(self, search_time, pid, cpu, mem, ioer):
+    def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles):
         if self.db is None:     # If MySQL connection is broken, reconnect.
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
 
-        sql = "INSERT INTO performance(id, pid, time, cpu, mem, io) " \
-              "VALUES (default, {}, '{}', {}, {}, {});".format(pid, search_time, cpu, mem, ioer)
+        sql = "INSERT INTO performance(id, pid, time, cpu, mem, io, handles) " \
+              "VALUES (default, {}, {}, {}, {}, {}, {});".format(pid, search_time, cpu, mem, ioer, handles)
 
         try:
             self.cursor.execute(sql)
