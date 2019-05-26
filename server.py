@@ -22,6 +22,10 @@ t.start()
 def startMonitor():
     try:
         is_run = int(request.args.get('isRun'))
+        if is_run == 1 or is_run == 2:
+            if permon.is_run == 1 or permon.is_run == 2:
+                return json.dumps({'code': -1, 'data': 'Please stop monitor first.'}, ensure_ascii=False)
+
         if is_run == 1:
             delete_database()
 
@@ -31,7 +35,7 @@ def startMonitor():
         permon.pid = ports_to_pids(port)
         permon.is_run = is_run
 
-        res = {'code': 0, 'data': {'port': port, 'total_time': total_time}}
+        res = {'code': 0, 'data': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time}}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         return err

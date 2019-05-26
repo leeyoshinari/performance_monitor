@@ -65,7 +65,7 @@ class PerMon(object):
         create_sql = 'CREATE TABLE IF NOT EXISTS performance (' \
                      'id INT NOT NULL PRIMARY KEY auto_increment,' \
                      'pid INT,' \
-                     'time DATETIME, ' \
+                     'time DATETIME,' \
                      'cpu FLOAT,' \
                      'mem FLOAT,' \
                      'io FLOAT,' \
@@ -176,7 +176,7 @@ class PerMon(object):
             self.cursor = self.db.cursor()
 
         sql = "INSERT INTO performance(id, pid, time, cpu, mem, io, handles) " \
-              "VALUES (default, {}, {}, {}, {}, {}, {});".format(pid, search_time, cpu, mem, ioer, handles)
+              "VALUES (default, {}, '{}', {}, {}, {}, {});".format(pid, search_time, cpu, mem, ioer, handles)
 
         try:
             self.cursor.execute(sql)
