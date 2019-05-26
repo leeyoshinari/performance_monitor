@@ -12,33 +12,36 @@ import config as cfg
 
 
 def draw_data_from_mysql(pid, start_time=None, duration=None):
-    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)  # connect MySQL
-    cursor = db.cursor()
+    try:
+        db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)  # connect MySQL
+        cursor = db.cursor()
 
-    c_time = []
-    cpu = []
-    mem = []
-    IO = []
-    if start_time and duration:
-        seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
-        end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
-        sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-    else:
-        sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={};".format(pid)
-    cursor.execute(sql)  # 执行mysql命令
-    result = cursor.fetchall()
-    for i in range(len(result)):
-        if result[i][0]:
-            c_time.append(result[i][0])
-            cpu.append(int(result[i][1]))
-            mem.append(result[i][2])
-            IO.append(result[i][3])
+        c_time = []
+        cpu = []
+        mem = []
+        IO = []
+        if start_time and duration:
+            seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
+            end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
+            sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+        else:
+            sql = "SELECT time, cpu, mem, io FROM performance WHERE pid={};".format(pid)
+        cursor.execute(sql)  # 执行mysql命令
+        result = cursor.fetchall()
+        for i in range(len(result)):
+            if result[i][0]:
+                c_time.append(result[i][0])
+                cpu.append(int(result[i][1]))
+                mem.append(result[i][2])
+                IO.append(result[i][3])
 
-    db.close()
-    # return c_time, cpu, mem
-    start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
-    end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
-    return draw(cpu, mem, IO, c_time, end_time-start_time)
+        db.close()
+        # return c_time, cpu, mem
+        start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
+        end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
+        return draw(cpu, mem, IO, c_time, end_time-start_time)
+    except Exception as err:
+        return err
 
 
 def draw(cpu, mem, IO, c_time, total_time):
@@ -98,8 +101,11 @@ def get_lines(cpu, mem, IO):
 
 
 def delete_database():
-    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
-    cursor = db.cursor()
-    sql = "DROP TABLE performance;"
-    cursor.execute(sql)
-    db.close()
+    try:
+        db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
+        cursor = db.cursor()
+        sql = "DROP TABLE performance;"
+        cursor.execute(sql)
+        db.close()
+    except Exception as err:
+        raise Exception(err)

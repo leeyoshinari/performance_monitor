@@ -104,8 +104,8 @@ class PerMon(object):
 
                                 self.counter = 0
 
-                            except Exception as e:
-                                print('Error:{}.'.format(e))
+                            except Exception as err:
+                                print('Error:{}.'.format(err))
                                 self.counter += 1
                                 continue
 
@@ -178,24 +178,3 @@ class PerMon(object):
     def __del__(self):
         pass
 
-
-def main():
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--PID', required=True, type=int, help='The PID that is monitored.')
-    # parser.add_argument('--total_time', required=True, type=int, help='The total time(/s) of monitoring.')
-    # parser.add_argument('--interval', default=2, type=int, help='The interval(/s) of getting data from server.')
-    # parser.add_argument('--ip', required=True, type=str, help='The MySQL ip.')
-    # parser.add_argument('--username', default='root', type=str, help='The username of the MySQL.')
-    # parser.add_argument('--password', required=True, type=str, help='The password of the MySQL.')
-    # parser.add_argument('--database', required=True, type=str, help='The name of the database of the MySQL.')
-    # args = parser.parse_args()
-
-    # result = os.popen('ps -ef|grep {}'.format(args.PID)).readlines()[0]
-
-    # perfmon = PerMon(args.PID, args.total_time, args.interval, args.ip, args.username, args.password, args.database)
-    # perfmon.run()
-    pass
-
-
-if __name__ == '__main__':
-    main()
