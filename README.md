@@ -1,6 +1,6 @@
 # performace_monitor
 Continuously monitor the value of CPU, memory, IO and handle of the specified port in the Linux system.
-According to your need, you can save the monitoring results to the MySQL database.
+You can start or stop monitoring at any time. You can save the monitoring results to the MySQL database. And plotting them.
 
 ## Usage
 1. Clone performance_monitor repository
@@ -17,6 +17,10 @@ According to your need, you can save the monitoring results to the MySQL databas
 4. Run
    ```shell
    python server.py
+   ```
+   or
+   ```shell
+   nohup python -u server.py > server.log 2>&1 &
    ```
 
 5. Start monitor<br>

@@ -81,7 +81,7 @@ def draw(cpu, mem, IO, handles, c_time, total_time):
     plt.grid()
     plt.xlim(0, len(handles))
     plt.ylim(0, max(handles) + 10)
-    plt.title('Handle, max:{}, duration:{:.1f}h'.format(max(handles), np.floor(total_time / 360) / 10), size=12)
+    plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
     image_byte = BytesIO()

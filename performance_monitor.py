@@ -12,7 +12,7 @@ class PerMon(object):
     def __init__(self):
         self._is_run = 0
         self.counter = 0
-        self._pid = 0
+        self._pid = []
         self.db = None
         self.cursor = None
         self._total_time = 0
@@ -87,6 +87,7 @@ class PerMon(object):
                         if get_data_time - start_search_time > self.interval:
                             start_search_time = get_data_time
                             if self.counter > cfg.RUN_ERROR_TIMES:
+                                self._is_run = 0
                                 break
 
                             try:
@@ -115,6 +116,7 @@ class PerMon(object):
                                 continue
 
                     else:
+                        self._is_run = 0
                         break
 
                     if self._is_run == 0:
