@@ -149,7 +149,7 @@ class PerMon(object):
         ioer = None
         if str(pid) in line:
             ind = res.index(str(pid))
-            ioer = float(line[ind + 8])
+            ioer = float(line[ind + 9])
 
         return ioer
 
