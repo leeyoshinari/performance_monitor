@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
-# nohup python -u performance_monitor.py > monitor.log 2>&1 &
 import os
 import pymysql
 import time
@@ -59,22 +58,20 @@ class PerMon(object):
         self._total_time = value + 200
 
     def connect_mysql(self):
-        self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
-        self.cursor = self.db.cursor()
+        if self.db is None:
+            self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
+            self.cursor = self.db.cursor()
 
-        create_sql = 'CREATE TABLE IF NOT EXISTS performance (' \
-                     'id INT NOT NULL PRIMARY KEY auto_increment,' \
-                     'pid INT,' \
-                     'time DATETIME,' \
-                     'cpu FLOAT,' \
-                     'mem FLOAT,' \
-                     'io FLOAT,' \
-                     'handles FLOAT);'
+        cpu_and_mem_sql = 'CREATE TABLE IF NOT EXISTS cpu_and_mem (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, cpu FLOAT, mem FLOAT);'
+        io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, writer FLOAT, reader FLOAT, io FLOAT);'
+        handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
 
-        self.cursor.execute(create_sql)
+        self.cursor.execute(cpu_and_mem_sql)
+        self.cursor.execute(io_sql)
+        self.cursor.execute(handle_sql)
         self.db.commit()
 
-    def get_data(self):
+    def write_cpu_mem(self):
         while True:
             if self._is_run == 1 or self._is_run == 2:
                 self.connect_mysql()
@@ -96,17 +93,9 @@ class PerMon(object):
                                     if cpu is None:
                                         continue
 
-                                    ioer = self.get_io(pid)
-                                    if ioer is None:
-                                        continue
-
-                                    handles = self.get_handle(pid)
-                                    if handles is None:
-                                        continue
-
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                    self.write_in_sql(search_time, pid, cpu, mem, ioer, handles)
+                                    self.write_in_sql(search_time, pid, cpu, mem, 0, 0, 'cpu')
 
                                 self.counter = 0
 
@@ -124,16 +113,90 @@ class PerMon(object):
             else:
                 time.sleep(cfg.SLEEPTIME)
 
+    def write_io(self):
+        while True:
+            if self._is_run == 1 or self._is_run == 2:
+                self.connect_mysql()
+                self.start_time = time.time()
+
+                while True:
+                    if time.time() - self.start_time < self._total_time:
+                        if self.counter > cfg.RUN_ERROR_TIMES:
+                            self._is_run = 0
+                            break
+
+                        try:
+                            for ipid in self._pid:
+                                ioer = self.get_io(ipid)
+                                if ioer is None:
+                                    continue
+
+                                io_time = time.strftime('%Y-%m-%d %H:%M:%S')
+
+                                self.write_in_sql(io_time, ipid, 0, 0, ioer, 0, 'io')
+
+                            self.counter = 0
+
+                        except Exception as err:
+                            print('Error:{}.'.format(err))
+                            self.counter += 1
+                            continue
+
+                    else:
+                        self._is_run = 0
+                        break
+
+                    if self._is_run == 0:
+                        break
+            else:
+                time.sleep(cfg.SLEEPTIME)
+
+    def write_handle(self):
+        while True:
+            if self._is_run == 1 or self._is_run == 2:
+                self.connect_mysql()
+                self.start_time = time.time()
+
+                while True:
+                    if time.time() - self.start_time < self._total_time:
+                        if self.counter > cfg.RUN_ERROR_TIMES:
+                            self._is_run = 0
+                            break
+
+                        try:
+                            for hpid in self._pid:
+                                handles = self.get_handle(hpid)
+                                if handles is None:
+                                    continue
+
+                                handle_time = time.strftime('%Y-%m-%d %H:%M:%S')
+
+                                self.write_in_sql(handle_time, hpid, 0, 0, 0, handles, 'handles')
+
+                            self.counter = 0
+
+                        except Exception as err:
+                            print('Error:{}.'.format(err))
+                            self.counter += 1
+                            continue
+
+                    else:
+                        self._is_run = 0
+                        break
+
+                    if self._is_run == 0:
+                        break
+            else:
+                time.sleep(cfg.SLEEPTIME)
+
     def get_cpu_mem(self, pid):
         result = os.popen('top -n 1 -b |grep -P {} |tr -s " "'.format(pid)).readlines()[0]
-        # print(result)
         res = result.strip().split(' ')
 
         cpu = None
         mem = None
         if str(pid) in res:
             ind = res.index(str(pid))
-            # search_time = time.strftime('%Y-%m-%d %H:%M:%S')
             cpu = float(res[ind + 8]) / self.cpu_cores
             mem = float(res[ind + 9]) * self.total_mem
 
@@ -172,13 +235,27 @@ class PerMon(object):
 
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
-    def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles):
+    def all_to_k(self, value, keys):
+        if keys == 'B':
+            return value / 1024
+        elif keys == 'M':
+            return value * 1024
+        elif keys == 'K':
+            return value
+        else:
+            return None
+
+    def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles, dbname):
         if self.db is None:     # If MySQL connection is broken, reconnect.
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
 
-        sql = "INSERT INTO performance(id, pid, time, cpu, mem, io, handles) " \
-              "VALUES (default, {}, '{}', {}, {}, {}, {});".format(pid, search_time, cpu, mem, ioer, handles)
+        if dbname == 'cpu':
+            sql = "INSERT INTO {}(id, pid, time, cpu, mem) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, cpu, mem)
+        if dbname == 'io':
+            sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, ioer)
+        if dbname == 'handles':
+            sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, handles)
 
         try:
             self.cursor.execute(sql)

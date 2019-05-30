@@ -41,12 +41,12 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         # return c_time, cpu, mem
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
-        return draw(cpu, mem, IO, handles, c_time, end_time-start_time)
+        return draw(cpu, mem, IO, handles, end_time-start_time)
     except Exception as err:
         return err
 
 
-def draw(cpu, mem, IO, handles, c_time, total_time):
+def draw(cpu, mem, IO, handles, total_time):
     fig = plt.figure('cpu and memory', figsize=(20, 20))
     ax1 = plt.subplot(4, 1, 1)
     plt.sca(ax1)
