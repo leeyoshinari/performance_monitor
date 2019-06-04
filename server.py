@@ -13,8 +13,13 @@ from extern import port_to_pid, ports_to_pids
 server = Flask(__name__)
 permon = PerMon()
 
-t = threading.Thread(target=permon.run, args=())
-t.start()
+t = []
+t.append(threading.Thread(target=permon.write_cpu_mem, args=()))
+t.append(threading.Thread(target=permon.write_io, args=()))
+t.append(threading.Thread(target=permon.write_handle, args=()))
+
+for i in range(3):
+    t[i].start()
 
 
 # 开始监控系统cpu和内存占用情况

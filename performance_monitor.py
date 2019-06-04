@@ -205,16 +205,18 @@ class PerMon(object):
     def get_io(self, pid):
         result = os.popen('iotop -n 1 -b -qq |grep -P {} |tr -s " "'.format(pid)).readlines()
         res = [line for line in result if 'grep' not in line]
-        line = res[0].split(' ')
+        iores = res[0].split(' ')
 
-        # writer = None
-        # reader = None
+        writer = None
+        reader = None
         ioer = None
-        if str(pid) in line:
+        if str(pid) in iores:
             ind = res.index(str(pid))
-            ioer = float(line[ind + 9])
+            ioer = float(iores[ind + 9])
+            writer = self.all_to_k(float(iores[ind + 5]), iores[ind + 6])
+            reader = self.all_to_k(float(iores[ind + 7]), iores[ind + 8])
 
-        return ioer
+        return ioer, reader, writer
 
     def get_handle(self, pid):
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
@@ -263,10 +265,6 @@ class PerMon(object):
         except Exception as error:
             print(error)
             self.db.rollback()
-
-    def run(self):
-        self.get_data()
-        self.db.close()
 
     def __del__(self):
         pass
