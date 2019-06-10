@@ -8,16 +8,22 @@ def ports_to_pids(port):
 	pids = []
 	ports = port.split(',')
 	for p in ports:
-		pids.append(port_to_pid(p))
+		pid = port_to_pid(p)
+		if pid:
+			pids.append(pid)
+		else:
+			return str(p)
 
 	return pids
 
 
 def port_to_pid(port):
 	pid = None
-	result = os.popen('ps -ef|grep {} |tr -s " "'.format(port)).readlines()
-	res = [line for line in result if 'grep' not in line]
-	if str(port) in res[0]:
-		pid = res[0].split(' ')[1]
+	try:
+		result = os.popen('lsof -i:{} |tr -s " "'.format(port)).readlines()[1]
+		res = result.strip().split(' ')
+		pid = res[1]
+	except Exception as e:
+		pass
 
 	return pid

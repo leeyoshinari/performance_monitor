@@ -58,6 +58,8 @@ class PerMon(object):
         self._total_time = value + 200
 
     def connect_mysql(self):
+
+        # self.pool
         if self.db is None:
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
@@ -89,10 +91,11 @@ class PerMon(object):
 
                             try:
                                 for pid in self._pid:
-                                    cpu, mem = self.get_cpu_mem(pid)
+                                    cpu = self.get_cpu(pid)
                                     if cpu is None:
                                         continue
 
+                                    mem = self.get_mem(pid)
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
                                     self.write_in_sql(search_time, pid, cpu, mem, 0, 0, 'cpu')
@@ -189,18 +192,24 @@ class PerMon(object):
             else:
                 time.sleep(cfg.SLEEPTIME)
 
-    def get_cpu_mem(self, pid):
+    def get_cpu(self, pid):
         result = os.popen('top -n 1 -b |grep -P {} |tr -s " "'.format(pid)).readlines()[0]
         res = result.strip().split(' ')
 
         cpu = None
-        mem = None
         if str(pid) in res:
             ind = res.index(str(pid))
             cpu = float(res[ind + 8]) / self.cpu_cores
-            mem = float(res[ind + 9]) * self.total_mem
 
-        return cpu, mem
+        return cpu
+
+    def get_mem(self, pid):
+        result = os.popen('jstat -p {} |tr -s " "'.format(pid)).readlines()[1]
+        res = result.strip().split(' ')
+
+        mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
+
+        return mem / 1024 / 1024
 
     def get_io(self, pid):
         result = os.popen('iotop -n 1 -b -qq |grep -P {} |tr -s " "'.format(pid)).readlines()
