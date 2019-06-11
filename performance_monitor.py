@@ -4,7 +4,10 @@
 import os
 import pymysql
 import time
+import threading
 import config as cfg
+
+lock = threading.Lock()
 
 
 class PerMon(object):
@@ -58,8 +61,6 @@ class PerMon(object):
         self._total_time = value + 200
 
     def connect_mysql(self):
-
-        # self.pool
         if self.db is None:
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
@@ -68,10 +69,12 @@ class PerMon(object):
         io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, writer FLOAT, reader FLOAT, io FLOAT);'
         handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
 
+        lock.acquire()
         self.cursor.execute(cpu_and_mem_sql)
         self.cursor.execute(io_sql)
         self.cursor.execute(handle_sql)
         self.db.commit()
+        lock.release()
 
     def write_cpu_mem(self):
         while True:
@@ -268,12 +271,14 @@ class PerMon(object):
         if dbname == 'handles':
             sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, handles)
 
+        lock.acquire()
         try:
             self.cursor.execute(sql)
             self.db.commit()
         except Exception as error:
             print(error)
             self.db.rollback()
+        lock.release()
 
     def __del__(self):
         pass
