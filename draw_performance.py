@@ -64,7 +64,7 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
 
 
 def draw(cpu, mem, IO, handles, total_time):
-    fig = plt.figure('cpu and memory', figsize=(20, 20))
+    fig = plt.figure('figure', figsize=(20, 20))
     ax1 = plt.subplot(4, 1, 1)
     plt.sca(ax1)
     plt.plot(cpu, color='r')

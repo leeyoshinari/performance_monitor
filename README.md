@@ -46,7 +46,7 @@ You can start or stop monitoring at any time. You can save the monitoring result
    Enter `http://ip:port/dropTable` in your browser. It drops the table that store the data of monitoring.
 
 ## Note
-1. Your Linux must support the `top`, `iotop` and `lsof` commands, if not, please install them.
+1. Your Linux must support the `jstat`, `top`, `iotop` and `lsof` commands, if not, please install them.
 
 ## Requirements
 1. flask
