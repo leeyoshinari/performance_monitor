@@ -23,7 +23,7 @@ def port_to_pid(port):
 		result = os.popen('lsof -i:{} |tr -s " "'.format(port)).readlines()[1]
 		res = result.strip().split(' ')
 		pid = res[1]
-	except Exception as e:
+	except Exception as err:
 		pass
 
 	return pid

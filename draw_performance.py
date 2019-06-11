@@ -12,10 +12,10 @@ import config as cfg
 
 
 def draw_data_from_mysql(pid, start_time=None, duration=None):
-    try:
-        db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)  # connect MySQL
-        cursor = db.cursor()
+    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)  # connect MySQL
+    cursor = db.cursor()
 
+    try:
         c_time = []
         cpu = []
         mem = []
@@ -59,7 +59,8 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
         return draw(cpu, mem, IO, handles, end_time-start_time)
     except Exception as err:
-        return err
+        db.close()
+        raise Exception(err)
 
 
 def draw(cpu, mem, IO, handles, total_time):
