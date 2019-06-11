@@ -134,8 +134,6 @@ class PerMon(object):
                         try:
                             for ipid in self._pid:
                                 ioer = self.get_io(ipid)
-                                if ioer:
-                                    continue
 
                                 io_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -172,6 +170,8 @@ class PerMon(object):
                         try:
                             for hpid in self._pid:
                                 handles = self.get_handle(hpid)
+                                if handles is None:
+                                    continue
 
                                 handle_time = time.strftime('%Y-%m-%d %H:%M:%S')
 

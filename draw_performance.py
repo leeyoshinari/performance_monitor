@@ -29,7 +29,7 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
             h_sql = "SELECT time, handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
         else:
             cpu_sql = "SELECT time, cpu, mem FROM cpu_and_mem WHERE pid={};".format(pid)
-            io_sql = "SELECT time, io, FROM io WHERE pid={};".format(pid)
+            io_sql = "SELECT time, io FROM io WHERE pid={};".format(pid)
             h_sql = "SELECT time, handles FROM handles WHERE pid={};".format(pid)
 
         cursor.execute(cpu_sql)
