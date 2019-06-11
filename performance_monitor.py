@@ -101,7 +101,7 @@ class PerMon(object):
                                     mem = self.get_mem(pid)
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                    self.write_in_sql(search_time, pid, cpu, mem, 0, 0, 'cpu')
+                                    self.write_in_sql(search_time, pid, cpu, mem, 0, 0, 'cpu_and_mem')
 
                                 self.counter = 0
 
@@ -134,7 +134,7 @@ class PerMon(object):
                         try:
                             for ipid in self._pid:
                                 ioer = self.get_io(ipid)
-                                if ioer is None:
+                                if ioer:
                                     continue
 
                                 io_time = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -207,7 +207,7 @@ class PerMon(object):
         return cpu
 
     def get_mem(self, pid):
-        result = os.popen('jstat -p {} |tr -s " "'.format(pid)).readlines()[1]
+        result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
         res = result.strip().split(' ')
 
         mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
@@ -223,12 +223,12 @@ class PerMon(object):
         reader = None
         ioer = None
         if str(pid) in iores:
-            ind = res.index(str(pid))
+            ind = iores.index(str(pid))
             ioer = float(iores[ind + 9])
-            writer = self.all_to_k(float(iores[ind + 5]), iores[ind + 6])
-            reader = self.all_to_k(float(iores[ind + 7]), iores[ind + 8])
+            writer = self.all_to_k(float(iores[ind + 3]), iores[ind + 4])
+            reader = self.all_to_k(float(iores[ind + 5]), iores[ind + 6])
 
-        return ioer, reader, writer
+        return [ioer, reader, writer]
 
     def get_handle(self, pid):
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
@@ -250,11 +250,11 @@ class PerMon(object):
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
     def all_to_k(self, value, keys):
-        if keys == 'B':
+        if keys == 'B/s':
             return value / 1024
-        elif keys == 'M':
+        elif keys == 'M/s':
             return value * 1024
-        elif keys == 'K':
+        elif keys == 'K/s':
             return value
         else:
             return None
@@ -264,12 +264,12 @@ class PerMon(object):
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
 
-        if dbname == 'cpu':
+        if dbname == 'cpu_and_mem':
             sql = "INSERT INTO {}(id, pid, time, cpu, mem) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, cpu, mem)
         if dbname == 'io':
-            sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, ioer)
+            sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, ioer[2], ioer[1], ioer[0])
         if dbname == 'handles':
-            sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, handles)
+            sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {});".format(dbname, pid, search_time, handles)
 
         lock.acquire()
         try:

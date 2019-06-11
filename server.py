@@ -46,7 +46,8 @@ def startMonitor():
         res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time}}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
-        return err
+        print(err)
+        return json.dumps({'code': -1, 'message': 'Some wrongs occurred.'}, ensure_ascii=False)
 
 
 # 停止监控
@@ -88,7 +89,8 @@ def plotMonitor():
         else:
             return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
     except Exception as err:
-        return err
+        print(err)
+        return json.dumps({'code': -1, 'message': 'Some wrongs occurred.'}, ensure_ascii=False)
 
 
 # 删除性能监控的数据库表
@@ -99,7 +101,8 @@ def dropTable():
         res = {'code': 0, 'message': 'success'}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
-        return err
+        print(err)
+        return json.dumps({'code': -1, 'message': 'Some wrongs occurred.'}, ensure_ascii=False)
 
 
 server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # 启动服务

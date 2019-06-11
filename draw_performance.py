@@ -114,8 +114,10 @@ def delete_database():
     try:
         db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
         cursor = db.cursor()
-        sql = "DROP TABLE performance;"
-        cursor.execute(sql)
+        for table in ['cpu_and_mem', 'io', 'handles']:
+            sql = "DROP TABLE {};".format(table)
+            cursor.execute(sql)
         db.close()
     except Exception as err:
+        db.close()
         raise Exception(err)
