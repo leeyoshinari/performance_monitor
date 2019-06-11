@@ -172,8 +172,6 @@ class PerMon(object):
                         try:
                             for hpid in self._pid:
                                 handles = self.get_handle(hpid)
-                                if handles is None:
-                                    continue
 
                                 handle_time = time.strftime('%Y-%m-%d %H:%M:%S')
 

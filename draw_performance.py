@@ -24,21 +24,37 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         if start_time and duration:
             seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
-            sql = "SELECT time, cpu, mem, io, handles FROM performance WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+            cpu_sql = "SELECT time, cpu, mem FROM cpu_and_mem WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+            io_sql = "SELECT time, io, FROM io WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+            h_sql = "SELECT time, handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
         else:
-            sql = "SELECT time, cpu, mem, io, handles FROM performance WHERE pid={};".format(pid)
-        cursor.execute(sql)  # 执行mysql命令
+            cpu_sql = "SELECT time, cpu, mem FROM cpu_and_mem WHERE pid={};".format(pid)
+            io_sql = "SELECT time, io, FROM io WHERE pid={};".format(pid)
+            h_sql = "SELECT time, handles FROM handles WHERE pid={};".format(pid)
+
+        cursor.execute(cpu_sql)
         result = cursor.fetchall()
         for i in range(len(result)):
             if result[i][0]:
                 c_time.append(result[i][0])
-                cpu.append(int(result[i][1]))
+                cpu.append(result[i][1])
                 mem.append(result[i][2])
-                IO.append(result[i][3])
-                handles.append(result[i][4])
+
+        cursor.execute(io_sql)
+        result = cursor.fetchall()
+        for i in range(len(result)):
+            if result[i][0]:
+                c_time.append(result[i][0])
+                IO.append(result[i][1])
+
+        cursor.execute(h_sql)
+        result = cursor.fetchall()
+        for i in range(len(result)):
+            if result[i][0]:
+                c_time.append(result[i][0])
+                handles.append(result[i][1])
 
         db.close()
-        # return c_time, cpu, mem
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
         return draw(cpu, mem, IO, handles, end_time-start_time)
@@ -63,7 +79,7 @@ def draw(cpu, mem, IO, handles, total_time):
     plt.grid()
     plt.xlim(0, len(mem))
     plt.ylim(0, max(mem) + 1)
-    plt.title('Memory(G), max:{}G, average:{:.1f}G, duration:{:.1f}h'.format(max(mem), np.mean(mem[-int(len(mem)/3):]), np.floor(total_time / 360) / 10), size=12)
+    plt.title('Memory(G), max:{}G, duration:{:.1f}h'.format(max(mem), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
     ax3 = plt.subplot(4, 1, 3)
@@ -111,9 +127,9 @@ def get_lines(cpu, IO):
 
 
 def delete_database():
+    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
+    cursor = db.cursor()
     try:
-        db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
-        cursor = db.cursor()
         for table in ['cpu_and_mem', 'io', 'handles']:
             sql = "DROP TABLE {};".format(table)
             cursor.execute(sql)
