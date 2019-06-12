@@ -222,11 +222,11 @@ class PerMon(object):
         ioer = None
         if str(pid) in iores:
             ind = iores.index(str(pid))
-            ioer = float(iores[ind + 9])
+            # ioer = float(iores[ind + 9])
             writer = self.all_to_k(float(iores[ind + 3]), iores[ind + 4])
             reader = self.all_to_k(float(iores[ind + 5]), iores[ind + 6])
 
-        return [ioer, reader, writer]
+        return [reader, writer]
 
     def get_handle(self, pid):
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
@@ -265,7 +265,7 @@ class PerMon(object):
         if dbname == 'cpu_and_mem':
             sql = "INSERT INTO {}(id, pid, time, cpu, mem) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, cpu, mem)
         if dbname == 'io':
-            sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, ioer[2], ioer[1], ioer[0])
+            sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, ioer[1], ioer[0], 0)
         if dbname == 'handles':
             sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {});".format(dbname, pid, search_time, handles)
 

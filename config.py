@@ -21,3 +21,5 @@ SLEEPTIME = 3   # Polling interval, when stopping monitor, polling to start moni
 # html
 HTML = '<html><body>{}</body><html>'
 ERROR = '<p style="color:red">{}</p>'
+HEADER = '<div id="header"><h2 align="center">Performance Monitor (pid={})</h2></div>'
+ANALYSIS = '<div id="container" align="center" style="width:500px">{}</div>'

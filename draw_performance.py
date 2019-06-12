@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
+import os
 import base64
 import time
 import datetime
@@ -20,12 +21,14 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         cpu = []
         mem = []
         IO = []
+        reader = []
+        writer = []
         handles = []
         if start_time and duration:
             seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
             cpu_sql = "SELECT time, cpu, mem FROM cpu_and_mem WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-            io_sql = "SELECT time, io, FROM io WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+            io_sql = "SELECT time, reader, writer, io, FROM io WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
             h_sql = "SELECT time, handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
         else:
             cpu_sql = "SELECT time, cpu, mem FROM cpu_and_mem WHERE pid={};".format(pid)
@@ -45,7 +48,9 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         for i in range(len(result)):
             if result[i][0]:
                 c_time.append(result[i][0])
-                IO.append(result[i][1])
+                reader.append(result[i][1])
+                writer.append(result[i][2])
+                IO.append(result[i][3])
 
         cursor.execute(h_sql)
         result = cursor.fetchall()
@@ -54,16 +59,23 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
                 c_time.append(result[i][0])
                 handles.append(result[i][1])
 
+        cursor.close()
         db.close()
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
-        return draw(cpu, mem, IO, handles, end_time-start_time)
+
+        image_html = draw(cpu, mem, reader, writer, IO, handles, end_time-start_time)
+        per_html = get_lines(cpu, IO)
+        gc_html = get_gc(pid)
+        html = cfg.HTML.format(cfg.HEADER.format(pid) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
+        return html
     except Exception as err:
+        cursor.close()
         db.close()
         raise Exception(err)
 
 
-def draw(cpu, mem, IO, handles, total_time):
+def draw(cpu, mem, reader, writer, IO, handles, total_time):
     fig = plt.figure('figure', figsize=(20, 20))
     ax1 = plt.subplot(4, 1, 1)
     plt.sca(ax1)
@@ -71,7 +83,7 @@ def draw(cpu, mem, IO, handles, total_time):
     plt.grid()
     plt.xlim(0, len(cpu))
     plt.ylim(0, 100)
-    plt.title('CPU(%), max:{}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 360) / 10), size=12)
+    plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
     ax2 = plt.subplot(4, 1, 2)
@@ -80,12 +92,14 @@ def draw(cpu, mem, IO, handles, total_time):
     plt.grid()
     plt.xlim(0, len(mem))
     plt.ylim(0, max(mem) + 1)
-    plt.title('Memory(G), max:{}G, duration:{:.1f}h'.format(max(mem), np.floor(total_time / 360) / 10), size=12)
+    plt.title('Memory(G), max:{:.2f}G, duration:{:.1f}h'.format(max(mem), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
     ax3 = plt.subplot(4, 1, 3)
     plt.sca(ax3)
-    plt.plot(IO, color='r')
+    plt.plot(reader, color='r', label='reader')
+    plt.plot(writer, color='b', label='writer')
+    plt.legend()
     plt.grid()
     plt.xlim(0, len(IO))
     plt.ylim(0, 100)
@@ -105,9 +119,7 @@ def draw(cpu, mem, IO, handles, total_time):
     fig.savefig(image_byte, format='png', bbox_inches='tight')
     data = base64.encodebytes(image_byte.getvalue()).decode()
 
-    lines = get_lines(cpu, IO)
-
-    html = '<html><body><div align="center"><img src="data:image/png;base64,{}" /></div>{}</body><html>'.format(data, lines)
+    html = '<div align="center"><img src="data:image/png;base64,{}" /></div>'.format(data)
     plt.close()
     return html
 
@@ -122,7 +134,27 @@ def get_lines(cpu, IO):
     line95 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.95)], IO[int(len(IO) * 0.95)])
     line99 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.99)], IO[int(len(IO) * 0.99)])
 
-    htmls = '<h3 align="center">Percentile</h3><p align="center">50%:  {}<br>75%: {}<br>90%: {}<br>95%: {}<br>99%: {}</p>'.format(line50, line75, line90, line95, line99)
+    htmls = '<div id="Percentile" style="float:left; background-color:#FF9933"><h3 align="center">Percentile</h3><p align="center">50%:  {}<br>75%: {}<br>90%: {}<br>95%: {}<br>99%: {}</p></div>'.format(line50, line75, line90, line95, line99)
+
+    return htmls
+
+
+def get_gc(pid):
+    result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
+    res = result.strip().split(' ')
+
+    ygc = int(res[12])
+    ygct = float(res[13])
+    fgc = int(res[14])
+    fgct = float(res[15])
+
+    result = os.popen('ps -p {} -o etimes'.format(pid)).readlines()[1]
+    runtime = int(result.strip())
+
+    fygc = runtime / ygc
+    ffgc = runtime / fgc
+
+    htmls = '<div id="GC" style="float:left; background-color:#CC6633"><h3 align="center">GC</h3><p align="center">YGC: {} YGCT: {}s<br>FGC: {} FGCT: {}s<br>Frequence of YGC: {}s<br>Frequence of FGC: {}s</p></div>'.format(ygc, ygct, fgc, fgct, fygc, ffgc)
 
     return htmls
 
@@ -134,7 +166,9 @@ def delete_database():
         for table in ['cpu_and_mem', 'io', 'handles']:
             sql = "DROP TABLE {};".format(table)
             cursor.execute(sql)
+        cursor.close()
         db.close()
     except Exception as err:
+        cursor.close()
         db.close()
         raise Exception(err)
