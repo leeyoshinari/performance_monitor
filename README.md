@@ -1,5 +1,5 @@
 # performace_monitor
-Continuously monitor the value of CPU, memory, IO and handle of the specified port in the Linux system.
+Continuously monitor the value of CPU, memory, IO of the specified port in the Linux system.
 You can start or stop monitoring at any time. You can save the monitoring results to the MySQL database. And plotting them.
 
 ## Usage

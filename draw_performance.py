@@ -4,6 +4,7 @@
 import os
 import base64
 import time
+import traceback
 import datetime
 import pymysql
 import numpy as np
@@ -32,7 +33,7 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
             h_sql = "SELECT time, handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
         else:
             cpu_sql = "SELECT time, cpu, mem FROM cpu_and_mem WHERE pid={};".format(pid)
-            io_sql = "SELECT time, io FROM io WHERE pid={};".format(pid)
+            io_sql = "SELECT time, reader, writer, io FROM io WHERE pid={};".format(pid)
             h_sql = "SELECT time, handles FROM handles WHERE pid={};".format(pid)
 
         cursor.execute(cpu_sql)
@@ -47,20 +48,18 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         result = cursor.fetchall()
         for i in range(len(result)):
             if result[i][0]:
-                c_time.append(result[i][0])
+                # c_time.append(result[i][0])
                 reader.append(result[i][1])
                 writer.append(result[i][2])
                 IO.append(result[i][3])
 
-        cursor.execute(h_sql)
+        '''cursor.execute(h_sql)
         result = cursor.fetchall()
         for i in range(len(result)):
             if result[i][0]:
                 c_time.append(result[i][0])
-                handles.append(result[i][1])
+                handles.append(result[i][1])'''
 
-        cursor.close()
-        db.close()
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
@@ -68,16 +67,20 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         per_html = get_lines(cpu, IO)
         gc_html = get_gc(pid)
         html = cfg.HTML.format(cfg.HEADER.format(pid) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
+
+        cursor.close()
+        db.close()
+
         return html
     except Exception as err:
         cursor.close()
         db.close()
-        raise Exception(err)
+        raise Exception(traceback.format_exc())
 
 
 def draw(cpu, mem, reader, writer, IO, handles, total_time):
-    fig = plt.figure('figure', figsize=(20, 20))
-    ax1 = plt.subplot(4, 1, 1)
+    fig = plt.figure('figure', figsize=(20, 15))
+    ax1 = plt.subplot(3, 1, 1)
     plt.sca(ax1)
     plt.plot(cpu, color='r')
     plt.grid()
@@ -86,7 +89,7 @@ def draw(cpu, mem, reader, writer, IO, handles, total_time):
     plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
-    ax2 = plt.subplot(4, 1, 2)
+    ax2 = plt.subplot(3, 1, 2)
     plt.sca(ax2)
     plt.plot(mem, color='r')
     plt.grid()
@@ -95,25 +98,25 @@ def draw(cpu, mem, reader, writer, IO, handles, total_time):
     plt.title('Memory(G), max:{:.2f}G, duration:{:.1f}h'.format(max(mem), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
-    ax3 = plt.subplot(4, 1, 3)
+    ax3 = plt.subplot(3, 1, 3)
     plt.sca(ax3)
     plt.plot(reader, color='r', label='reader')
     plt.plot(writer, color='b', label='writer')
     plt.legend()
     plt.grid()
     plt.xlim(0, len(IO))
-    plt.ylim(0, 100)
-    plt.title('IO(%), max:{}%, average:{:.2f}%, duration:{:.1f}h'.format(max(IO), np.mean(IO), np.floor(total_time / 360) / 10), size=12)
+    plt.ylim(0, max([max(reader), max(writer)])+50)
+    plt.title('Reader and Writer(K/s), duration:{:.1f}h'.format(np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
-    ax4 = plt.subplot(4, 1, 4)
+    '''ax4 = plt.subplot(4, 1, 4)
     plt.sca(ax4)
     plt.plot(handles, color='r')
     plt.grid()
     plt.xlim(0, len(handles))
     plt.ylim(0, max(handles) + 10)
     plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 360) / 10), size=12)
-    plt.margins(0, 0)
+    plt.margins(0, 0)'''
 
     image_byte = BytesIO()
     fig.savefig(image_byte, format='png', bbox_inches='tight')
@@ -128,33 +131,36 @@ def get_lines(cpu, IO):
     cpu.sort()
     IO.sort()
 
-    line50 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.5)], IO[int(len(IO) * 0.5)])
-    line75 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.75)], IO[int(len(IO) * 0.75)])
-    line90 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.9)], IO[int(len(IO) * 0.9)])
-    line95 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.95)], IO[int(len(IO) * 0.95)])
-    line99 = 'CPU: {}%,   IO: {}%'.format(cpu[int(len(cpu) * 0.99)], IO[int(len(IO) * 0.99)])
+    line75 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)])
+    line90 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.9)])
+    line95 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)])
+    line99 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)])
 
-    htmls = '<div id="Percentile" style="float:left; background-color:#FF9933"><h3 align="center">Percentile</h3><p align="center">50%:  {}<br>75%: {}<br>90%: {}<br>95%: {}<br>99%: {}</p></div>'.format(line50, line75, line90, line95, line99)
+    htmls = '<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{}<br>90%:&nbsp&nbsp&nbsp&nbsp{}<br>95%:&nbsp&nbsp&nbsp&nbsp{}<br>99%:&nbsp&nbsp&nbsp&nbsp{}</p></div>'.format(line75, line90, line95, line99)
 
     return htmls
 
 
 def get_gc(pid):
-    result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
-    res = result.strip().split(' ')
+    try:
+        result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
+        res = result.strip().split(' ')
 
-    ygc = int(res[12])
-    ygct = float(res[13])
-    fgc = int(res[14])
-    fgct = float(res[15])
+        ygc = int(res[12])
+        ygct = float(res[13])
+        fgc = int(res[14])
+        fgct = float(res[15])
 
-    result = os.popen('ps -p {} -o etimes'.format(pid)).readlines()[1]
-    runtime = int(result.strip())
+        result = os.popen('ps -p {} -o etimes'.format(pid)).readlines()[1]
+        runtime = int(result.strip())
 
-    fygc = runtime / ygc
-    ffgc = runtime / fgc
+        fygc = runtime / ygc
+        ffgc = runtime / fgc
 
-    htmls = '<div id="GC" style="float:left; background-color:#CC6633"><h3 align="center">GC</h3><p align="center">YGC: {} YGCT: {}s<br>FGC: {} FGCT: {}s<br>Frequence of YGC: {}s<br>Frequence of FGC: {}s</p></div>'.format(ygc, ygct, fgc, fgct, fygc, ffgc)
+    except Exception as err:
+        ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
+
+    htmls = '<div id="GC" style="float:left; background-color:#CC6633; height:200px; width:300px"><h3 align="center">GC</h3><p align="center">YGC:&nbsp{}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspYGCT:&nbsp{}s<br>FGC:&nbsp{}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspFGCT:&nbsp{}s<br>Frequence of YGC:&nbsp{:.2f}s<br>Frequence of FGC:&nbsp{:.2f}s</p></div>'.format(ygc, ygct, fgc, fgct, fygc, ffgc)
 
     return htmls
 
@@ -163,7 +169,7 @@ def delete_database():
     db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
     cursor = db.cursor()
     try:
-        for table in ['cpu_and_mem', 'io', 'handles']:
+        for table in ['cpu_and_mem', 'io']:
             sql = "DROP TABLE {};".format(table)
             cursor.execute(sql)
         cursor.close()
@@ -171,4 +177,4 @@ def delete_database():
     except Exception as err:
         cursor.close()
         db.close()
-        raise Exception(err)
+        raise Exception(traceback.format_exc())

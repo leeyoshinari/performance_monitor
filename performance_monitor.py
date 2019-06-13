@@ -67,12 +67,12 @@ class PerMon(object):
 
         cpu_and_mem_sql = 'CREATE TABLE IF NOT EXISTS cpu_and_mem (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, cpu FLOAT, mem FLOAT);'
         io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, writer FLOAT, reader FLOAT, io FLOAT);'
-        handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
+        # handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
 
         lock.acquire()
         self.cursor.execute(cpu_and_mem_sql)
         self.cursor.execute(io_sql)
-        self.cursor.execute(handle_sql)
+        # self.cursor.execute(handle_sql)
         self.db.commit()
         lock.release()
 
@@ -106,7 +106,7 @@ class PerMon(object):
                                 self.counter = 0
 
                             except Exception as err:
-                                print('Error:{}.'.format(err))
+                                print('Error: cpu_and_mem {}.'.format(err))
                                 self.counter += 1
                                 continue
 
@@ -142,7 +142,7 @@ class PerMon(object):
                             self.counter = 0
 
                         except Exception as err:
-                            print('Error:{}.'.format(err))
+                            print('Error: io {}.'.format(err))
                             self.counter += 1
                             continue
 
@@ -273,8 +273,8 @@ class PerMon(object):
         try:
             self.cursor.execute(sql)
             self.db.commit()
-        except Exception as error:
-            print(error)
+        except Exception as err:
+            print(err)
             self.db.rollback()
         lock.release()
 

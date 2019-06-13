@@ -3,6 +3,7 @@
 # Author: leeyoshinari
 # 启动命令 nohup python -u server.py > server.log 2>&1 &
 import json
+import traceback
 import threading
 from flask import Flask, request
 import config as cfg
@@ -16,9 +17,9 @@ permon = PerMon()
 t = []
 t.append(threading.Thread(target=permon.write_cpu_mem, args=()))
 t.append(threading.Thread(target=permon.write_io, args=()))
-t.append(threading.Thread(target=permon.write_handle, args=()))
+# t.append(threading.Thread(target=permon.write_handle, args=()))
 
-for i in range(3):
+for i in range(2):
     t[i].start()
 
 
@@ -46,7 +47,7 @@ def startMonitor():
         res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time}}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
-        html = cfg.ERROR.format(err)
+        html = cfg.ERROR.format(traceback.format_exc())
         return cfg.HTML.format(html)
 
 
@@ -63,7 +64,7 @@ def stopMonitor():
 
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
-        html = cfg.ERROR.format(err)
+        html = cfg.ERROR.format(traceback.format_exc())
         return cfg.HTML.format(html)
 
 
@@ -90,7 +91,7 @@ def plotMonitor():
         else:
             return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
     except Exception as err:
-        htmls = cfg.ERROR.format(err)
+        htmls = cfg.ERROR.format(traceback.format_exc())
         return cfg.HTML.format(htmls)
 
 
@@ -102,7 +103,7 @@ def dropTable():
         res = {'code': 0, 'message': 'success'}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
-        html = cfg.ERROR.format(err)
+        html = cfg.ERROR.format(traceback.format_exc())
         return cfg.HTML.format(html)
 
 
