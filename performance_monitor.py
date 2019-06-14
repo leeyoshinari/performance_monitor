@@ -65,7 +65,7 @@ class PerMon(object):
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
 
-        cpu_and_mem_sql = 'CREATE TABLE IF NOT EXISTS cpu_and_mem (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, cpu FLOAT, mem FLOAT);'
+        cpu_and_mem_sql = 'CREATE TABLE IF NOT EXISTS cpu_and_mem (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, cpu FLOAT, mem FLOAT, jvm FLOAT);'
         io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, writer FLOAT, reader FLOAT, io FLOAT);'
         # handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
 
@@ -94,14 +94,14 @@ class PerMon(object):
 
                             try:
                                 for pid in self._pid:
-                                    cpu = self.get_cpu(pid)
+                                    cpu, mem = self.get_cpu(pid)
                                     if cpu is None:
                                         continue
 
-                                    mem = self.get_mem(pid)
+                                    jvm = self.get_mem(pid)
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                    self.write_in_sql(search_time, pid, cpu, mem, 0, 0, 'cpu_and_mem')
+                                    self.write_in_sql(search_time, pid, cpu, [mem, jvm], 0, 0, 'cpu_and_mem')
 
                                 self.counter = 0
 
@@ -198,11 +198,13 @@ class PerMon(object):
         res = result.strip().split(' ')
 
         cpu = None
+        mem = None
         if str(pid) in res:
             ind = res.index(str(pid))
             cpu = float(res[ind + 8]) / self.cpu_cores
+            mem = float(res[ind + 9]) * self.total_mem
 
-        return cpu
+        return cpu, mem
 
     def get_mem(self, pid):
         result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
@@ -245,7 +247,7 @@ class PerMon(object):
     def get_total_mem(self):
         result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
 
-        self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+        self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
 
     def all_to_k(self, value, keys):
         if keys == 'B/s':
@@ -263,7 +265,7 @@ class PerMon(object):
             self.cursor = self.db.cursor()
 
         if dbname == 'cpu_and_mem':
-            sql = "INSERT INTO {}(id, pid, time, cpu, mem) VALUES (default, {}, '{}', {}, {});".format(dbname, pid, search_time, cpu, mem)
+            sql = "INSERT INTO {}(id, pid, time, cpu, mem, jvm) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, cpu, mem[0], mem[1])
         if dbname == 'io':
             sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, ioer[1], ioer[0], 0)
         if dbname == 'handles':
