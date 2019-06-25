@@ -19,6 +19,7 @@ class PerMon(object):
         self.cursor = None
         self._total_time = 0
         self.interval = int(cfg.INTERVAL)
+        self.disk = cfg.DISK
 
         self.cpu_cores = 0
         self.total_mem = 0
@@ -221,14 +222,28 @@ class PerMon(object):
 
         writer = None
         reader = None
-        ioer = None
         if str(pid) in iores:
             ind = iores.index(str(pid))
-            # ioer = float(iores[ind + 9])
             writer = self.all_to_k(float(iores[ind + 3]), iores[ind + 4])
             reader = self.all_to_k(float(iores[ind + 5]), iores[ind + 6])
 
+        disk_r, disk_w, util = self.get_disk_io()
+
         return [reader, writer]
+
+    def get_disk_io(self):
+        result = os.popen('iostat -x {} 1 2 |tr -s " "'.format(self.disk)).readlines()[-1]
+        res = result.strip().split(' ')
+
+        disk_r = None
+        disk_w = None
+        util = None
+        if self.disk == res[0]:
+            disk_r = float(res[5])
+            disk_w = float(res[6])
+            util = float(res[-1])
+
+        return disk_r, disk_w, util
 
     def get_handle(self, pid):
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()

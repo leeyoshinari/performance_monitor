@@ -18,6 +18,12 @@ INTERVAL = 2
 RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.
 SLEEPTIME = 3   # Polling interval, when stopping monitor, polling to start monitor when satisfying condition.
 
+IS_CM = True    # Whether monitoring CPU and Memory
+IS_IO = True    # Whether monitoring IO
+IS_NET = True   # Whether monitoring Network
+
+DISK = 'sda3'   # Which disk your application runs.
+
 # html
 HTML = '<html><body>{}</body><html>'
 ERROR = '<p style="color:red">{}</p>'
