@@ -20,6 +20,21 @@ def ports_to_pids(port):
 def port_to_pid(port):
 	pid = None
 	try:
+		result = os.popen('netstat -nlp|grep {} |tr -s " "'.format(port)).readlines()
+		res = [line.strip() for line in result if str(port) in line]
+		p = res[0].split(' ')
+		pp = p[3].split(':')[-1]
+		if str(port) == pp:
+			pid = p[-1].split('/')[0]
+	except Exception as err:
+		pass
+
+	return pid
+
+
+'''def port_to_pid(port):
+	pid = None
+	try:
 		result = os.popen('lsof -i:{} |tr -s " "'.format(port)).readlines()[1]
 		res = result.strip().split(' ')
 		pid = res[1]
@@ -27,3 +42,4 @@ def port_to_pid(port):
 		pass
 
 	return pid
+'''

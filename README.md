@@ -24,11 +24,11 @@ You can start or stop monitoring at any time. You can save the monitoring result
    ```
 
 5. Start monitor<br>
-   Enter `http://ip:port/startMonitor?isRun=1&port=123,456&totalTime=3600` in your browser<br>
+   Enter `http://ip:port/startMonitor?isRun=1&type=port&num=123,456&totalTime=3600` in your browser<br>
    param:<br>
    &emsp;&emsp;`isRun=0`: stop monitor; `isRun=1`: start monitor with clear database; `isRun=2`: start monitor without clear database.<br>
-   &emsp;&emsp;`port`: monitor system resources occupied by a specified port, it can monitor one or more ports.<br>
-   &emsp;&emsp;&emsp;&emsp;&emsp;example: `port=1234` or `port=1234,5678`<br>
+   &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid. The `num` can be specified one or more.<br>
+   &emsp;&emsp;&emsp;&emsp;&emsp;example: `num=1234` or `num=1234,5678`<br>
    &emsp;&emsp;`totalTime`:the total time of monitoring. It's second.
 
 6. Stop monitor<br>
@@ -46,7 +46,7 @@ You can start or stop monitoring at any time. You can save the monitoring result
    Enter `http://ip:port/dropTable` in your browser. It drops the table that store the data of monitoring.
 
 ## Note
-1. Your Linux must support the `jstat`, `top`, `iotop` and `lsof` commands, if not, please install them.
+1. Your Linux must support the `jstat`, `top`, `iotop`, `iostat` and `lsof` commands, if not, please install them.
 
 ## Requirements
 1. flask

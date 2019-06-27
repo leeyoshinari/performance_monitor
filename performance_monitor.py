@@ -67,13 +67,13 @@ class PerMon(object):
             self.cursor = self.db.cursor()
 
         cpu_and_mem_sql = 'CREATE TABLE IF NOT EXISTS cpu_and_mem (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, cpu FLOAT, mem FLOAT, jvm FLOAT);'
-        io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, writer FLOAT, reader FLOAT, io FLOAT);'
-        # handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
+        io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, r_s FLOAT, w_s FLOAT, util FLOAT, d_r FLOAT, d_w FLOAT, d_util FLOAT);'
+        handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
 
         lock.acquire()
         self.cursor.execute(cpu_and_mem_sql)
         self.cursor.execute(io_sql)
-        # self.cursor.execute(handle_sql)
+        self.cursor.execute(handle_sql)
         self.db.commit()
         lock.release()
 
@@ -216,34 +216,37 @@ class PerMon(object):
         return mem / 1024 / 1024
 
     def get_io(self, pid):
-        result = os.popen('iotop -n 1 -b -qq |grep -P {} |tr -s " "'.format(pid)).readlines()
-        res = [line for line in result if 'grep' not in line]
-        iores = res[0].split(' ')
+        result = os.popen('iotop -n 2 -d 1 -b -qqq -p {} -k |tr -s " "'.format(pid)).readlines()[-1]
+        res = result.strip().split(' ')
+
+        disk_r, disk_w, disk_util = self.get_disk_io()
 
         writer = None
         reader = None
-        if str(pid) in iores:
-            ind = iores.index(str(pid))
-            writer = self.all_to_k(float(iores[ind + 3]), iores[ind + 4])
-            reader = self.all_to_k(float(iores[ind + 5]), iores[ind + 6])
+        if str(pid) in res:
+            ind = res.index(str(pid))
+            writer = float(res[ind + 3])
+            reader = float(res[ind + 5])
 
-        disk_r, disk_w, util = self.get_disk_io()
+        ratio_w = writer / disk_w * disk_util
+        ratio_r = reader / disk_r * disk_util
 
-        return [reader, writer]
+        return [reader, writer, disk_r, disk_w, disk_util, max(ratio_r, ratio_w)]
 
     def get_disk_io(self):
-        result = os.popen('iostat -x {} 1 2 |tr -s " "'.format(self.disk)).readlines()[-1]
-        res = result.strip().split(' ')
+        result = os.popen('iostat -d -x -k {} 1 2 |tr -s " "'.format(self.disk)).readlines()
+        res = [line for line in result if self.disk in line]
+        disk_res = res[-1].strip().split(' ')
 
         disk_r = None
         disk_w = None
-        util = None
-        if self.disk == res[0]:
-            disk_r = float(res[5])
-            disk_w = float(res[6])
-            util = float(res[-1])
+        disk_util = None
+        if self.disk in disk_res:
+            disk_r = float(disk_res[5])
+            disk_w = float(disk_res[6])
+            disk_util = float(disk_res[-1])
 
-        return disk_r, disk_w, util
+        return disk_r, disk_w, disk_util
 
     def get_handle(self, pid):
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
@@ -264,16 +267,6 @@ class PerMon(object):
 
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
 
-    def all_to_k(self, value, keys):
-        if keys == 'B/s':
-            return value / 1024
-        elif keys == 'M/s':
-            return value * 1024
-        elif keys == 'K/s':
-            return value
-        else:
-            return None
-
     def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles, dbname):
         if self.db is None:     # If MySQL connection is broken, reconnect.
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
@@ -282,7 +275,7 @@ class PerMon(object):
         if dbname == 'cpu_and_mem':
             sql = "INSERT INTO {}(id, pid, time, cpu, mem, jvm) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, cpu, mem[0], mem[1])
         if dbname == 'io':
-            sql = "INSERT INTO {}(id, pid, time, writer, reader, io) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, ioer[1], ioer[0], 0)
+            sql = "INSERT INTO {}(id, pid, time, r_s, w_s, util, d_r, d_w, d_util) VALUES (default, {}, '{}', {}, {}, {}, {}, {}, {});".format(dbname, pid, search_time, ioer[0], ioer[1], ioer[-1], ioer[2], ioer[3], ioer[4])
         if dbname == 'handles':
             sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {});".format(dbname, pid, search_time, handles)
 

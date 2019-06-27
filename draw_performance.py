@@ -23,19 +23,23 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         mem = []
         jvm = []
         IO = []
-        reader = []
-        writer = []
+        r_s = []
+        w_s = []
+        util = []
+        d_r = []
+        d_w = []
+        d_util = []
         handles = []
         if start_time and duration:
             seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
             end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
             cpu_sql = "SELECT time, cpu, mem, jvm FROM cpu_and_mem WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-            io_sql = "SELECT time, reader, writer, io, FROM io WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-            h_sql = "SELECT time, handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+            io_sql = "SELECT r_s, w_s, util, d_r, d_w, d_util FROM io WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
+            h_sql = "SELECT handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
         else:
             cpu_sql = "SELECT time, cpu, mem, jvm FROM cpu_and_mem WHERE pid={};".format(pid)
-            io_sql = "SELECT time, reader, writer, io FROM io WHERE pid={};".format(pid)
-            h_sql = "SELECT time, handles FROM handles WHERE pid={};".format(pid)
+            io_sql = "SELECT r_s, w_s, util, d_r, d_w, d_util FROM io WHERE pid={};".format(pid)
+            h_sql = "SELECT handles FROM handles WHERE pid={};".format(pid)
 
         cursor.execute(cpu_sql)
         result = cursor.fetchall()
@@ -46,26 +50,29 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
                 mem.append(result[i][2])
                 jvm.append(result[i][3])
 
-        cursor.execute(io_sql)
-        result = cursor.fetchall()
-        for i in range(len(result)):
-            if result[i][0]:
-                # c_time.append(result[i][0])
-                reader.append(result[i][1])
-                writer.append(result[i][2])
-                IO.append(result[i][3])
+        if cfg.IS_IO:
+            cursor.execute(io_sql)
+            result = cursor.fetchall()
+            for i in range(len(result)):
+                if result[i][0]:
+                    r_s.append(result[i][0])
+                    w_s.append(result[i][1])
+                    util.append(result[i][2])
+                    d_r.append(result[i][3])
+                    d_w.append(result[i][4])
+                    d_util.append(result[i][5])
 
-        '''cursor.execute(h_sql)
-        result = cursor.fetchall()
-        for i in range(len(result)):
-            if result[i][0]:
-                c_time.append(result[i][0])
-                handles.append(result[i][1])'''
+        if cfg.IS_HANDLE:
+            cursor.execute(h_sql)
+            result = cursor.fetchall()
+            for i in range(len(result)):
+                if result[i][0]:
+                    handles.append(result[i][0])
 
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
-        image_html = draw(cpu, [mem, jvm], reader, writer, IO, handles, end_time-start_time)
+        image_html = draw(cpu, [mem, jvm], [r_s, w_s, util, d_r, d_w, d_util], handles, end_time-start_time)
         per_html = get_lines(cpu, IO)
         gc_html = get_gc(pid)
         html = cfg.HTML.format(cfg.HEADER.format(pid) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
@@ -80,9 +87,22 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         raise Exception(traceback.format_exc())
 
 
-def draw(cpu, mem, reader, writer, IO, handles, total_time):
-    fig = plt.figure('figure', figsize=(20, 15))
-    ax1 = plt.subplot(3, 1, 1)
+def draw(cpu, mem, IO, handles, total_time):
+    fig = plt.figure('figure', figsize=(20, 10))
+    ax1 = plt.subplot(2, 1, 1)
+    ax2 = plt.subplot(2, 1, 2)
+    if cfg.IS_IO:
+        fig = plt.figure('figure', figsize=(20, 15))
+        ax1 = plt.subplot(3, 1, 1)
+        ax2 = plt.subplot(3, 1, 2)
+        ax3 = plt.subplot(3, 1, 3)
+    if cfg.IS_HANDLE:
+        fig = plt.figure('figure', figsize=(20, 20))
+        ax1 = plt.subplot(4, 1, 1)
+        ax2 = plt.subplot(4, 1, 2)
+        ax3 = plt.subplot(4, 1, 3)
+        ax4 = plt.subplot(4, 1, 4)
+
     plt.sca(ax1)
     plt.plot(cpu, color='r')
     plt.grid()
@@ -91,7 +111,6 @@ def draw(cpu, mem, reader, writer, IO, handles, total_time):
     plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
-    ax2 = plt.subplot(3, 1, 2)
     plt.sca(ax2)
     plt.plot(mem[0], color='r', label='Memory')
     plt.plot(mem[1], color='b', label='JVM')
@@ -102,25 +121,26 @@ def draw(cpu, mem, reader, writer, IO, handles, total_time):
     plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), np.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
-    ax3 = plt.subplot(3, 1, 3)
-    plt.sca(ax3)
-    plt.plot(reader, color='r', label='reader')
-    plt.plot(writer, color='b', label='writer')
-    plt.legend()
-    plt.grid()
-    plt.xlim(0, len(IO))
-    plt.ylim(0, max([max(reader), max(writer)])+50)
-    plt.title('Reader and Writer(K/s), duration:{:.1f}h'.format(np.floor(total_time / 360) / 10), size=12)
-    plt.margins(0, 0)
+    if cfg.IS_IO:
+        plt.sca(ax3)
+        plt.plot(IO[0], color='r', label='rkB/s')
+        plt.plot(IO[1], color='b', label='wkB/s')
+        plt.plot(IO[2], color='g', label='%util')
+        plt.legend()
+        plt.grid()
+        plt.xlim(0, len(IO[0]))
+        plt.ylim(0, max([max(IO[0]), max(IO[1])]))
+        plt.title('IO, duration:{:.1f}h'.format(np.floor(total_time / 360) / 10), size=12)
+        plt.margins(0, 0)
 
-    '''ax4 = plt.subplot(4, 1, 4)
-    plt.sca(ax4)
-    plt.plot(handles, color='r')
-    plt.grid()
-    plt.xlim(0, len(handles))
-    plt.ylim(0, max(handles) + 10)
-    plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 360) / 10), size=12)
-    plt.margins(0, 0)'''
+    if cfg.IS_HANDLE:
+        plt.sca(ax4)
+        plt.plot(handles, color='r')
+        plt.grid()
+        plt.xlim(0, len(handles))
+        plt.ylim(0, max(handles) + 10)
+        plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 360) / 10), size=12)
+        plt.margins(0, 0)
 
     image_byte = BytesIO()
     fig.savefig(image_byte, format='png', bbox_inches='tight')
@@ -177,7 +197,7 @@ def delete_database():
     db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
     cursor = db.cursor()
     try:
-        for table in ['cpu_and_mem', 'io']:
+        for table in ['cpu_and_mem', 'io', 'handles']:
             sql = "DROP TABLE {};".format(table)
             cursor.execute(sql)
         cursor.close()

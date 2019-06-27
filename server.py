@@ -16,8 +16,10 @@ permon = PerMon()
 
 t = []
 t.append(threading.Thread(target=permon.write_cpu_mem, args=()))
-t.append(threading.Thread(target=permon.write_io, args=()))
-# t.append(threading.Thread(target=permon.write_handle, args=()))
+if cfg.IS_IO:
+    t.append(threading.Thread(target=permon.write_io, args=()))
+if cfg.IS_HANDLE:
+    t.append(threading.Thread(target=permon.write_handle, args=()))
 
 for i in range(2):
     t[i].start()
@@ -27,6 +29,8 @@ for i in range(2):
 @server.route('/startMonitor', methods=['get'])
 def startMonitor():
     try:
+        port = None
+        pids = ''
         is_run = int(request.args.get('isRun'))
         if is_run == 1 or is_run == 2:
             if permon.is_run == 1 or permon.is_run == 2:
@@ -35,10 +39,14 @@ def startMonitor():
         if is_run == 1:
             delete_database()
 
-        port = str(request.args.get('port'))
+        if request.args.get('type') == 'port':
+            port = port_to_pid(request.args.get('num'))
+            pids = ports_to_pids(port)
+        if request.args.get('type') == 'pid':
+            pid = request.args.get('num')
+            pids = pid.split(',')
         total_time = int(request.args.get('totalTime'))
         permon.total_time = total_time
-        pids = ports_to_pids(port)
         if isinstance(pids, str):
             return json.dumps({'code': -1, 'message': 'The pid of {} is not existed.'.format(pids)}, ensure_ascii=False)
         permon.pid = pids
