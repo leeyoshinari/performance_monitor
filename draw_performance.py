@@ -22,7 +22,6 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         cpu = []
         mem = []
         jvm = []
-        IO = []
         r_s = []
         w_s = []
         util = []
@@ -73,7 +72,7 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
         image_html = draw(cpu, [mem, jvm], [r_s, w_s, util, d_r, d_w, d_util], handles, end_time-start_time)
-        per_html = get_lines(cpu, IO)
+        per_html = get_lines(cpu, util)
         gc_html = get_gc(pid)
         html = cfg.HTML.format(cfg.HEADER.format(pid) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
 
@@ -123,15 +122,20 @@ def draw(cpu, mem, IO, handles, total_time):
 
     if cfg.IS_IO:
         plt.sca(ax3)
-        plt.plot(IO[0], color='r', label='rkB/s')
-        plt.plot(IO[1], color='b', label='wkB/s')
-        plt.plot(IO[2], color='g', label='%util')
+        plt.plot(IO[0], color='red', label='rkB/s')
+        plt.plot(IO[1], color='black', label='wkB/s')
         plt.legend()
         plt.grid()
         plt.xlim(0, len(IO[0]))
         plt.ylim(0, max([max(IO[0]), max(IO[1])]))
         plt.title('IO, duration:{:.1f}h'.format(np.floor(total_time / 360) / 10), size=12)
         plt.margins(0, 0)
+
+        ax_util = ax3.twinx()
+        plt.sca(ax_util)
+        plt.plot(IO[2], color='b', label='%util')
+        plt.legend()
+        plt.ylim(0, max(IO[2]))
 
     if cfg.IS_HANDLE:
         plt.sca(ax4)
@@ -151,16 +155,16 @@ def draw(cpu, mem, IO, handles, total_time):
     return html
 
 
-def get_lines(cpu, IO):
+def get_lines(cpu, util):
     cpu.sort()
-    IO.sort()
+    util.sort()
 
-    line75 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)])
-    line90 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.9)])
-    line95 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)])
-    line99 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)])
+    line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], util[int(len(util) * 0.75)])
+    line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.9)], util[int(len(util) * 0.9)])
+    line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], util[int(len(util) * 0.95)])
+    line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], util[int(len(util) * 0.99)])
 
-    htmls = '<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{}<br>90%:&nbsp&nbsp&nbsp&nbsp{}<br>95%:&nbsp&nbsp&nbsp&nbsp{}<br>99%:&nbsp&nbsp&nbsp&nbsp{}</p></div>'.format(line75, line90, line95, line99)
+    htmls = '<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:500px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{}<br>90%:&nbsp&nbsp&nbsp&nbsp{}<br>95%:&nbsp&nbsp&nbsp&nbsp{}<br>99%:&nbsp&nbsp&nbsp&nbsp{}</p></div>'.format(line75, line90, line95, line99)
 
     return htmls
 
