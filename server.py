@@ -14,6 +14,7 @@ from extern import port_to_pid, ports_to_pids
 server = Flask(__name__)
 permon = PerMon()
 
+# start multithreading
 t = []
 t.append(threading.Thread(target=permon.write_cpu_mem, args=()))
 if cfg.IS_IO:
@@ -25,7 +26,6 @@ for i in range(2):
     t[i].start()
 
 
-# 开始监控系统cpu和内存占用情况
 @server.route('/startMonitor', methods=['get'])
 def startMonitor():
     try:
@@ -40,7 +40,7 @@ def startMonitor():
             delete_database()
 
         if request.args.get('type') == 'port':
-            port = port_to_pid(request.args.get('num'))
+            port = request.args.get('num')
             pids = ports_to_pids(port)
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
@@ -59,7 +59,6 @@ def startMonitor():
         return cfg.HTML.format(html)
 
 
-# 停止监控
 @server.route('/stopMonitor', methods=['get'])
 def stopMonitor():
     try:
@@ -76,7 +75,6 @@ def stopMonitor():
         return cfg.HTML.format(html)
 
 
-# 获取性能监控的结果
 @server.route('/plotMonitor', methods=['get'])
 def plotMonitor():
     start_time = None
@@ -103,7 +101,6 @@ def plotMonitor():
         return cfg.HTML.format(htmls)
 
 
-# 删除性能监控的数据库表
 @server.route('/dropTable', methods=['get'])
 def dropTable():
     try:
@@ -115,4 +112,4 @@ def dropTable():
         return cfg.HTML.format(html)
 
 
-server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # 启动服务
+server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # run server

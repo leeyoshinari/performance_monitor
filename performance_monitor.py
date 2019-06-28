@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
+# Monitoring
 import os
 import pymysql
 import time
@@ -13,7 +14,7 @@ lock = threading.Lock()
 class PerMon(object):
     def __init__(self):
         self._is_run = 0
-        self.counter = 0
+        self.counter = 0    # Record the failure times of commands run error.
         self._pid = []
         self.db = None
         self.cursor = None
@@ -21,8 +22,8 @@ class PerMon(object):
         self.interval = int(cfg.INTERVAL)
         self.disk = cfg.DISK
 
-        self.cpu_cores = 0
-        self.total_mem = 0
+        self.cpu_cores = 0  # CPU core number
+        self.total_mem = 0  # total memory
 
         self.cpu = []
         self.mem = []
@@ -62,6 +63,9 @@ class PerMon(object):
         self._total_time = value + 200
 
     def connect_mysql(self):
+        """
+        Connecting MySQL, and create tables.
+        """
         if self.db is None:
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()
@@ -78,6 +82,9 @@ class PerMon(object):
         lock.release()
 
     def write_cpu_mem(self):
+        """
+        Monitoring CPU and memory.
+        """
         while True:
             if self._is_run == 1 or self._is_run == 2:
                 self.connect_mysql()
@@ -90,7 +97,7 @@ class PerMon(object):
                         if get_data_time - start_search_time > self.interval:
                             start_search_time = get_data_time
                             if self.counter > cfg.RUN_ERROR_TIMES:
-                                self._is_run = 0
+                                self._is_run = 0    # if the times of failure is larger than default, stop monitor.
                                 break
 
                             try:
@@ -112,10 +119,10 @@ class PerMon(object):
                                 continue
 
                     else:
-                        self._is_run = 0
+                        self._is_run = 0    # if the total time is up, stop monitor.
                         break
 
-                    if self._is_run == 0:
+                    if self._is_run == 0:   # if _is_run=0, stop monitor.
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -195,6 +202,10 @@ class PerMon(object):
                 time.sleep(cfg.SLEEPTIME)
 
     def get_cpu(self, pid):
+        """
+        Get CPU and Memory of specified PID. It uses `top`.
+        It returns CPU(%), and Memory(G).
+        """
         result = os.popen('top -n 1 -b |grep -P {} |tr -s " "'.format(pid)).readlines()[0]
         res = result.strip().split(' ')
 
@@ -208,6 +219,10 @@ class PerMon(object):
         return cpu, mem
 
     def get_mem(self, pid):
+        """
+        Get JVM of specified PID. It uese `jstat`.
+        It returns JVM(G).
+        """
         result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
         res = result.strip().split(' ')
 
@@ -216,6 +231,11 @@ class PerMon(object):
         return mem / 1024 / 1024
 
     def get_io(self, pid):
+        """
+        Get IO of specified PID. It uses `iotop`.
+        It returns IO(%).
+        """
+        # get rkB/s and wkB/s.
         result = os.popen('iotop -n 2 -d 1 -b -qqq -p {} -k |tr -s " "'.format(pid)).readlines()[-1]
         res = result.strip().split(' ')
 
@@ -228,12 +248,21 @@ class PerMon(object):
             writer = float(res[ind + 3])
             reader = float(res[ind + 5])
 
-        ratio_w = writer / disk_w * disk_util
-        ratio_r = reader / disk_r * disk_util
+        # IO of PID
+        try:
+            ratio_w = writer / disk_w * disk_util
+            ratio_r = reader / disk_r * disk_util
+        except Exception as err:
+            ratio_w = 0
+            ratio_r = 0
 
         return [reader, writer, disk_r, disk_w, disk_util, max(ratio_r, ratio_w)]
 
     def get_disk_io(self):
+        """
+        Get IO of disk. It uses `iostat`.
+        It returns disk_r(kB/s), disk_w(kB/s) and disk_util(%).
+        """
         result = os.popen('iostat -d -x -k {} 1 2 |tr -s " "'.format(self.disk)).readlines()
         res = [line for line in result if self.disk in line]
         disk_res = res[-1].strip().split(' ')
@@ -249,6 +278,10 @@ class PerMon(object):
         return disk_r, disk_w, disk_util
 
     def get_handle(self, pid):
+        """
+        Get handles of specified PID. It uses `lsof`.
+        It returns handles number.
+        """
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
         res = result[0].strip().split(' ')
         handles = None
@@ -258,16 +291,25 @@ class PerMon(object):
         return handles
 
     def get_cpu_cores(self):
+        """
+        Get CPU core number.
+        """
         result = os.popen('cat /proc/cpuinfo| grep "processor"| wc -l').readlines()[0]
 
         self.cpu_cores = int(result)
 
     def get_total_mem(self):
+        """
+        Ger total memory.
+        """
         result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
 
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
 
     def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles, dbname):
+        """
+        Write the data of monitoring into MySQL.
+        """
         if self.db is None:     # If MySQL connection is broken, reconnect.
             self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
             self.cursor = self.db.cursor()

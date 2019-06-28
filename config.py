@@ -16,7 +16,7 @@ MySQL_DATABASE = 'performance_monitor'
 # monitor config
 INTERVAL = 2
 RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.
-SLEEPTIME = 3   # Polling interval, when stopping monitor, polling to start monitor when satisfying condition.
+SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 
 IS_IO = True    # Whether monitoring IO
 IS_HANDLE = False   # Whether monitoring handles

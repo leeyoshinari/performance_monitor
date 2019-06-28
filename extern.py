@@ -18,6 +18,9 @@ def ports_to_pids(port):
 
 
 def port_to_pid(port):
+	"""
+	Get PID by port. It uses `netstat`.
+	"""
 	pid = None
 	try:
 		result = os.popen('netstat -nlp|grep {} |tr -s " "'.format(port)).readlines()
