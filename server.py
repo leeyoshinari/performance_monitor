@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
-# 启动命令 nohup python -u server.py > server.log 2>&1 &
+# Start command: nohup python -u server.py > server.log 2>&1 &
+# For more information, please read `README.md`.
+
 import json
 import traceback
 import threading
@@ -26,6 +28,8 @@ for i in range(2):
     t[i].start()
 
 
+# start monitor
+# http://127.0.0.1:5555/startMonitor?isRun=2&type=pid&num=23121&totalTime=3600
 @server.route('/startMonitor', methods=['get'])
 def startMonitor():
     try:
@@ -59,6 +63,8 @@ def startMonitor():
         return cfg.HTML.format(html)
 
 
+# stop monitor
+# http://127.0.0.1:5555/stopMonitor?isRun=0
 @server.route('/stopMonitor', methods=['get'])
 def stopMonitor():
     try:
@@ -75,6 +81,8 @@ def stopMonitor():
         return cfg.HTML.format(html)
 
 
+# plotting
+# http://127.0.0.1:5555/plotMonitor?type=pid&num=23121
 @server.route('/plotMonitor', methods=['get'])
 def plotMonitor():
     start_time = None
@@ -101,6 +109,8 @@ def plotMonitor():
         return cfg.HTML.format(htmls)
 
 
+# drop table from MySQL.
+# http://127.0.0.1:5555/dropTable
 @server.route('/dropTable', methods=['get'])
 def dropTable():
     try:

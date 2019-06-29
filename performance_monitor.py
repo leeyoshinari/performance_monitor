@@ -14,6 +14,7 @@ lock = threading.Lock()
 class PerMon(object):
     def __init__(self):
         self._is_run = 0
+        self.is_jar = cfg.IS_JAR
         self.counter = 0    # Record the failure times of commands run error.
         self._pid = []
         self.db = None
@@ -24,9 +25,6 @@ class PerMon(object):
 
         self.cpu_cores = 0  # CPU core number
         self.total_mem = 0  # total memory
-
-        self.cpu = []
-        self.mem = []
 
         self.mysql_ip = cfg.MySQL_IP
         self.mysql_username = cfg.MySQL_USERNAME
@@ -106,7 +104,10 @@ class PerMon(object):
                                     if cpu is None:
                                         continue
 
-                                    jvm = self.get_mem(pid)
+                                    if self.is_jar:
+                                        jvm = self.get_mem(pid)
+                                    else:
+                                        jvm = 0
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
                                     self.write_in_sql(search_time, pid, cpu, [mem, jvm], 0, 0, 'cpu_and_mem')
@@ -332,4 +333,3 @@ class PerMon(object):
 
     def __del__(self):
         pass
-

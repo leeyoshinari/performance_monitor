@@ -18,10 +18,11 @@ INTERVAL = 2
 RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.
 SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 
+IS_JAR = True   # Whether application is `.jar`.
 IS_IO = True    # Whether monitoring IO
 IS_HANDLE = False   # Whether monitoring handles
 
-DISK = 'sda3'   # Which disk your application runs.
+DISK = 'device1'   # Which disk your application runs.
 
 # html
 HTML = '<html><body>{}</body><html>'

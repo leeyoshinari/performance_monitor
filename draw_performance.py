@@ -120,8 +120,14 @@ def draw(cpu, mem, IO, handles, total_time):
 
     plt.sca(ax2)
     plt.plot(mem[0], color='r', label='Memory')
-    plt.plot(mem[1], color='b', label='JVM')
-    plt.legend(loc='upper right')
+
+    if cfg.IS_JAR:
+        plt.plot(mem[1], color='b', label='JVM')
+        plt.legend(loc='upper right')
+        plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), np.floor(total_time / 360) / 10), size=12)
+    else:
+        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), np.floor(total_time / 360) / 10), size=12)
+
     plt.grid()
     plt.xlim(0, len(mem[0]))
     plt.ylim(0, max(mem[0]) + 1)
@@ -136,7 +142,7 @@ def draw(cpu, mem, IO, handles, total_time):
         plt.grid()
         plt.xlim(0, len(IO[0]))
         plt.ylim(0, max(max(IO[0]), max(IO[1])))
-        plt.title('IO, duration:{:.1f}h'.format(np.floor(total_time / 360) / 10), size=12)
+        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[2]), np.floor(total_time / 360) / 10), size=12)
         plt.margins(0, 0)
 
         ax_util = ax3.twinx()
