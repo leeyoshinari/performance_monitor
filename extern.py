@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 import os
+from logger import logger
 
 
 def ports_to_pids(port):
@@ -25,12 +26,13 @@ def port_to_pid(port):
 	try:
 		result = os.popen('netstat -nlp|grep {} |tr -s " "'.format(port)).readlines()
 		res = [line.strip() for line in result if str(port) in line]
+		logger.logger.debug(res[0])
 		p = res[0].split(' ')
 		pp = p[3].split(':')[-1]
 		if str(port) == pp:
 			pid = p[-1].split('/')[0]
 	except Exception as err:
-		pass
+		logger.logger.error(err)
 
 	return pid
 

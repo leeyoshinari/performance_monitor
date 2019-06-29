@@ -8,7 +8,9 @@ import json
 import traceback
 import threading
 from flask import Flask, request
+
 import config as cfg
+from logger import logger
 from draw_performance import draw_data_from_mysql, delete_database
 from performance_monitor import PerMon
 from extern import port_to_pid, ports_to_pids
@@ -24,7 +26,7 @@ if cfg.IS_IO:
 if cfg.IS_HANDLE:
     t.append(threading.Thread(target=permon.write_handle, args=()))
 
-for i in range(2):
+for i in range(len(t)):
     t[i].start()
 
 
@@ -50,16 +52,18 @@ def startMonitor():
             pid = request.args.get('num')
             pids = pid.split(',')
         total_time = int(request.args.get('totalTime'))
-        permon.total_time = total_time
         if isinstance(pids, str):
-            return json.dumps({'code': -1, 'message': 'The pid of {} is not existed.'.format(pids)}, ensure_ascii=False)
+            return json.dumps({'code': -1, 'message': f'The pid of {pids} is not existed.'}, ensure_ascii=False)
         permon.pid = pids
+        permon.total_time = total_time
         permon.is_run = is_run
 
         res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time}}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
+        logger.logger.error(err)
+        logger.logger.error(traceback.format_exc())
         return cfg.HTML.format(html)
 
 
@@ -78,6 +82,8 @@ def stopMonitor():
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
+        logger.logger.error(err)
+        logger.logger.error(traceback.format_exc())
         return cfg.HTML.format(html)
 
 
@@ -106,6 +112,8 @@ def plotMonitor():
             return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
     except Exception as err:
         htmls = cfg.ERROR.format(traceback.format_exc())
+        logger.logger.error(err)
+        logger.logger.error(traceback.format_exc())
         return cfg.HTML.format(htmls)
 
 
@@ -119,6 +127,8 @@ def dropTable():
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
+        logger.logger.error(err)
+        logger.logger.error(traceback.format_exc())
         return cfg.HTML.format(html)
 
 

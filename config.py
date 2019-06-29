@@ -14,11 +14,11 @@ MySQL_PASSWORD = '123456'
 MySQL_DATABASE = 'performance_monitor'
 
 # monitor config
+LEVEL = 'DEBUG'
 INTERVAL = 2
 RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.
 SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 
-IS_JAR = True   # Whether application is `.jar`.
 IS_IO = True    # Whether monitoring IO
 IS_HANDLE = False   # Whether monitoring handles
 
@@ -28,4 +28,4 @@ DISK = 'device1'   # Which disk your application runs.
 HTML = '<html><body>{}</body><html>'
 ERROR = '<p style="color:red">{}</p>'
 HEADER = '<div id="header"><h2 align="center">Performance Monitor (pid={})</h2></div>'
-ANALYSIS = '<div id="container" style="width:630px; margin:0 auto">{}</div>'
+ANALYSIS = '<div id="container" style="width:730px; margin:0 auto">{}</div>'

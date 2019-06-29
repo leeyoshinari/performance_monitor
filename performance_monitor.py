@@ -7,6 +7,7 @@ import pymysql
 import time
 import threading
 import config as cfg
+from logger import logger
 
 lock = threading.Lock()
 
@@ -14,7 +15,6 @@ lock = threading.Lock()
 class PerMon(object):
     def __init__(self):
         self._is_run = 0
-        self.is_jar = cfg.IS_JAR
         self.counter = 0    # Record the failure times of commands run error.
         self._pid = []
         self.db = None
@@ -88,6 +88,7 @@ class PerMon(object):
                 self.connect_mysql()
                 self.start_time = time.time()
                 start_search_time = time.time()
+                logger.logger.info('Start monitor.')
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
@@ -96,6 +97,7 @@ class PerMon(object):
                             start_search_time = get_data_time
                             if self.counter > cfg.RUN_ERROR_TIMES:
                                 self._is_run = 0    # if the times of failure is larger than default, stop monitor.
+                                logger.logger.error('Stop monitor, because commands run error.')
                                 break
 
                             try:
@@ -104,10 +106,7 @@ class PerMon(object):
                                     if cpu is None:
                                         continue
 
-                                    if self.is_jar:
-                                        jvm = self.get_mem(pid)
-                                    else:
-                                        jvm = 0
+                                    jvm = self.get_mem(pid)
                                     search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
                                     self.write_in_sql(search_time, pid, cpu, [mem, jvm], 0, 0, 'cpu_and_mem')
@@ -115,15 +114,17 @@ class PerMon(object):
                                 self.counter = 0
 
                             except Exception as err:
-                                print('Error: cpu_and_mem {}.'.format(err))
+                                logger.logger.info(err)
                                 self.counter += 1
                                 continue
 
                     else:
                         self._is_run = 0    # if the total time is up, stop monitor.
+                        logger.logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0:   # if _is_run=0, stop monitor.
+                        logger.logger.info('Stop monitor.')
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -138,6 +139,7 @@ class PerMon(object):
                     if time.time() - self.start_time < self._total_time:
                         if self.counter > cfg.RUN_ERROR_TIMES:
                             self._is_run = 0
+                            logger.logger.error('Stop monitor, because commands run error.')
                             break
 
                         try:
@@ -151,15 +153,17 @@ class PerMon(object):
                             self.counter = 0
 
                         except Exception as err:
-                            print('Error: io {}.'.format(err))
+                            logger.logger.info(err)
                             self.counter += 1
                             continue
 
                     else:
                         self._is_run = 0
+                        logger.logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0:
+                        logger.logger.info('Stop monitor.')
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -173,6 +177,7 @@ class PerMon(object):
                 while True:
                     if time.time() - self.start_time < self._total_time:
                         if self.counter > cfg.RUN_ERROR_TIMES:
+                            logger.logger.error('Stop monitor, because commands run error.')
                             self._is_run = 0
                             break
 
@@ -189,15 +194,17 @@ class PerMon(object):
                             self.counter = 0
 
                         except Exception as err:
-                            print('Error:{}.'.format(err))
+                            logger.logger.info(err)
                             self.counter += 1
                             continue
 
                     else:
                         self._is_run = 0
+                        logger.logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0:
+                        logger.logger.info('Stop monitor.')
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -207,8 +214,9 @@ class PerMon(object):
         Get CPU and Memory of specified PID. It uses `top`.
         It returns CPU(%), and Memory(G).
         """
-        result = os.popen('top -n 1 -b |grep -P {} |tr -s " "'.format(pid)).readlines()[0]
+        result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()[-1]
         res = result.strip().split(' ')
+        logger.logger.debug(res)
 
         cpu = None
         mem = None
@@ -219,15 +227,20 @@ class PerMon(object):
 
         return cpu, mem
 
-    def get_mem(self, pid):
+    @staticmethod
+    def get_mem(pid):
         """
         Get JVM of specified PID. It uese `jstat`.
         It returns JVM(G).
         """
-        result = os.popen('jstat -gc {} |tr -s " "'.format(pid)).readlines()[1]
-        res = result.strip().split(' ')
-
-        mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
+        mem = 0
+        try:
+            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
+            res = result.strip().split(' ')
+            logger.logger.debug(res)
+            mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
+        except Exception as err:
+            logger.logger.error(err)
 
         return mem / 1024 / 1024
 
@@ -237,8 +250,9 @@ class PerMon(object):
         It returns IO(%).
         """
         # get rkB/s and wkB/s.
-        result = os.popen('iotop -n 2 -d 1 -b -qqq -p {} -k |tr -s " "'.format(pid)).readlines()[-1]
+        result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]
         res = result.strip().split(' ')
+        logger.logger.debug(res)
 
         disk_r, disk_w, disk_util = self.get_disk_io()
 
@@ -254,6 +268,7 @@ class PerMon(object):
             ratio_w = writer / disk_w * disk_util
             ratio_r = reader / disk_r * disk_util
         except Exception as err:
+            logger.logger.warning(err)
             ratio_w = 0
             ratio_r = 0
 
@@ -267,6 +282,7 @@ class PerMon(object):
         result = os.popen('iostat -d -x -k {} 1 2 |tr -s " "'.format(self.disk)).readlines()
         res = [line for line in result if self.disk in line]
         disk_res = res[-1].strip().split(' ')
+        logger.logger.debug(disk_res)
 
         disk_r = None
         disk_w = None
@@ -278,13 +294,15 @@ class PerMon(object):
 
         return disk_r, disk_w, disk_util
 
-    def get_handle(self, pid):
+    @staticmethod
+    def get_handle(pid):
         """
         Get handles of specified PID. It uses `lsof`.
         It returns handles number.
         """
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
         res = result[0].strip().split(' ')
+        logger.logger.debug(res)
         handles = None
         if str(pid) in res:
             handles = int(res[0])
@@ -299,6 +317,8 @@ class PerMon(object):
 
         self.cpu_cores = int(result)
 
+        logger.logger.info(f'CPU core number is {self.cpu_cores}')
+
     def get_total_mem(self):
         """
         Ger total memory.
@@ -306,6 +326,8 @@ class PerMon(object):
         result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
 
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
+
+        logger.logger.info(f'Total memory is {self.total_mem * 100}')
 
     def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles, dbname):
         """
@@ -316,18 +338,18 @@ class PerMon(object):
             self.cursor = self.db.cursor()
 
         if dbname == 'cpu_and_mem':
-            sql = "INSERT INTO {}(id, pid, time, cpu, mem, jvm) VALUES (default, {}, '{}', {}, {}, {});".format(dbname, pid, search_time, cpu, mem[0], mem[1])
+            sql = f"INSERT INTO {dbname}(id, pid, time, cpu, mem, jvm) VALUES (default, {pid}, '{search_time}', {cpu}, {mem[0]}, {mem[1]});"
         if dbname == 'io':
-            sql = "INSERT INTO {}(id, pid, time, r_s, w_s, util, d_r, d_w, d_util) VALUES (default, {}, '{}', {}, {}, {}, {}, {}, {});".format(dbname, pid, search_time, ioer[0], ioer[1], ioer[-1], ioer[2], ioer[3], ioer[4])
+            sql = f"INSERT INTO {dbname}(id, pid, time, r_s, w_s, util, d_r, d_w, d_util) VALUES (default, {pid}, '{search_time}', {ioer[0]}, {ioer[1]}, {ioer[-1]}, {ioer[2]}, {ioer[3]}, {ioer[4]});"
         if dbname == 'handles':
-            sql = "INSERT INTO {}(id, pid, time, handles) VALUES (default, {}, '{}', {});".format(dbname, pid, search_time, handles)
+            sql = f"INSERT INTO {dbname}(id, pid, time, handles) VALUES (default, {pid}, '{search_time}', {handles});"
 
         lock.acquire()
         try:
             self.cursor.execute(sql)
             self.db.commit()
         except Exception as err:
-            print(err)
+            logger.logger.error(err)
             self.db.rollback()
         lock.release()
 
