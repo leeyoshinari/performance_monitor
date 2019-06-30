@@ -139,20 +139,20 @@ def draw(cpu, mem, IO, handles, total_time):
 
     if cfg.IS_IO:
         plt.sca(ax3)
-        plt.plot(IO[0], color='red', label='rkB/s')
-        plt.plot(IO[1], color='black', label='wkB/s')
+        plt.plot(IO[3], color='red', label='rkB/s')
+        plt.plot(IO[4], color='black', label='wkB/s')
         plt.legend(loc='upper left')
         plt.grid()
-        plt.xlim(0, len(IO[0]))
-        plt.ylim(0, max(max(IO[0]), max(IO[1])))
-        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[2]), np.floor(total_time / 360) / 10), size=12)
+        plt.xlim(0, len(IO[3]))
+        plt.ylim(0, max(max(IO[3]), max(IO[4])))
+        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), np.floor(total_time / 360) / 10), size=12)
         plt.margins(0, 0)
 
         ax_util = ax3.twinx()
         plt.sca(ax_util)
-        plt.plot(IO[2], color='b', label='%util')
+        plt.plot(IO[5], color='b', label='%util')
         plt.legend(loc='upper right')
-        plt.ylim(0, max(IO[2]))
+        plt.ylim(0, max(IO[5]))
 
     if cfg.IS_HANDLE:
         plt.sca(ax4)

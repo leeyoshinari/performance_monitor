@@ -277,10 +277,14 @@ class PerMon(object):
         # IO of PID
         try:
             ratio_w = writer / disk_w * disk_util
-            ratio_r = reader / disk_r * disk_util
         except Exception as err:
             logger.logger.warning(err)
             ratio_w = 0
+
+        try:
+            ratio_r = reader / disk_r * disk_util
+        except Exception as err:
+            logger.logger.warning(err)
             ratio_r = 0
 
         return [reader, writer, disk_r, disk_w, disk_util, max(ratio_r, ratio_w)]

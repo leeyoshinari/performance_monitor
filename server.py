@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
-# Start command: nohup python -u server.py > server.log 2>&1 &
+# Start command: nohup python server.py &
 # For more information, please read `README.md`.
 
 import json
