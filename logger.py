@@ -12,6 +12,9 @@ class logger(object):
 	LEVEL = cfg.LEVEL
 	log_path = 'logs'
 
+	if not os.path.exists(log_path):
+		os.mkdir(log_path)
+
 	"""
 	mode=1: 日志按文件大小切分，默认大小为10M，默认保存最近10个日志；
 	mode=2: 日志按时间切分，默认为按天切分，默认保存最近10个日志；

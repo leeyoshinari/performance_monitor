@@ -3,9 +3,9 @@
 # Author: leeyoshinari
 # Monitoring
 import os
-import pymysql
 import time
 import threading
+import pymysql
 import config as cfg
 from logger import logger
 
@@ -15,7 +15,9 @@ lock = threading.Lock()
 class PerMon(object):
     def __init__(self):
         self._is_run = 0
-        self.counter = 0    # Record the failure times of commands run error.
+        self.cm_counter = 0    # Record the failure times of commands run error.
+        self.io_counter = 0
+        self.handle_counter = 0
         self._pid = []
         self.db = None
         self.cursor = None
@@ -95,9 +97,10 @@ class PerMon(object):
                         get_data_time = time.time()
                         if get_data_time - start_search_time > self.interval:
                             start_search_time = get_data_time
-                            if self.counter > cfg.RUN_ERROR_TIMES:
+                            if self.cm_counter > cfg.RUN_ERROR_TIMES:
                                 self._is_run = 0    # if the times of failure is larger than default, stop monitor.
                                 logger.logger.error('Stop monitor, because commands run error.')
+                                self.cm_counter = 0
                                 break
 
                             try:
@@ -111,20 +114,22 @@ class PerMon(object):
 
                                     self.write_in_sql(search_time, pid, cpu, [mem, jvm], 0, 0, 'cpu_and_mem')
 
-                                self.counter = 0
+                                self.cm_counter = 0
 
                             except Exception as err:
-                                logger.logger.info(err)
-                                self.counter += 1
+                                logger.logger.error(err)
+                                self.cm_counter += 1
                                 continue
 
                     else:
                         self._is_run = 0    # if the total time is up, stop monitor.
                         logger.logger.info('Stop monitor, because total time is up.')
+                        self.cm_counter = 0
                         break
 
                     if self._is_run == 0:   # if _is_run=0, stop monitor.
                         logger.logger.info('Stop monitor.')
+                        self.cm_counter = 0
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -137,9 +142,10 @@ class PerMon(object):
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
-                        if self.counter > cfg.RUN_ERROR_TIMES:
+                        if self.io_counter > cfg.RUN_ERROR_TIMES:
                             self._is_run = 0
                             logger.logger.error('Stop monitor, because commands run error.')
+                            self.io_counter = 0
                             break
 
                         try:
@@ -150,20 +156,22 @@ class PerMon(object):
 
                                 self.write_in_sql(io_time, ipid, 0, 0, ioer, 0, 'io')
 
-                            self.counter = 0
+                            self.io_counter = 0
 
                         except Exception as err:
-                            logger.logger.info(err)
-                            self.counter += 1
+                            logger.logger.error(err)
+                            self.io_counter += 1
                             continue
 
                     else:
                         self._is_run = 0
                         logger.logger.info('Stop monitor, because total time is up.')
+                        self.io_counter = 0
                         break
 
                     if self._is_run == 0:
                         logger.logger.info('Stop monitor.')
+                        self.io_counter = 0
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -176,9 +184,10 @@ class PerMon(object):
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
-                        if self.counter > cfg.RUN_ERROR_TIMES:
+                        if self.handle_counter > cfg.RUN_ERROR_TIMES:
                             logger.logger.error('Stop monitor, because commands run error.')
                             self._is_run = 0
+                            self.handle_counter = 0
                             break
 
                         try:
@@ -191,20 +200,22 @@ class PerMon(object):
 
                                 self.write_in_sql(handle_time, hpid, 0, 0, 0, handles, 'handles')
 
-                            self.counter = 0
+                            self.handle_counter = 0
 
                         except Exception as err:
                             logger.logger.info(err)
-                            self.counter += 1
+                            self.handle_counter += 1
                             continue
 
                     else:
                         self._is_run = 0
                         logger.logger.info('Stop monitor, because total time is up.')
+                        self.handle_counter = 0
                         break
 
                     if self._is_run == 0:
                         logger.logger.info('Stop monitor.')
+                        self.handle_counter = 0
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -240,7 +251,7 @@ class PerMon(object):
             logger.logger.debug(res)
             mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
         except Exception as err:
-            logger.logger.error(err)
+            logger.logger.info(err)
 
         return mem / 1024 / 1024
 
@@ -279,18 +290,22 @@ class PerMon(object):
         Get IO of disk. It uses `iostat`.
         It returns disk_r(kB/s), disk_w(kB/s) and disk_util(%).
         """
-        result = os.popen('iostat -d -x -k {} 1 2 |tr -s " "'.format(self.disk)).readlines()
-        res = [line for line in result if self.disk in line]
-        disk_res = res[-1].strip().split(' ')
-        logger.logger.debug(disk_res)
-
         disk_r = None
         disk_w = None
         disk_util = None
-        if self.disk in disk_res:
-            disk_r = float(disk_res[5])
-            disk_w = float(disk_res[6])
-            disk_util = float(disk_res[-1])
+        try:
+            result = os.popen('iostat -d -x -k {} 1 2 |tr -s " "'.format(self.disk)).readlines()
+            res = [line for line in result if self.disk in line]
+            disk_res = res[-1].strip().split(' ')
+            logger.logger.debug(disk_res)
+
+            if self.disk in disk_res:
+                disk_r = float(disk_res[5])
+                disk_w = float(disk_res[6])
+                disk_util = float(disk_res[-1])
+
+        except Exception as err:
+            logger.logger.error(err)
 
         return disk_r, disk_w, disk_util
 
