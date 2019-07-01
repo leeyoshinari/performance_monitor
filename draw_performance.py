@@ -139,8 +139,8 @@ def draw(cpu, mem, IO, handles, total_time):
 
     if cfg.IS_IO:
         plt.sca(ax3)
-        plt.plot(IO[3], color='red', label='rkB/s')
-        plt.plot(IO[4], color='black', label='wkB/s')
+        plt.plot(IO[3], color='black', label='rkB/s')
+        plt.plot(IO[4], color='red', label='wkB/s')
         plt.legend(loc='upper left')
         plt.grid()
         plt.xlim(0, len(IO[3]))
@@ -177,15 +177,14 @@ def get_lines(cpu, util, dutil):
     Percentile.
     """
     cpu.sort()
-    util.sort()
     dutil.sort()
 
     if cfg.IS_IO:
-        line75 = 'CPU: {:.2f}%, util: {:.2f}%, dutil: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], util[int(len(util) * 0.75)], dutil[int(len(dutil) * 0.75)])
-        line90 = 'CPU: {:.2f}%, util: {:.2f}%, dutil: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], util[int(len(util) * 0.90)], dutil[int(len(dutil) * 0.90)])
-        line95 = 'CPU: {:.2f}%, util: {:.2f}%, dutil: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], util[int(len(util) * 0.95)], dutil[int(len(dutil) * 0.95)])
-        line99 = 'CPU: {:.2f}%, util: {:.2f}%, dutil: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], util[int(len(util) * 0.99)], dutil[int(len(dutil) * 0.99)])
-        htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:400px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
+        line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
+        line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
+        line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
+        line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
+        htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
     else:
         line75 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)])
         line90 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)])
