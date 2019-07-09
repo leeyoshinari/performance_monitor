@@ -4,34 +4,25 @@
 # Monitoring
 import os
 import time
-import threading
-import pymysql
+import traceback
 import config as cfg
 from logger import logger
-
-lock = threading.Lock()
+from extern import ports_to_pids
 
 
 class PerMon(object):
     def __init__(self):
         self._is_run = 0
-        self.cm_counter = 0    # Record the failure times of commands run error.
-        self.io_counter = 0
-        self.handle_counter = 0
         self._pid = []
+        self._port = []
         self.db = None
         self.cursor = None
-        self._total_time = 0
+        self._total_time = 66666666
         self.interval = int(cfg.INTERVAL)
         self.disk = cfg.DISK
 
         self.cpu_cores = 0  # CPU core number
         self.total_mem = 0  # total memory
-
-        self.mysql_ip = cfg.MySQL_IP
-        self.mysql_username = cfg.MySQL_USERNAME
-        self.mysql_password = cfg.MySQL_PASSWORD
-        self.database_name = cfg.MySQL_DATABASE
 
         self.get_cpu_cores()
         self.get_total_mem()
@@ -55,53 +46,41 @@ class PerMon(object):
         self._pid = value
 
     @property
+    def port(self):
+        return self._port
+
+    @port.setter
+    def port(self, value):
+        self._port = value
+
+    @property
     def total_time(self):
         return self._total_time
 
     @total_time.setter
     def total_time(self, value):
-        self._total_time = value + 200
-
-    def connect_mysql(self):
-        """
-        Connecting MySQL, and create tables.
-        """
-        if self.db is None:
-            self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
-            self.cursor = self.db.cursor()
-
-        cpu_and_mem_sql = 'CREATE TABLE IF NOT EXISTS cpu_and_mem (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, cpu FLOAT, mem FLOAT, jvm FLOAT);'
-        io_sql = 'CREATE TABLE IF NOT EXISTS io (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, r_s FLOAT, w_s FLOAT, util FLOAT, d_r FLOAT, d_w FLOAT, d_util FLOAT);'
-        handle_sql = 'CREATE TABLE IF NOT EXISTS handles (id INT NOT NULL PRIMARY KEY auto_increment, pid INT, time DATETIME, handles FLOAT);'
-
-        lock.acquire()
-        self.cursor.execute(cpu_and_mem_sql)
-        self.cursor.execute(io_sql)
-        self.cursor.execute(handle_sql)
-        self.db.commit()
-        lock.release()
+        if value:
+            self._total_time = value + 60
 
     def write_cpu_mem(self):
         """
         Monitoring CPU and memory.
         """
         while True:
-            if self._is_run == 1 or self._is_run == 2:
-                self.connect_mysql()
+            if self._is_run == 1:
                 self.start_time = time.time()
                 start_search_time = time.time()
-                logger.logger.info('Start monitor.')
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
                         get_data_time = time.time()
                         if get_data_time - start_search_time > self.interval:
                             start_search_time = get_data_time
-                            if self.cm_counter > cfg.RUN_ERROR_TIMES:
+                            '''if self.cm_counter > cfg.RUN_ERROR_TIMES:
                                 self._is_run = 0    # if the times of failure is larger than default, stop monitor.
                                 logger.logger.error('Stop monitor, because commands run error.')
                                 self.cm_counter = 0
-                                break
+                                break'''
 
                             try:
                                 for pid in self._pid:
@@ -110,85 +89,80 @@ class PerMon(object):
                                         continue
 
                                     jvm = self.get_mem(pid)
-                                    search_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                    self.write_in_sql(search_time, pid, cpu, [mem, jvm], 0, 0, 'cpu_and_mem')
-
-                                self.cm_counter = 0
+                                    logger.logger.info(f'cpu_and_mem: {pid},{cpu},{mem},{jvm}')
 
                             except Exception as err:
-                                logger.logger.error(err)
-                                self.cm_counter += 1
+                                logger.logger.error(traceback.format_exc())
+                                time.sleep(cfg.SLEEPTIME)
+
+                                pid_transfor = ports_to_pids(self._port)
+                                if pid_transfor:
+                                    if isinstance(pid_transfor, str):
+                                        logger.logger.error(f'The pid of {pid_transfor} is not existed.')
+                                    elif isinstance(pid_transfor, list):
+                                        self._pid = pid_transfor
+
                                 continue
 
                     else:
                         self._is_run = 0    # if the total time is up, stop monitor.
                         logger.logger.info('Stop monitor, because total time is up.')
-                        self.cm_counter = 0
                         break
 
                     if self._is_run == 0:   # if _is_run=0, stop monitor.
                         logger.logger.info('Stop monitor.')
-                        self.cm_counter = 0
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
 
     def write_io(self):
         while True:
-            if self._is_run == 1 or self._is_run == 2:
-                self.connect_mysql()
+            if self._is_run == 1:
                 self.start_time = time.time()
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
-                        if self.io_counter > cfg.RUN_ERROR_TIMES:
+                        '''if self.io_counter > cfg.RUN_ERROR_TIMES:
                             self._is_run = 0
                             logger.logger.error('Stop monitor, because commands run error.')
                             self.io_counter = 0
-                            break
+                            break'''
 
                         try:
                             for ipid in self._pid:
                                 ioer = self.get_io(ipid)
 
-                                io_time = time.strftime('%Y-%m-%d %H:%M:%S')
-
-                                self.write_in_sql(io_time, ipid, 0, 0, ioer, 0, 'io')
-
-                            self.io_counter = 0
+                                logger.logger.info(f'r_w_util: {ipid},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
 
                         except Exception as err:
-                            logger.logger.error(err)
-                            self.io_counter += 1
+                            logger.logger.error(traceback.format_exc())
+                            time.sleep(cfg.SLEEPTIME)
                             continue
 
                     else:
                         self._is_run = 0
                         logger.logger.info('Stop monitor, because total time is up.')
-                        self.io_counter = 0
                         break
 
                     if self._is_run == 0:
-                        logger.logger.info('Stop monitor.')
-                        self.io_counter = 0
+                        # logger.logger.info('Stop monitor.')
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
 
     def write_handle(self):
         while True:
-            if self._is_run == 1 or self._is_run == 2:
-                self.connect_mysql()
+            if self._is_run == 1:
                 self.start_time = time.time()
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
-                        if self.handle_counter > cfg.RUN_ERROR_TIMES:
+                        '''if self.handle_counter > cfg.RUN_ERROR_TIMES:
                             logger.logger.error('Stop monitor, because commands run error.')
                             self._is_run = 0
                             self.handle_counter = 0
-                            break
+                            break'''
 
                         try:
                             for hpid in self._pid:
@@ -196,26 +170,20 @@ class PerMon(object):
                                 if handles is None:
                                     continue
 
-                                handle_time = time.strftime('%Y-%m-%d %H:%M:%S')
-
-                                self.write_in_sql(handle_time, hpid, 0, 0, 0, handles, 'handles')
-
-                            self.handle_counter = 0
+                                logger.logger.info(f'handles: {hpid},{handles}')
 
                         except Exception as err:
-                            logger.logger.info(err)
-                            self.handle_counter += 1
+                            logger.logger.info(traceback.format_exc())
+                            time.sleep(cfg.SLEEPTIME)
                             continue
 
                     else:
                         self._is_run = 0
                         logger.logger.info('Stop monitor, because total time is up.')
-                        self.handle_counter = 0
                         break
 
                     if self._is_run == 0:
-                        logger.logger.info('Stop monitor.')
-                        self.handle_counter = 0
+                        # logger.logger.info('Stop monitor.')
                         break
             else:
                 time.sleep(cfg.SLEEPTIME)
@@ -347,30 +315,6 @@ class PerMon(object):
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
 
         logger.logger.info(f'Total memory is {self.total_mem * 100}')
-
-    def write_in_sql(self, search_time, pid, cpu, mem, ioer, handles, dbname):
-        """
-        Write the data of monitoring into MySQL.
-        """
-        if self.db is None:     # If MySQL connection is broken, reconnect.
-            self.db = pymysql.connect(self.mysql_ip, self.mysql_username, self.mysql_password, self.database_name)
-            self.cursor = self.db.cursor()
-
-        if dbname == 'cpu_and_mem':
-            sql = f"INSERT INTO {dbname}(id, pid, time, cpu, mem, jvm) VALUES (default, {pid}, '{search_time}', {cpu}, {mem[0]}, {mem[1]});"
-        if dbname == 'io':
-            sql = f"INSERT INTO {dbname}(id, pid, time, r_s, w_s, util, d_r, d_w, d_util) VALUES (default, {pid}, '{search_time}', {ioer[0]}, {ioer[1]}, {ioer[-1]}, {ioer[2]}, {ioer[3]}, {ioer[4]});"
-        if dbname == 'handles':
-            sql = f"INSERT INTO {dbname}(id, pid, time, handles) VALUES (default, {pid}, '{search_time}', {handles});"
-
-        lock.acquire()
-        try:
-            self.cursor.execute(sql)
-            self.db.commit()
-        except Exception as err:
-            logger.logger.error(err)
-            self.db.rollback()
-        lock.release()
 
     def __del__(self):
         pass

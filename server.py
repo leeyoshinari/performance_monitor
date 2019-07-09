@@ -4,6 +4,7 @@
 # Start command: nohup python server.py &
 # For more information, please read `README.md`.
 
+import time
 import json
 import traceback
 import threading
@@ -11,7 +12,7 @@ from flask import Flask, request
 
 import config as cfg
 from logger import logger
-from draw_performance import draw_data_from_mysql, delete_database
+from draw_performance import draw_data_from_mysql
 from performance_monitor import PerMon
 from extern import port_to_pid, ports_to_pids
 
@@ -19,8 +20,7 @@ server = Flask(__name__)
 permon = PerMon()
 
 # start multithreading
-t = []
-t.append(threading.Thread(target=permon.write_cpu_mem, args=()))
+t = [threading.Thread(target=permon.write_cpu_mem, args=())]
 if cfg.IS_IO:
     t.append(threading.Thread(target=permon.write_io, args=()))
 if cfg.IS_HANDLE:
@@ -32,53 +32,42 @@ for i in range(len(t)):
 
 # start monitor
 # http://127.0.0.1:5555/startMonitor?isRun=2&type=pid&num=23121&totalTime=3600
-@server.route('/startMonitor', methods=['get'])
-def startMonitor():
+@server.route('/runMonitor', methods=['get'])
+def runMonitor():
     try:
         port = None
         pids = ''
+        ports = []
         is_run = int(request.args.get('isRun'))
-        if is_run == 1 or is_run == 2:
-            if permon.is_run == 1 or permon.is_run == 2:
-                return json.dumps({'code': -1, 'message': 'Please stop monitor first.'}, ensure_ascii=False)
+        if is_run == 0:
+            permon.is_run = 0
+            return json.dumps({'code': 0, 'message': 'Success.'}, ensure_ascii=False)
 
         if is_run == 1:
-            delete_database()
+            if permon.is_run == 1:
+                return json.dumps({'code': -1, 'message': 'Please stop monitor first.'}, ensure_ascii=False)
 
         if request.args.get('type') == 'port':
             port = request.args.get('num')
-            pids = ports_to_pids(port)
+            ports = port.split(',')
+            pids = ports_to_pids(ports)
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
             pids = pid.split(',')
         total_time = int(request.args.get('totalTime'))
         if isinstance(pids, str):
             return json.dumps({'code': -1, 'message': f'The pid of {pids} is not existed.'}, ensure_ascii=False)
+
         permon.pid = pids
+        permon.port = ports
         permon.total_time = total_time
         permon.is_run = is_run
+        logger.logger.info('Start monitor.')
 
-        res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time}}
-        return json.dumps(res, ensure_ascii=False)
-    except Exception as err:
-        html = cfg.ERROR.format(traceback.format_exc())
-        logger.logger.error(err)
-        logger.logger.error(traceback.format_exc())
-        return cfg.HTML.format(html)
+        with open('startTime.txt', 'a') as f:
+            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + '\n')
 
-
-# stop monitor
-# http://127.0.0.1:5555/stopMonitor?isRun=0
-@server.route('/stopMonitor', methods=['get'])
-def stopMonitor():
-    try:
-        is_run = int(request.args.get('isRun'))
-        if is_run == 0:
-            permon.is_run = is_run
-            res = {'code': 0, 'message': 'success'}
-        else:
-            res = {'code': -1, 'message': 'isRun must be 0'}
-
+        res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time, 'startTime': time.strftime('%Y-%m-%d %H:%M:%S')}}
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
@@ -115,21 +104,6 @@ def plotMonitor():
         logger.logger.error(err)
         logger.logger.error(traceback.format_exc())
         return cfg.HTML.format(htmls)
-
-
-# drop table from MySQL.
-# http://127.0.0.1:5555/dropTable
-@server.route('/dropTable', methods=['get'])
-def dropTable():
-    try:
-        delete_database()
-        res = {'code': 0, 'message': 'success'}
-        return json.dumps(res, ensure_ascii=False)
-    except Exception as err:
-        html = cfg.ERROR.format(traceback.format_exc())
-        logger.logger.error(err)
-        logger.logger.error(traceback.format_exc())
-        return cfg.HTML.format(html)
 
 
 server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # run server

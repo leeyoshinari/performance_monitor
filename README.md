@@ -1,51 +1,40 @@
 # performace_monitor
 Continuously monitor the value of CPU, memory, IO and handles of the specified port or PID in the Linux system.
-Monitor can be started or stopped at any time. And save the monitoring results to the MySQL database. And plotting them.
+Monitor can be started or stopped at any time. And plotting them.
 
 ## Usage
 1. Clone performance_monitor repository
    ```shell
    git clone https://github.com/leeyoshinari/performance_monitor.git
-   
    cd performance_monitor
    ```
 
 2. Modify `config.py`.
-
-3. Create database, named `MySQL_DATABASE` that you set in `config.py`.
    
-4. Ensure which disk your application runs, or which disk your application reads and writes. And then, set the name of disk into `config.py`.
+3. Ensure which disk your application runs, or which disk your application reads and writes. And then, set the name of disk into `config.py`.
 
-5. Run
+4. Run
    ```shell
    python3 server.py
    ```
    or
    ```shell
-   nohup python3 -u server.py > server.log 2>&1 &
+   nohup python3 server.py &
    ```
 
-6. Start monitor<br>
-   Enter `http://ip:port/startMonitor?isRun=1&type=pid&num=123,456&totalTime=3600` in your browser<br>
+5. Start monitor<br>
+   Enter `http://ip:port/runMonitor?isRun=1&type=pid&num=123,456&totalTime=3600` in your browser<br>
    param:<br>
-   &emsp;&emsp;`isRun=0`: stop monitor; `isRun=1`: start monitor with clear database; `isRun=2`: start monitor without clear database.<br>
+   &emsp;&emsp;`isRun=0`: stop monitor; `isRun=1`: start monitor.<br>
    &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid. The `num` can be specified one or more.<br>
    &emsp;&emsp;&emsp;&emsp;&emsp;example: `num=1234` or `num=1234,5678`<br>
-   &emsp;&emsp;`totalTime`:the total time of monitoring. It's second.
-
-7. Stop monitor<br>
-   Enter `http://ip:port/stopMonitor?isRun=0` in your browser<br>
-   param:<br>
-   &emsp;&emsp;`isRun=0`: stop monitor
+   &emsp;&emsp;`totalTime`: the total time of monitoring. It's second. If `totalTime` is null, it will always monitor.
    
-8. Plotting<br>
+6. Plotting<br>
    Enter `http://ip:port/plotMonitor?type=pid&num=1234&startTime=2019-05-21 08:08:08&duration=3600` in your browser<br>
    param:<br>
    &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid.<br>
-   &emsp;&emsp;`startTime` and `duration` are optional parameters, if you plot all time, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`.
-
-9. dropTable<br>
-   Enter `http://ip:port/dropTable` in your browser. It drops the table that store the data of monitoring.
+   &emsp;&emsp;`startTime` and `duration` are optional parameters, if you plot last monitor, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`. `startTime` must be accurate, if you're not sure it, please see `startTime.txt` or logs.
 
 ## Note
 1. Your Linux must support the `jstat`, `top`, `iotop`, `iostat` and `lsof` commands, if not, please install them.
@@ -54,5 +43,4 @@ Monitor can be started or stopped at any time. And save the monitoring results t
 
 ## Requirements
 1. flask
-2. pymysql
-3. matplotlib
+2. matplotlib

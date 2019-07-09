@@ -9,7 +9,8 @@ import config as cfg
 
 class logger(object):
 	LEVEL = cfg.LEVEL
-	log_path = 'logs'
+	backupcount = cfg.BACKUP_COUNT
+	log_path = cfg.LOg_PATH
 
 	if not os.path.exists(log_path):
 		os.mkdir(log_path)
@@ -26,7 +27,7 @@ class logger(object):
 	formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s[line:%(lineno)d] - %(message)s')
 	logger.setLevel(level=log_level.get(LEVEL))
 
-	file_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(log_path, 'monitor.log'), when='D', interval=1, backupCount=10)
+	file_handler = logging.handlers.TimedRotatingFileHandler(os.path.join(log_path, 'monitor.log'), when='midnight', interval=1, backupCount=backupcount)
 	file_handler.suffix = '%Y-%m-%d.log'
 
 	# file_handler = logging.StreamHandler()

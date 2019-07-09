@@ -6,16 +6,12 @@
 IP = '127.0.0.1'
 PORT = '5555'
 
-# MySQL server
-MySQL_IP = '127.0.0.1'
-MySQL_PORT = '3306'
-MySQL_USERNAME = 'root'
-MySQL_PASSWORD = '123456'
-MySQL_DATABASE = 'performance_monitor'
-
 # monitor config
-LEVEL = 'DEBUG'
-INTERVAL = 2
+LEVEL = 'INFO'  # log level
+BACKUP_COUNT = 7    # log backup counter
+LOg_PATH = 'logs'   # log path
+
+INTERVAL = 0.5
 RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.
 SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 

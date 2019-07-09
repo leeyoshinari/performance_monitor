@@ -4,15 +4,16 @@
 import os
 import base64
 import time
+import glob
 import traceback
 import datetime
-import pymysql
 import numpy as np
 import matplotlib.pyplot as plt
 from io import BytesIO
 
 import config as cfg
 from logger import logger
+from extern import read_data_from_logs
 
 
 def draw_data_from_mysql(pid, start_time=None, duration=None):
@@ -20,9 +21,6 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
     Read data from MySQL.
     Return html included plotting, and data.
     """
-    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)  # connect MySQL
-    cursor = db.cursor()
-
     try:
         c_time = []
         cpu = []
@@ -34,61 +32,55 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         d_r = []
         d_w = []
         d_util = []
-        handles = []
-        if start_time and duration:
-            seconds = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple()) + duration
-            end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(seconds))
-            cpu_sql = "SELECT time, cpu, mem, jvm FROM cpu_and_mem WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-            io_sql = "SELECT time, r_s, w_s, util, d_r, d_w, d_util FROM io WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-            h_sql = "SELECT time, handles FROM handles WHERE pid={} and time>'{}' and time<'{}';".format(pid, start_time, end_time)
-        else:
-            cpu_sql = "SELECT time, cpu, mem, jvm FROM cpu_and_mem WHERE pid={};".format(pid)
-            io_sql = "SELECT time, r_s, w_s, util, d_r, d_w, d_util FROM io WHERE pid={};".format(pid)
-            h_sql = "SELECT time, handles FROM handles WHERE pid={};".format(pid)
+        handle = []
 
-        cursor.execute(cpu_sql)
-        result = cursor.fetchall()
-        for i in range(len(result)):
-            if result[i][0]:
-                c_time.append(result[i][0])
-                cpu.append(result[i][1])
-                mem.append(result[i][2])
-                jvm.append(result[i][3])
+        logs = glob.glob(cfg.LOg_PATH + '/*.log')
+
+        if start_time and duration:
+            startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
+            endTime = startTime + duration
+            result = read_data_from_logs(logs, startTime, endTime)
+        else:
+            result = read_data_from_logs(logs)
+
+        cpu_and_mem = result['cpu_and_mem']
+        for i in range(len(cpu_and_mem)):
+            if str(pid) in cpu_and_mem[i]:
+                c_time.append(cpu_and_mem[i][0:19])
+                res = cpu_and_mem[i].split(',')
+                cpu.append(res[-3])
+                mem.append(res[-2])
+                jvm.append(res[-1])
 
         if cfg.IS_IO:
-            cursor.execute(io_sql)
-            result = cursor.fetchall()
-            for i in range(len(result)):
-                if result[i][0]:
-                    r_s.append(result[i][1])
-                    w_s.append(result[i][2])
-                    util.append(result[i][3])
-                    d_r.append(result[i][4])
-                    d_w.append(result[i][5])
-                    d_util.append(result[i][6])
+            r_w_util = result['r_w_util']
+            for i in range(len(r_w_util)):
+                if str(pid) in r_w_util[i]:
+                    res = r_w_util[i].split(',')
+                    r_s.append(res[-6])
+                    w_s.append(res[-5])
+                    util.append(res[-4])
+                    d_r.append(res[-3])
+                    d_w.append(res[-2])
+                    d_util.append(res[-1])
 
         if cfg.IS_HANDLE:
-            cursor.execute(h_sql)
-            result = cursor.fetchall()
-            for i in range(len(result)):
-                if result[i][0]:
-                    handles.append(result[i][1])
+            handles = result['handles']
+            for i in range(len(handles)):
+                if str(pid) in handles[i]:
+                    res = handles[i].split(',')
+                    handle.append(res[-1])
 
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
-        image_html = draw(cpu, [mem, jvm], [r_s, w_s, util, d_r, d_w, d_util], handles, end_time-start_time)
+        image_html = draw(cpu, [mem, jvm], [r_s, w_s, util, d_r, d_w, d_util], handle, end_time-start_time)
         per_html = get_lines(cpu, util, d_util)
         gc_html = get_gc(pid)
         html = cfg.HTML.format(cfg.HEADER.format(pid) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
 
-        cursor.close()
-        db.close()
-
         return html
     except Exception as err:
-        cursor.close()
-        db.close()
         logger.logger.error(err)
         logger.logger.error(traceback.format_exc())
         raise Exception(traceback.format_exc())
@@ -226,22 +218,3 @@ def get_gc(pid):
     htmls = f'<div id="GC" style="float:left; background-color:#CC6633; height:200px; width:300px"><h3 align="center">GC</h3><p align="center">YGC:&nbsp{ygc}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspYGCT:&nbsp{ygct}s<br>FGC:&nbsp{fgc}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspFGCT:&nbsp{fgct}s<br>Frequence of YGC:&nbsp{fygc:.2f}s<br>Frequence of FGC:&nbsp{ffgc:.2f}s</p></div>'
 
     return htmls
-
-
-def delete_database():
-    """
-    Delete tables from Mysql.
-    """
-    db = pymysql.connect(cfg.MySQL_IP, cfg.MySQL_USERNAME, cfg.MySQL_PASSWORD, cfg.MySQL_DATABASE)
-    cursor = db.cursor()
-    try:
-        for table in ['cpu_and_mem', 'io', 'handles']:
-            sql = f"DROP TABLE {table};"
-            cursor.execute(sql)
-        cursor.close()
-        db.close()
-    except Exception as err:
-        cursor.close()
-        db.close()
-        logger.logger.error(err)
-        raise Exception(traceback.format_exc())
