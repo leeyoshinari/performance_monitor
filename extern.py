@@ -110,12 +110,13 @@ def get_logs(logs, startTime=None, endTime=None):
 			for i in range(total_lines):
 				if 'Start monitor' in lines[total_lines - i - 1]:
 					startIndex = total_lines - i - 1
-					startLogSort += 1
 					flag = 1
 					break
 
 			if flag == 1:
 				break
+
+			startLogSort += 1
 
 		return {'startIndex': startIndex, 'startLogSort': startLogSort, 'endIndex': endIndex, 'endLogSort': endLogSort, 'logs': data}
 

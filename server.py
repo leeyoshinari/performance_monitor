@@ -38,6 +38,7 @@ def runMonitor():
         port = None
         pids = ''
         ports = []
+        total_time = None
         is_run = int(request.args.get('isRun'))
         if is_run == 0:
             permon.is_run = 0
@@ -54,7 +55,8 @@ def runMonitor():
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
             pids = pid.split(',')
-        total_time = int(request.args.get('totalTime'))
+        if request.args.get('totalTime'):
+            total_time = int(request.args.get('totalTime'))
         if isinstance(pids, str):
             return json.dumps({'code': -1, 'message': f'The pid of {pids} is not existed.'}, ensure_ascii=False)
 

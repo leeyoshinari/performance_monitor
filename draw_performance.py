@@ -48,28 +48,28 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
             if str(pid) in cpu_and_mem[i]:
                 c_time.append(cpu_and_mem[i][0:19])
                 res = cpu_and_mem[i].split(',')
-                cpu.append(res[-3])
-                mem.append(res[-2])
-                jvm.append(res[-1])
+                cpu.append(float(res[-3]))
+                mem.append(float(res[-2]))
+                jvm.append(float(res[-1]))
 
         if cfg.IS_IO:
             r_w_util = result['r_w_util']
             for i in range(len(r_w_util)):
                 if str(pid) in r_w_util[i]:
                     res = r_w_util[i].split(',')
-                    r_s.append(res[-6])
-                    w_s.append(res[-5])
-                    util.append(res[-4])
-                    d_r.append(res[-3])
-                    d_w.append(res[-2])
-                    d_util.append(res[-1])
+                    r_s.append(float(res[-6]))
+                    w_s.append(float(res[-5]))
+                    util.append(float(res[-4]))
+                    d_r.append(float(res[-3]))
+                    d_w.append(float(res[-2]))
+                    d_util.append(float(res[-1]))
 
         if cfg.IS_HANDLE:
             handles = result['handles']
             for i in range(len(handles)):
                 if str(pid) in handles[i]:
                     res = handles[i].split(',')
-                    handle.append(res[-1])
+                    handle.append(float(res[-1]))
 
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
