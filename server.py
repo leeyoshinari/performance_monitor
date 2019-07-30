@@ -19,7 +19,7 @@ from extern import port_to_pid, ports_to_pids
 server = Flask(__name__)
 permon = PerMon()
 
-# start multithreading
+# 开启多线程
 t = [threading.Thread(target=permon.write_cpu_mem, args=())]
 if cfg.IS_IO:
     t.append(threading.Thread(target=permon.write_io, args=()))
@@ -30,8 +30,8 @@ for i in range(len(t)):
     t[i].start()
 
 
-# start monitor
-# http://127.0.0.1:5555/startMonitor?isRun=2&type=pid&num=23121&totalTime=3600
+# 开始监控
+# http://127.0.0.1:5555/runMonitor?isRun=1&type=pid&num=23121&totalTime=3600
 @server.route('/runMonitor', methods=['get'])
 def runMonitor():
     try:
@@ -40,23 +40,28 @@ def runMonitor():
         ports = []
         total_time = None
         is_run = int(request.args.get('isRun'))
-        if is_run == 0:
+        if is_run == 0:     # 如果is_run为0，则停止监控
             permon.is_run = 0
             return json.dumps({'code': 0, 'message': 'Success.'}, ensure_ascii=False)
 
         if is_run == 1:
-            if permon.is_run == 1:
+            if permon.is_run == 1:      # 如果is_run已经是1了，则提示先停止监控，避免页面重复刷新出现异常
                 return json.dumps({'code': -1, 'message': 'Please stop monitor first.'}, ensure_ascii=False)
 
+        # 如果传入的是端口号，则需要转换成进程号
         if request.args.get('type') == 'port':
             port = request.args.get('num')
             ports = port.split(',')
             pids = ports_to_pids(ports)
+
+        # 如果传入的是进程号
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
             pids = pid.split(',')
         if request.args.get('totalTime'):
             total_time = int(request.args.get('totalTime'))
+
+        # 如果pids为str类型，说明端口号转进程号出现异常，进程可能不存在
         if isinstance(pids, str):
             return json.dumps({'code': -1, 'message': f'The pid of {pids} is not existed.'}, ensure_ascii=False)
 
@@ -66,6 +71,7 @@ def runMonitor():
         permon.is_run = is_run
         logger.logger.info('Start monitor.')
 
+        # 将开始监控的时间以追加写入的方式写到文件里
         with open('startTime.txt', 'a') as f:
             f.write(time.strftime('%Y-%m-%d %H:%M:%S') + '\n')
 
@@ -78,7 +84,7 @@ def runMonitor():
         return cfg.HTML.format(html)
 
 
-# plotting
+# 画监控结果图
 # http://127.0.0.1:5555/plotMonitor?type=pid&num=23121
 @server.route('/plotMonitor', methods=['get'])
 def plotMonitor():
@@ -86,13 +92,19 @@ def plotMonitor():
     duration = None
     pid = None
     try:
+        # 如果是端口号，则需要转换成进程号
         if request.args.get('type') == 'port':
             pid = port_to_pid(request.args.get('num'))
+
+        # 如果是进程号
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
 
+        # 画图开始时间
         if request.args.get('startTime'):
             start_time = str(request.args.get('startTime'))
+
+        # 画图时长
         if request.args.get('duration'):
             duration = int(request.args.get('duration'))
 
@@ -108,4 +120,4 @@ def plotMonitor():
         return cfg.HTML.format(htmls)
 
 
-server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # run server
+server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # 开启服务

@@ -9,7 +9,7 @@ PORT = '5555'
 # monitor config
 LEVEL = 'INFO'  # log level
 BACKUP_COUNT = 7    # log backup counter
-LOg_PATH = 'logs'   # log path
+LOG_PATH = 'logs'   # log path
 
 INTERVAL = 0.5
 RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.

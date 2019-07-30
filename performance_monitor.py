@@ -12,22 +12,22 @@ from extern import ports_to_pids
 
 class PerMon(object):
     def __init__(self):
-        self._is_run = 0
-        self._pid = []
-        self._port = []
+        self._is_run = 0    # 是否开始监控，0为停止监控，1为开始监控
+        self._pid = []      # 存放待监控的进程号
+        self._port = []     # 存放待监控的端口号
         self.db = None
         self.cursor = None
-        self._total_time = 66666666
-        self.interval = int(cfg.INTERVAL)
-        self.disk = cfg.DISK
+        self._total_time = 66666666     # 监控总时长，如果监控时不传入监控时长，则默认此时长
+        self.interval = int(cfg.INTERVAL)   # 每次监控时间间隔
+        self.disk = cfg.DISK        # 待监控的服务部署的磁盘号
 
-        self.cpu_cores = 0  # CPU core number
-        self.total_mem = 0  # total memory
+        self.cpu_cores = 0  # CPU核数
+        self.total_mem = 0  # 总内存
 
         self.get_cpu_cores()
         self.get_total_mem()
 
-        self.start_time = 0
+        self.start_time = 0     # 初始化开始监控时间
 
     @property
     def is_run(self):
@@ -64,17 +64,17 @@ class PerMon(object):
 
     def write_cpu_mem(self):
         """
-        Monitoring CPU and memory.
+            监控CPU和内存.
         """
         while True:
-            if self._is_run == 1:
-                self.start_time = time.time()
+            if self._is_run == 1:       # 开始监控
+                self.start_time = time.time()   # 开始监控时间
                 start_search_time = time.time()
 
                 while True:
-                    if time.time() - self.start_time < self._total_time:
+                    if time.time() - self.start_time < self._total_time:    # 如果超过监控总时长，则停止监控
                         get_data_time = time.time()
-                        if get_data_time - start_search_time > self.interval:
+                        if get_data_time - start_search_time > self.interval:   # 如果大于每次监控时间间隔，则开始监控
                             start_search_time = get_data_time
                             '''if self.cm_counter > cfg.RUN_ERROR_TIMES:
                                 self._is_run = 0    # if the times of failure is larger than default, stop monitor.
@@ -83,20 +83,22 @@ class PerMon(object):
                                 break'''
 
                             try:
-                                for pid in self._pid:
-                                    cpu, mem = self.get_cpu(pid)
-                                    if cpu is None:
+                                for port, pid in zip(self._port, self._pid):
+                                    cpu, mem = self.get_cpu(pid)    # 获取CPU和内存
+                                    if cpu is None:     # 如果没有获取到
                                         continue
 
-                                    jvm = self.get_mem(pid)
+                                    jvm = self.get_mem(pid)     # 获取JVM内存
 
-                                    logger.logger.info(f'cpu_and_mem: {pid},{cpu},{mem},{jvm}')
+                                    logger.logger.info(f'cpu_and_mem: {port},{pid},{cpu},{mem},{jvm}')
 
                             except Exception as err:
                                 logger.logger.error(traceback.format_exc())
                                 time.sleep(cfg.SLEEPTIME)
 
-                                pid_transfor = ports_to_pids(self._port)
+                                # 如果出现异常，则重新根据端口号查询进程号
+                                # 正常情况不会出现异常，如果出现异常，可能端口在重启
+                                pid_transfor = ports_to_pids(self._port)    # 端口号转进程号
                                 if pid_transfor:
                                     if isinstance(pid_transfor, str):
                                         logger.logger.error(f'The pid of {pid_transfor} is not existed.')
@@ -117,6 +119,9 @@ class PerMon(object):
                 time.sleep(cfg.SLEEPTIME)
 
     def write_io(self):
+        """
+            监控磁盘IO
+        """
         while True:
             if self._is_run == 1:
                 self.start_time = time.time()
@@ -130,10 +135,10 @@ class PerMon(object):
                             break'''
 
                         try:
-                            for ipid in self._pid:
+                            for iport, ipid in zip(self._port, self._pid):
                                 ioer = self.get_io(ipid)
 
-                                logger.logger.info(f'r_w_util: {ipid},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
+                                logger.logger.info(f'r_w_util: {iport},{ipid},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
 
                         except Exception as err:
                             logger.logger.error(traceback.format_exc())
@@ -142,7 +147,7 @@ class PerMon(object):
 
                     else:
                         self._is_run = 0
-                        logger.logger.info('Stop monitor, because total time is up.')
+                        # logger.logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0:
@@ -152,6 +157,9 @@ class PerMon(object):
                 time.sleep(cfg.SLEEPTIME)
 
     def write_handle(self):
+        """
+            监控句柄数
+        """
         while True:
             if self._is_run == 1:
                 self.start_time = time.time()
@@ -165,12 +173,12 @@ class PerMon(object):
                             break'''
 
                         try:
-                            for hpid in self._pid:
+                            for hport, hpid in zip(self._port, self._pid):
                                 handles = self.get_handle(hpid)
                                 if handles is None:
                                     continue
 
-                                logger.logger.info(f'handles: {hpid},{handles}')
+                                logger.logger.info(f'handles: {hport},{hpid},{handles}')
 
                         except Exception as err:
                             logger.logger.info(traceback.format_exc())
@@ -179,7 +187,7 @@ class PerMon(object):
 
                     else:
                         self._is_run = 0
-                        logger.logger.info('Stop monitor, because total time is up.')
+                        # logger.logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0:
@@ -190,10 +198,9 @@ class PerMon(object):
 
     def get_cpu(self, pid):
         """
-        Get CPU and Memory of specified PID. It uses `top`.
-        It returns CPU(%), and Memory(G).
+            使用top命令获取指定进程的CPU(%)和内存(G)
         """
-        result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()[-1]
+        result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()[-1]       # 执行top命令
         res = result.strip().split(' ')
         logger.logger.debug(res)
 
@@ -201,23 +208,22 @@ class PerMon(object):
         mem = None
         if str(pid) in res:
             ind = res.index(str(pid))
-            cpu = float(res[ind + 8]) / self.cpu_cores
-            mem = float(res[ind + 9]) * self.total_mem
+            cpu = float(res[ind + 8]) / self.cpu_cores      # 计算CPU使用率
+            mem = float(res[ind + 9]) * self.total_mem      # 计算占用内存大小
 
         return cpu, mem
 
     @staticmethod
     def get_mem(pid):
         """
-        Get JVM of specified PID. It uese `jstat`.
-        It returns JVM(G).
+            使用jstat命令获取指定进程的JVM(G)，仅java应用。
         """
         mem = 0
         try:
-            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
+            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行jstat命令
             res = result.strip().split(' ')
             logger.logger.debug(res)
-            mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
+            mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算JVM大小
         except Exception as err:
             logger.logger.info(err)
 
@@ -225,24 +231,22 @@ class PerMon(object):
 
     def get_io(self, pid):
         """
-        Get IO of specified PID. It uses `iotop`.
-        It returns IO(%).
+            使用iotop命令获取指定进程读写磁盘速率
         """
-        # get rkB/s and wkB/s.
-        result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]
+        result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]    # 执行iotop命令
         res = result.strip().split(' ')
         logger.logger.debug(res)
 
-        disk_r, disk_w, disk_util = self.get_disk_io()
+        disk_r, disk_w, disk_util = self.get_disk_io()      # 获取磁盘读写速率和IO(%)
 
         writer = None
         reader = None
         if str(pid) in res:
             ind = res.index(str(pid))
-            writer = float(res[ind + 3])
-            reader = float(res[ind + 5])
+            writer = float(res[ind + 3])    # 读磁盘的速率(kB/s)
+            reader = float(res[ind + 5])    # 写磁盘的速率(kB/s)
 
-        # IO of PID
+        # 通过进程读写速率和整个磁盘的读写速率，计算进程的IO，选取两者的最大值
         try:
             ratio_w = writer / disk_w * disk_util
         except Exception as err:
@@ -259,22 +263,21 @@ class PerMon(object):
 
     def get_disk_io(self):
         """
-        Get IO of disk. It uses `iostat`.
-        It returns disk_r(kB/s), disk_w(kB/s) and disk_util(%).
+            使用iostat命令获取磁盘读写速率和IO(%)
         """
         disk_r = None
         disk_w = None
         disk_util = None
         try:
-            result = os.popen('iostat -d -x -k {} 1 2 |tr -s " "'.format(self.disk)).readlines()
+            result = os.popen(f'iostat -d -x -k {self.disk} 1 2 |tr -s " "').readlines()    # 执行iostat命令
             res = [line for line in result if self.disk in line]
             disk_res = res[-1].strip().split(' ')
             logger.logger.debug(disk_res)
 
             if self.disk in disk_res:
-                disk_r = float(disk_res[5])
-                disk_w = float(disk_res[6])
-                disk_util = float(disk_res[-1])
+                disk_r = float(disk_res[5])         # 读磁盘的速率(kB/s)
+                disk_w = float(disk_res[6])         # 写磁盘的速率(kB/s)
+                disk_util = float(disk_res[-1])     # 磁盘IO(%)
 
         except Exception as err:
             logger.logger.error(err)
@@ -284,8 +287,8 @@ class PerMon(object):
     @staticmethod
     def get_handle(pid):
         """
-        Get handles of specified PID. It uses `lsof`.
-        It returns handles number.
+            使用lsof命令获取指定进程的句柄数
+            该命令执行很慢，建议不监控
         """
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
         res = result[0].strip().split(' ')
@@ -298,7 +301,7 @@ class PerMon(object):
 
     def get_cpu_cores(self):
         """
-        Get CPU core number.
+            获取CPU核数
         """
         result = os.popen('cat /proc/cpuinfo| grep "processor"| wc -l').readlines()[0]
 
@@ -308,7 +311,7 @@ class PerMon(object):
 
     def get_total_mem(self):
         """
-        Ger total memory.
+            获取总内存大小
         """
         result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
 

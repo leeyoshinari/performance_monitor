@@ -10,7 +10,7 @@ import config as cfg
 class logger(object):
 	LEVEL = cfg.LEVEL
 	backupcount = cfg.BACKUP_COUNT
-	log_path = cfg.LOg_PATH
+	log_path = cfg.LOG_PATH
 
 	if not os.path.exists(log_path):
 		os.mkdir(log_path)
