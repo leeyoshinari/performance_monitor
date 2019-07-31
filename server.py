@@ -90,16 +90,7 @@ def runMonitor():
 def plotMonitor():
     start_time = None
     duration = None
-    pid = None
     try:
-        # 如果是端口号，则需要转换成进程号
-        if request.args.get('type') == 'port':
-            pid = port_to_pid(request.args.get('num'))
-
-        # 如果是进程号
-        if request.args.get('type') == 'pid':
-            pid = request.args.get('num')
-
         # 画图开始时间
         if request.args.get('startTime'):
             start_time = str(request.args.get('startTime'))
@@ -108,11 +99,23 @@ def plotMonitor():
         if request.args.get('duration'):
             duration = int(request.args.get('duration'))
 
-        if pid:
-            html = draw_data_from_mysql(pid, start_time, duration)
+        # 如果是端口号
+        if request.args.get('type') == 'port':
+            port = request.args.get('num')
+            pid = port_to_pid(port)     # 端口号转换成进程号
+
+            if port and pid:
+                html = draw_data_from_mysql(f'port_{port}', f'pid_{pid}', start_time, duration)
+                return html
+            else:
+                return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
+
+        # 如果是进程号
+        if request.args.get('type') == 'pid':
+            pid = request.args.get('num')
+            html = draw_data_from_mysql(None, f'pid_{pid}', start_time, duration)
             return html
-        else:
-            return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
+
     except Exception as err:
         htmls = cfg.ERROR.format(traceback.format_exc())
         logger.logger.error(err)

@@ -85,26 +85,26 @@ class PerMon(object):
                             try:
                                 for port, pid in zip(self._port, self._pid):
                                     cpu, mem = self.get_cpu(pid)    # 获取CPU和内存
-                                    if cpu is None:     # 如果没有获取到
+                                    if cpu is None:
+                                        # 如果没有获取到，可能出现异常，则重新根据端口号查询进程号
+                                        # 正常情况不会出现异常，如果出现异常，可能端口在重启
+                                        pid_transfor = ports_to_pids(self._port)  # 端口号转进程号
+                                        if pid_transfor:
+                                            if isinstance(pid_transfor, str):
+                                                logger.logger.error(f'The pid of {pid_transfor} is not existed.')
+                                            elif isinstance(pid_transfor, list):
+                                                self._pid = pid_transfor
+
+                                        time.sleep(cfg.SLEEPTIME)
                                         continue
 
                                     jvm = self.get_mem(pid)     # 获取JVM内存
 
-                                    logger.logger.info(f'cpu_and_mem: {port},{pid},{cpu},{mem},{jvm}')
+                                    logger.logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
 
                             except Exception as err:
                                 logger.logger.error(traceback.format_exc())
                                 time.sleep(cfg.SLEEPTIME)
-
-                                # 如果出现异常，则重新根据端口号查询进程号
-                                # 正常情况不会出现异常，如果出现异常，可能端口在重启
-                                pid_transfor = ports_to_pids(self._port)    # 端口号转进程号
-                                if pid_transfor:
-                                    if isinstance(pid_transfor, str):
-                                        logger.logger.error(f'The pid of {pid_transfor} is not existed.')
-                                    elif isinstance(pid_transfor, list):
-                                        self._pid = pid_transfor
-
                                 continue
 
                     else:
@@ -138,7 +138,7 @@ class PerMon(object):
                             for iport, ipid in zip(self._port, self._pid):
                                 ioer = self.get_io(ipid)
 
-                                logger.logger.info(f'r_w_util: {iport},{ipid},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
+                                logger.logger.info(f'r_w_util: port_{iport},pid_{ipid},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
 
                         except Exception as err:
                             logger.logger.error(traceback.format_exc())
@@ -178,7 +178,7 @@ class PerMon(object):
                                 if handles is None:
                                     continue
 
-                                logger.logger.info(f'handles: {hport},{hpid},{handles}')
+                                logger.logger.info(f'handles: port_{hport},pid_{hpid},{handles}')
 
                         except Exception as err:
                             logger.logger.info(traceback.format_exc())

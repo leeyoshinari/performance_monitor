@@ -16,13 +16,13 @@ from logger import logger
 from extern import read_data_from_logs
 
 
-def draw_data_from_mysql(pid, start_time=None, duration=None):
+def draw_data_from_mysql(port, pid, start_time=None, duration=None):
     """
     Read data from MySQL.
     Return html included plotting, and data.
     """
     try:
-        c_time = []
+        c_time = []     # 监控时长
         cpu = []
         mem = []
         jvm = []
@@ -33,62 +33,74 @@ def draw_data_from_mysql(pid, start_time=None, duration=None):
         d_w = []
         d_util = []
         handle = []
+        search = 0
+        pid_num = int(pid.split('_')[-1])
 
-        logs = glob.glob(cfg.LOg_PATH + '/*.log')
+        if port:
+            search = port
+        elif pid:
+            search = pid
+
+        logs = glob.glob(cfg.LOG_PATH + '/*.log')       # 获取所有日志
 
         if start_time and duration:
+            # 将开始时间和结果时间转换成1970纪元后经过的浮点秒数
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = startTime + duration
-            result = read_data_from_logs(logs, startTime, endTime)
+            result = read_data_from_logs(logs, startTime, endTime)      # 从日志中获取数据
         else:
             result = read_data_from_logs(logs)
 
         cpu_and_mem = result['cpu_and_mem']
         for i in range(len(cpu_and_mem)):
-            if str(pid) in cpu_and_mem[i]:
+            if search in cpu_and_mem[i]:
                 c_time.append(cpu_and_mem[i][0:19])
                 res = cpu_and_mem[i].split(',')
-                cpu.append(float(res[-3]))
-                mem.append(float(res[-2]))
-                jvm.append(float(res[-1]))
+                cpu.append(float(res[-3]))      # CPU
+                mem.append(float(res[-2]))      # 内存
+                jvm.append(float(res[-1]))      # JVM
 
         if cfg.IS_IO:
             r_w_util = result['r_w_util']
             for i in range(len(r_w_util)):
-                if str(pid) in r_w_util[i]:
+                if search in r_w_util[i]:
                     res = r_w_util[i].split(',')
-                    r_s.append(float(res[-6]))
-                    w_s.append(float(res[-5]))
-                    util.append(float(res[-4]))
-                    d_r.append(float(res[-3]))
-                    d_w.append(float(res[-2]))
-                    d_util.append(float(res[-1]))
+                    r_s.append(float(res[-6]))      # 进程读
+                    w_s.append(float(res[-5]))      # 进程写
+                    util.append(float(res[-4]))     # 进程磁盘使用率
+                    d_r.append(float(res[-3]))      # 磁盘读
+                    d_w.append(float(res[-2]))      # 磁盘写
+                    d_util.append(float(res[-1]))   # 磁盘总使用率
 
         if cfg.IS_HANDLE:
             handles = result['handles']
             for i in range(len(handles)):
-                if str(pid) in handles[i]:
+                if search in handles[i]:
                     res = handles[i].split(',')
-                    handle.append(float(res[-1]))
+                    handle.append(float(res[-1]))       # 句柄数
 
         start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
         end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
+        # 画图
         image_html = draw(cpu, [mem, jvm], [r_s, w_s, util, d_r, d_w, d_util], handle, end_time-start_time)
+        # 计算百分位数
         per_html = get_lines(cpu, util, d_util)
-        gc_html = get_gc(pid)
-        html = cfg.HTML.format(cfg.HEADER.format(pid) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
+        # 获取java应用垃圾回收相关数据
+        gc_html = get_gc(pid_num)
+        # 将所有数据组装成html
+        html = cfg.HTML.format(cfg.HEADER.format(pid_num) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
 
         return html
     except Exception as err:
         logger.logger.error(err)
         logger.logger.error(traceback.format_exc())
-        raise Exception(traceback.format_exc())
+        raise Exception(err)
 
 
 def draw(cpu, mem, IO, handles, total_time):
     """
-    Plotting
+        画图
     """
     if cfg.IS_IO:
         fig = plt.figure('figure', figsize=(20, 15))
@@ -156,18 +168,19 @@ def draw(cpu, mem, IO, handles, total_time):
         plt.margins(0, 0)
 
     image_byte = BytesIO()
-    fig.savefig(image_byte, format='png', bbox_inches='tight')
-    data = base64.encodebytes(image_byte.getvalue()).decode()
+    fig.savefig(image_byte, format='png', bbox_inches='tight')      # 把图片保存成二进制格式
+    data = base64.encodebytes(image_byte.getvalue()).decode()       # 编码成base64格式
 
-    html = '<div align="center"><img src="data:image/png;base64,{}" /></div>'.format(data)
-    plt.close()
+    html = f'<div align="center"><img src="data:image/png;base64,{data}" /></div>'
+    plt.close()     # 关闭绘图窗口
     return html
 
 
 def get_lines(cpu, util, dutil):
     """
-    Percentile.
+        计算百分位数，75%line、90%line、95%line、99%line
     """
+    # 从小到大排序
     cpu.sort()
     dutil.sort()
 
@@ -189,8 +202,7 @@ def get_lines(cpu, util, dutil):
 
 def get_gc(pid):
     """
-    Get gc of specified PID. It uses `jstat` and `ps`.
-    It includes ygc, ygct, fgc, fgct, and frequency of ygc, frequency of fgc.
+        获取java应用的垃圾回收相关信息，包括ygc, ygct, fgc, fgct, 和ygc频率, fgc频率.
     """
     try:
         result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
@@ -203,7 +215,7 @@ def get_gc(pid):
         fygc = 0
         ffgc = 0
 
-        result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]
+        result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # 获取服务启动时间
         runtime = int(result.strip())
 
         if ygc > 0:
