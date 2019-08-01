@@ -33,13 +33,15 @@ Monitor can be started or stopped at any time. And plotting them.
 6. Plotting<br>
    Enter `http://ip:port/plotMonitor?type=pid&num=1234&startTime=2019-05-21 08:08:08&duration=3600` in your browser<br>
    param:<br>
-   &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid.<br>
-   &emsp;&emsp;`startTime` and `duration` are optional parameters, if you plot last monitor, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`. `startTime` must be accurate, if you're not sure it, please see `startTime.txt` or logs.
+   &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid. If type is port, plotting all results of `port`, if type is pid, plotting all results of `pid`.<br>
+   &emsp;&emsp;`startTime` and `duration` are optional parameters, if you plot last monitor, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`. `startTime` must be accurate, if you're not sure it, please see the last line of `startTime.txt` or logs.
 
 ## Note
 1. Your Linux must support the `jstat`, `top`, `iotop`, `iostat` and `lsof` commands, if not, please install them.
 
 2. In `config.py`, the default value of `IS_HANDLE` is `False`. If it's setted to `True`, the command of querying handle number is very slow, and occupy system resources. So, if not necessary, setting it to `True` is not suggested. You can query handle number manually.
+
+3. For more information, please [read me]().
 
 ## Requirements
 1. flask

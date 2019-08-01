@@ -51,8 +51,12 @@ def get_logs(logs, startTime=None, endTime=None):
 	logs_modify_time = []       # 日志文件修改时间
 	logs_create_time = []       # 日志文件创建时间
 	for log in logs:
-		logs_modify_time.append(os.path.getmtime(log))
-		logs_create_time.append(os.path.getctime(log))
+		# logs_modify_time.append(os.path.getmtime(log))
+		# logs_create_time.append(os.path.getctime(log))
+		with open(log, 'r') as f:
+			lines = f.readlines()
+			logs_modify_time.append(time.mktime(datetime.datetime.strptime(lines[-1][0:19], '%Y-%m-%d %H:%M:%S').timetuple()))
+			logs_create_time.append(time.mktime(datetime.datetime.strptime(lines[0][0:19], '%Y-%m-%d %H:%M:%S').timetuple()))
 
 	# 把日志修改时间、创建时间和日志路径放在一个元组里
 	data = [(modify_time, log_name, create_time) for modify_time, log_name, create_time in zip(logs_modify_time, logs, logs_create_time)]
@@ -149,7 +153,7 @@ def get_index(lines, start_index, end_index, search_time):
 	try:
 		t = time.mktime(datetime.datetime.strptime(lines[index][0:19], '%Y-%m-%d %H:%M:%S').timetuple())
 		if search_time - t > 2:
-			return get_index(lines, index, end_index, search_time)      # 必须return，如果不返回，则相当于递归调用
+			return get_index(lines, index, end_index, search_time)
 		elif search_time - t < -2:
 			return get_index(lines, start_index, index, search_time)
 		else:
@@ -204,7 +208,7 @@ def get_values(results):
 		with open(logs[log_list[0]][1], 'r') as f:
 			lines = f.readlines()
 
-		for j in range(startIndex, len(lines)):
+		for j in range(startIndex, len(lines)):     # 第一个日志，从startIndex开始，到日志结束
 			if 'cpu_and_mem' in lines[j]:
 				cm_line.append(lines[j].strip())
 			if 'r_w_util' in lines[j]:
@@ -215,7 +219,7 @@ def get_values(results):
 		with open(logs[log_list[1]][1], 'r') as f:
 			lines = f.readlines()
 
-		if endIndex == -1:
+		if endIndex == -1:      # 遍历整个日志
 			for j in range(len(lines)):
 				if 'cpu_and_mem' in lines[j]:
 					cm_line.append(lines[j].strip())
@@ -224,7 +228,7 @@ def get_values(results):
 				if 'handles' in lines[j]:
 					handle_line.append(lines[j].strip())
 		else:
-			for j in range(0, endIndex):
+			for j in range(0, endIndex):    # 从日志第一行开始，直到endIndex
 				if 'cpu_and_mem' in lines[j]:
 					cm_line.append(lines[j].strip())
 				if 'r_w_util' in lines[j]:
@@ -236,7 +240,7 @@ def get_values(results):
 		with open(logs[log_list[0]][1], 'r') as f:
 			lines = f.readlines()
 
-		for j in range(startIndex, len(lines)):
+		for j in range(startIndex, len(lines)):     # 第一个日志，从startIndex开始，到日志结束
 			if 'cpu_and_mem' in lines[j]:
 				cm_line.append(lines[j].strip())
 			if 'r_w_util' in lines[j]:
@@ -244,7 +248,7 @@ def get_values(results):
 			if 'handles' in lines[j]:
 				handle_line.append(lines[j].strip())
 
-		for m in range(1, len(log_list)-1):
+		for m in range(1, len(log_list)-1):         # 遍历中间所有日志
 			with open(logs[log_list[m]][1], 'r') as f:
 				lines = f.readlines()
 
@@ -259,7 +263,7 @@ def get_values(results):
 		with open(logs[log_list[-1]][1], 'r') as f:
 			lines = f.readlines()
 
-		if endIndex == -1:
+		if endIndex == -1:          # 遍历最后一个日志
 			for j in range(len(lines)):
 				if 'cpu_and_mem' in lines[j]:
 					cm_line.append(lines[j].strip())
@@ -268,7 +272,7 @@ def get_values(results):
 				if 'handles' in lines[j]:
 					handle_line.append(lines[j].strip())
 		else:
-			for j in range(0, endIndex):
+			for j in range(0, endIndex):        # 从日志第一行开始，直到endIndex
 				if 'cpu_and_mem' in lines[j]:
 					cm_line.append(lines[j].strip())
 				if 'r_w_util' in lines[j]:
