@@ -17,7 +17,7 @@ class PerMon(object):
         self._port = []     # 存放待监控的端口号
         self.db = None
         self.cursor = None
-        self._total_time = 66666666     # 监控总时长，如果监控时不传入监控时长，则默认此时长
+        self._total_time = 0     # 监控总时长，初始化为0
         self.interval = int(cfg.INTERVAL)   # 每次监控时间间隔
         self.disk = cfg.DISK        # 待监控的服务部署的磁盘号
 

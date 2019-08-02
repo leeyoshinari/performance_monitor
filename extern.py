@@ -114,6 +114,9 @@ def get_logs(logs, startTime=None, endTime=None):
 			if flag == 2:   # 如果找到结果，则结束循环
 				break
 
+		if startLogSort == len(logs):       # 如果监控结果开始索引等于日志总数，则表明需要从所有日志中读取结果，设置startIndex为0
+			startIndex = 0
+
 		return {'startIndex': startIndex, 'startLogSort': startLogSort, 'endIndex': endIndex, 'endLogSort': endLogSort, 'logs': data}
 
 	else:   # 如果没有按时间查找，则查找最后一次开始监控开始的日志

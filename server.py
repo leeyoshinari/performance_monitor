@@ -38,7 +38,6 @@ def runMonitor():
         port = None
         pids = ''
         ports = []
-        total_time = None
         is_run = int(request.args.get('isRun'))
         if is_run == 0:     # 如果is_run为0，则停止监控
             permon.is_run = 0
@@ -60,6 +59,8 @@ def runMonitor():
             pids = pid.split(',')
         if request.args.get('totalTime'):
             total_time = int(request.args.get('totalTime'))
+        else:
+            total_time = 66666666       # 如果监控时不传入监控时长，则默认此时长
 
         # 如果pids为str类型，说明端口号转进程号出现异常，进程可能不存在
         if isinstance(pids, str):
