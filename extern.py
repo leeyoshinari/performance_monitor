@@ -28,7 +28,7 @@ def port_to_pid(port):
 	"""
 	pid = None
 	try:
-		result = os.popen('netstat -nlp|grep {} |tr -s " "'.format(port)).readlines()       # 执行netstat命令
+		result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()       # 执行netstat命令
 		res = [line.strip() for line in result if str(port) in line]
 		logger.logger.debug(res[0])
 		p = res[0].split(' ')

@@ -12,7 +12,6 @@ BACKUP_COUNT = 7    # log backup counter
 LOG_PATH = 'logs'   # log path
 
 INTERVAL = 0.5
-RUN_ERROR_TIMES = 10    # The number of times the commands failed to run when monitoring.
 SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 
 IS_IO = True    # Whether monitoring IO

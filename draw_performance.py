@@ -144,7 +144,7 @@ def draw(cpu, mem, IO, handles, total_time):
     if cfg.IS_IO:
         plt.sca(ax3)
         plt.plot(IO[3], color='black', label='rkB/s')
-        plt.plot(IO[4], color='red', label='wkB/s')
+        plt.plot(IO[4], color='b', label='wkB/s')
         plt.legend(loc='upper left')
         plt.grid()
         plt.xlim(0, len(IO[3]))
@@ -154,7 +154,7 @@ def draw(cpu, mem, IO, handles, total_time):
 
         ax_util = ax3.twinx()
         plt.sca(ax_util)
-        plt.plot(IO[5], color='b', label='%util')
+        plt.plot(IO[5], color='red', label='%util')
         plt.legend(loc='upper right')
         plt.ylim(0, max(IO[5]))
 
