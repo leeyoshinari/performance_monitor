@@ -41,7 +41,7 @@ Monitor can be started or stopped at any time. And plotting them.
 
 2. In `config.py`, the default value of `IS_HANDLE` is `False`. If it's setted to `True`, the command of querying handle number is very slow, and occupy system resources. So, if not necessary, setting it to `True` is not suggested. You can query handle number manually.
 
-3. For more information, please [read me]().
+3. For more information, please [read me](https://blog.csdn.net/leeyoshinari/article/details/98248304).
 
 ## Requirements
 1. flask
