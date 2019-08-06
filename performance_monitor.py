@@ -233,33 +233,27 @@ class PerMon(object):
         """
             使用iotop命令获取指定进程读写磁盘速率
         """
-        result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]    # 执行iotop命令
+        '''result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]    # 执行iotop命令
         res = result.strip().split(' ')
-        logger.logger.debug(res)
+        logger.logger.debug(res)'''
 
         disk_r, disk_w, disk_util = self.get_disk_io()      # 获取磁盘读写速率和IO(%)
 
-        writer = None
-        reader = None
-        if str(pid) in res:
+        writer = 0
+        reader = 0
+        '''if str(pid) in res:
             ind = res.index(str(pid))
             writer = float(res[ind + 3])    # 读磁盘的速率(kB/s)
-            reader = float(res[ind + 5])    # 写磁盘的速率(kB/s)
+            reader = float(res[ind + 5])    # 写磁盘的速率(kB/s)'''
 
-        # 通过进程读写速率和整个磁盘的读写速率，计算进程的IO，选取两者的最大值
+        # 通过进程读写速率和整个磁盘的读写速率，计算进程的IO
         try:
-            ratio_w = writer / disk_w * disk_util
+            util = (writer + reader) / (disk_w + disk_r) * disk_util
         except Exception as err:
             logger.logger.warning(err)
-            ratio_w = 0
+            util = 0
 
-        try:
-            ratio_r = reader / disk_r * disk_util
-        except Exception as err:
-            logger.logger.warning(err)
-            ratio_r = 0
-
-        return [reader, writer, disk_r, disk_w, disk_util, max(ratio_r, ratio_w)]
+        return [reader, writer, disk_r, disk_w, disk_util, util]
 
     def get_disk_io(self):
         """

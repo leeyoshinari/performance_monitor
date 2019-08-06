@@ -13,7 +13,7 @@ from io import BytesIO
 
 import config as cfg
 from logger import logger
-from extern import read_data_from_logs
+from extern import DealLogs
 
 
 def draw_data_from_mysql(port, pid, start_time=None, duration=None):
@@ -22,17 +22,6 @@ def draw_data_from_mysql(port, pid, start_time=None, duration=None):
     Return html included plotting, and data.
     """
     try:
-        c_time = []     # 监控时长
-        cpu = []
-        mem = []
-        jvm = []
-        r_s = []
-        w_s = []
-        util = []
-        d_r = []
-        d_w = []
-        d_util = []
-        handle = []
         search = 0
         pid_num = int(pid.split('_')[-1])
 
@@ -43,49 +32,23 @@ def draw_data_from_mysql(port, pid, start_time=None, duration=None):
 
         logs = glob.glob(cfg.LOG_PATH + '/*.log')       # 获取所有日志
 
+        deal_logs = DealLogs(search)
+
         if start_time and duration:
             # 将开始时间和结果时间转换成1970纪元后经过的浮点秒数
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = startTime + duration
-            result = read_data_from_logs(logs, startTime, endTime)      # 从日志中获取数据
+            deal_logs.read_data_from_logs(logs, startTime, endTime)      # 从日志中获取数据
         else:
-            result = read_data_from_logs(logs)
+            deal_logs.read_data_from_logs(logs)
 
-        cpu_and_mem = result['cpu_and_mem']
-        for i in range(len(cpu_and_mem)):
-            if search in cpu_and_mem[i]:
-                c_time.append(cpu_and_mem[i][0:19])
-                res = cpu_and_mem[i].split(',')
-                cpu.append(float(res[-3]))      # CPU
-                mem.append(float(res[-2]))      # 内存
-                jvm.append(float(res[-1]))      # JVM
-
-        if cfg.IS_IO:
-            r_w_util = result['r_w_util']
-            for i in range(len(r_w_util)):
-                if search in r_w_util[i]:
-                    res = r_w_util[i].split(',')
-                    r_s.append(float(res[-6]))      # 进程读
-                    w_s.append(float(res[-5]))      # 进程写
-                    util.append(float(res[-4]))     # 进程磁盘使用率
-                    d_r.append(float(res[-3]))      # 磁盘读
-                    d_w.append(float(res[-2]))      # 磁盘写
-                    d_util.append(float(res[-1]))   # 磁盘总使用率
-
-        if cfg.IS_HANDLE:
-            handles = result['handles']
-            for i in range(len(handles)):
-                if search in handles[i]:
-                    res = handles[i].split(',')
-                    handle.append(float(res[-1]))       # 句柄数
-
-        start_time = time.mktime(datetime.datetime.strptime(str(c_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
-        end_time = time.mktime(datetime.datetime.strptime(str(c_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
+        start_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
+        end_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
         # 画图
-        image_html = draw(cpu, [mem, jvm], [r_s, w_s, util, d_r, d_w, d_util], handle, end_time-start_time)
+        image_html = draw(deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io, deal_logs.handles, end_time - start_time)
         # 计算百分位数
-        per_html = get_lines(cpu, util, d_util)
+        per_html = get_lines(deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5])
         # 获取java应用垃圾回收相关数据
         gc_html = get_gc(pid_num)
         # 将所有数据组装成html
@@ -123,18 +86,18 @@ def draw(cpu, mem, IO, handles, total_time):
     plt.grid()
     plt.xlim(0, len(cpu))
     plt.ylim(0, 100)
-    plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 360) / 10), size=12)
+    plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 3600)), size=12)
     plt.margins(0, 0)
 
     plt.sca(ax2)
     plt.plot(mem[0], color='r', label='Memory')
 
     if sum(mem[1]) == 0:
-        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), np.floor(total_time / 360) / 10), size=12)
+        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), np.floor(total_time / 3600)), size=12)
     else:
         plt.plot(mem[1], color='b', label='JVM')
         plt.legend(loc='upper right')
-        plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), np.floor(total_time / 360) / 10), size=12)
+        plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), np.floor(total_time / 3600)), size=12)
 
     plt.grid()
     plt.xlim(0, len(mem[0]))
@@ -149,7 +112,7 @@ def draw(cpu, mem, IO, handles, total_time):
         plt.grid()
         plt.xlim(0, len(IO[3]))
         plt.ylim(0, max(max(IO[3]), max(IO[4])))
-        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), np.floor(total_time / 360) / 10), size=12)
+        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), np.floor(total_time / 3600)), size=12)
         plt.margins(0, 0)
 
         ax_util = ax3.twinx()
@@ -164,7 +127,7 @@ def draw(cpu, mem, IO, handles, total_time):
         plt.grid()
         plt.xlim(0, len(handles))
         plt.ylim(0, max(handles) + 10)
-        plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 360) / 10), size=12)
+        plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 3600)), size=12)
         plt.margins(0, 0)
 
     image_byte = BytesIO()
