@@ -21,19 +21,19 @@ def draw_data_from_mysql(port, pid, start_time=None, duration=None):
     Read data from MySQL.
     Return html included plotting, and data.
     """
+    search = 0
+    pid_num = int(pid.split('_')[-1])
+
+    if port:
+        search = port
+    elif pid:
+        search = pid
+
+    logs = glob.glob(cfg.LOG_PATH + '/*.log')  # 获取所有日志
+
+    deal_logs = DealLogs(search)
+
     try:
-        search = 0
-        pid_num = int(pid.split('_')[-1])
-
-        if port:
-            search = port
-        elif pid:
-            search = pid
-
-        logs = glob.glob(cfg.LOG_PATH + '/*.log')       # 获取所有日志
-
-        deal_logs = DealLogs(search)
-
         if start_time and duration:
             # 将开始时间和结果时间转换成1970纪元后经过的浮点秒数
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
@@ -53,9 +53,11 @@ def draw_data_from_mysql(port, pid, start_time=None, duration=None):
         gc_html = get_gc(pid_num)
         # 将所有数据组装成html
         html = cfg.HTML.format(cfg.HEADER.format(pid_num) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
+        del deal_logs
 
         return html
     except Exception as err:
+        del deal_logs
         logger.logger.error(err)
         logger.logger.error(traceback.format_exc())
         raise Exception(err)
