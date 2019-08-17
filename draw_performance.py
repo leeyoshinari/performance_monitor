@@ -5,9 +5,9 @@ import os
 import base64
 import time
 import glob
+import math
 import traceback
 import datetime
-import numpy as np
 import matplotlib.pyplot as plt
 from io import BytesIO
 
@@ -88,18 +88,18 @@ def draw(cpu, mem, IO, handles, total_time):
     plt.grid()
     plt.xlim(0, len(cpu))
     plt.ylim(0, 100)
-    plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), np.mean(cpu), np.floor(total_time / 3600)), size=12)
+    plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), sum(cpu) / len(cpu), math.floor(total_time / 360) / 10), size=12)
     plt.margins(0, 0)
 
     plt.sca(ax2)
     plt.plot(mem[0], color='r', label='Memory')
 
     if sum(mem[1]) == 0:
-        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), np.floor(total_time / 3600)), size=12)
+        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), math.floor(total_time / 360) / 10), size=12)
     else:
         plt.plot(mem[1], color='b', label='JVM')
         plt.legend(loc='upper right')
-        plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), np.floor(total_time / 3600)), size=12)
+        plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), math.floor(total_time / 360) / 10), size=12)
 
     plt.grid()
     plt.xlim(0, len(mem[0]))
@@ -114,7 +114,7 @@ def draw(cpu, mem, IO, handles, total_time):
         plt.grid()
         plt.xlim(0, len(IO[3]))
         plt.ylim(0, max(max(IO[3]), max(IO[4])))
-        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), np.floor(total_time / 3600)), size=12)
+        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), math.floor(total_time / 360) / 10), size=12)
         plt.margins(0, 0)
 
         ax_util = ax3.twinx()
@@ -129,7 +129,7 @@ def draw(cpu, mem, IO, handles, total_time):
         plt.grid()
         plt.xlim(0, len(handles))
         plt.ylim(0, max(handles) + 10)
-        plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), np.floor(total_time / 3600)), size=12)
+        plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), math.floor(total_time / 360) / 10), size=12)
         plt.margins(0, 0)
 
     image_byte = BytesIO()

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
-# Start command: nohup python server.py &
+# Start command: nohup python3 server.py &
 # For more information, please read `README.md`.
 
 import time

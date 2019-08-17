@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 import os
+import re
 import time
 import datetime
 from logger import logger
@@ -67,8 +68,8 @@ class DealLogs(object):
 			# logs_create_time.append(os.path.getctime(log))
 			with open(log, 'r') as f:
 				lines = f.readlines()
-				logs_modify_time.append(time.mktime(datetime.datetime.strptime(lines[-1][0:19], '%Y-%m-%d %H:%M:%S').timetuple()))
-				logs_create_time.append(time.mktime(datetime.datetime.strptime(lines[0][0:19], '%Y-%m-%d %H:%M:%S').timetuple()))
+				logs_modify_time.append(time.mktime(datetime.datetime.strptime(self.get_start_end_time(lines, 1), '%Y-%m-%d %H:%M:%S').timetuple()))
+				logs_create_time.append(time.mktime(datetime.datetime.strptime(self.get_start_end_time(lines, 0), '%Y-%m-%d %H:%M:%S').timetuple()))
 
 		# 把日志修改时间、创建时间和日志路径放在一个元组里
 		data = [(modify_time, log_name, create_time) for modify_time, log_name, create_time in zip(logs_modify_time, logs, logs_create_time)]
@@ -155,6 +156,26 @@ class DealLogs(object):
 
 			return {'startIndex': startIndex, 'startLogSort': startLogSort, 'endIndex': endIndex, 'endLogSort': endLogSort, 'logs': data}
 
+	def get_start_end_time(self, lines, type):
+		"""
+			获取第一行时间和最后一行的时间，type=0表示从前往后，type=1表示从后往前。
+		"""
+		if type == 0:
+			for i in range(len(lines)):
+				res = self.recompile(lines[i])
+				if res:
+					return res.group()
+				else:
+					logger.logger.warning(lines[i])
+		if type == 1:
+			total_lines = len(lines)
+			for i in range(total_lines):
+				res = self.recompile(lines[total_lines - i - 1])
+				if res:
+					return res.group()
+				else:
+					logger.logger.warning(lines[i])
+
 	def get_index(self, lines, start_index, end_index, search_time):
 		"""
 			在一个日志文件中，找到指定时间所在的位置，使用二分法查找
@@ -170,7 +191,7 @@ class DealLogs(object):
 		# 获取中间值，二分法查找
 		index = int((start_index + end_index) / 2)
 		try:
-			t = time.mktime(datetime.datetime.strptime(lines[index][0:19], '%Y-%m-%d %H:%M:%S').timetuple())
+			t = time.mktime(datetime.datetime.strptime(self.recompile(lines[index]).group(), '%Y-%m-%d %H:%M:%S').timetuple())
 			if search_time - t > 2:
 				return self.get_index(lines, index, end_index, search_time)
 			elif search_time - t < -2:
@@ -179,7 +200,7 @@ class DealLogs(object):
 				return index
 		except Exception as err:
 			logger.logger.warning(err)
-			return self.get_index(lines, start_index+1, end_index-1, search_time)
+			return self.get_index(lines, start_index+1, end_index, search_time)
 
 	def get_values(self, results):
 		"""
@@ -315,12 +336,15 @@ class DealLogs(object):
 
 	def deal_total_time(self, line):
 		"""
-			找到监控结果的开始时间和
+			找到监控结果的开始时间和结束时间
 		"""
 		if self.search in line:
-			if len(self.total_time) > 1:
-				self.total_time.pop(1)
-			self.total_time.append(line[0:19])
+			try:
+				if len(self.total_time) > 2:
+					self.total_time.pop(1)
+				self.total_time.append(self.recompile(line[0:19]).group())
+			except Exception as err:
+				logger.logger.error(err)
 
 	def deal_io(self, line):
 		"""
@@ -344,6 +368,14 @@ class DealLogs(object):
 			if self.is_handle:
 				res = line.split(',')
 				self.handles.append(float(res[-1]))  # 句柄数
+
+	def recompile(self, line):
+		"""
+		从一行日志中匹配出时间
+		"""
+		pattern = '(20\d{2}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})'     # 正则表达式
+		res = re.match(pattern, line)
+		return res
 
 	def read_data_from_logs(self, logs, startTime=None, endTime=None):
 		results = self.get_logs(logs, startTime, endTime)
