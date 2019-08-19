@@ -73,7 +73,7 @@ def runMonitor():
         logger.logger.info('Start monitor.')
 
         # 将开始监控的时间以追加写入的方式写到文件里
-        with open('startTime.txt', 'a') as f:
+        with open(cfg.START_TIME, 'a') as f:
             f.write(time.strftime('%Y-%m-%d %H:%M:%S') + '\n')
 
         res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time, 'startTime': time.strftime('%Y-%m-%d %H:%M:%S')}}

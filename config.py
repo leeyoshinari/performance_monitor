@@ -19,6 +19,9 @@ IS_HANDLE = False   # Whether monitoring handles
 
 DISK = 'device1'   # Which disk your application runs.
 
+START_TIME = 'startTime.txt'
+FGC_TIMES = 'FullGC.txt'
+
 # html
 HTML = '<html><body>{}</body><html>'
 ERROR = '<p style="color:red">{}</p>'

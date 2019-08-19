@@ -342,7 +342,7 @@ class DealLogs(object):
 			try:
 				if len(self.total_time) > 2:
 					self.total_time.pop(1)
-				self.total_time.append(self.recompile(line[0:19]).group())
+				self.total_time.append(self.recompile(line).group())
 			except Exception as err:
 				logger.logger.error(err)
 

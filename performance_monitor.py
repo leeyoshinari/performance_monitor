@@ -28,6 +28,7 @@ class PerMon(object):
         self.get_total_mem()
 
         self.start_time = 0     # 初始化开始监控时间
+        self.FGC = 0            # 初始化Full GC次数
 
     @property
     def is_run(self):
@@ -88,12 +89,14 @@ class PerMon(object):
                                     if cpu is None:
                                         # 如果没有获取到，可能出现异常，则重新根据端口号查询进程号
                                         # 正常情况不会出现异常，如果出现异常，可能端口在重启
+                                        self._is_run = 2
                                         pid_transfor = ports_to_pids(self._port)  # 端口号转进程号
                                         if pid_transfor:
                                             if isinstance(pid_transfor, str):
                                                 logger.logger.error(f'The pid of {pid_transfor} is not existed.')
                                             elif isinstance(pid_transfor, list):
                                                 self._pid = pid_transfor
+                                                self._is_run = 1
 
                                         time.sleep(cfg.SLEEPTIME)
                                         continue
@@ -128,12 +131,6 @@ class PerMon(object):
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
-                        '''if self.io_counter > cfg.RUN_ERROR_TIMES:
-                            self._is_run = 0
-                            logger.logger.error('Stop monitor, because commands run error.')
-                            self.io_counter = 0
-                            break'''
-
                         try:
                             for iport, ipid in zip(self._port, self._pid):
                                 ioer = self.get_io(ipid)
@@ -150,7 +147,7 @@ class PerMon(object):
                         # logger.logger.info('Stop monitor, because total time is up.')
                         break
 
-                    if self._is_run == 0:
+                    if self._is_run == 0 and self._is_run == 2:
                         # logger.logger.info('Stop monitor.')
                         break
             else:
@@ -166,12 +163,6 @@ class PerMon(object):
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
-                        '''if self.handle_counter > cfg.RUN_ERROR_TIMES:
-                            logger.logger.error('Stop monitor, because commands run error.')
-                            self._is_run = 0
-                            self.handle_counter = 0
-                            break'''
-
                         try:
                             for hport, hpid in zip(self._port, self._pid):
                                 handles = self.get_handle(hpid)
@@ -190,7 +181,7 @@ class PerMon(object):
                         # logger.logger.info('Stop monitor, because total time is up.')
                         break
 
-                    if self._is_run == 0:
+                    if self._is_run == 0 and self._is_run == 2:
                         # logger.logger.info('Stop monitor.')
                         break
             else:
@@ -213,8 +204,7 @@ class PerMon(object):
 
         return cpu, mem
 
-    @staticmethod
-    def get_mem(pid):
+    def get_mem(self, pid):
         """
             使用jstat命令获取指定进程的JVM(G)，仅java应用。
         """
@@ -224,6 +214,14 @@ class PerMon(object):
             res = result.strip().split(' ')
             logger.logger.debug(res)
             mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算JVM大小
+
+            # 将Full GC变化的时间以追加写入的方式写到文件里
+            fgc = int(res[14])
+            if self.FGC != fgc:
+                self.FGC = fgc
+                with open(cfg.FGC_TIMES, 'a') as f:
+                    f.write(f"{self.FGC}--{time.strftime('%Y-%m-%d %H:%M:%S')}" + "\n")
+
         except Exception as err:
             logger.logger.info(err)
 
