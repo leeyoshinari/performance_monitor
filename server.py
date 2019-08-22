@@ -91,6 +91,7 @@ def runMonitor():
 def plotMonitor():
     start_time = None
     duration = None
+    system = None
     try:
         # 画图开始时间
         if request.args.get('startTime'):
@@ -100,22 +101,30 @@ def plotMonitor():
         if request.args.get('duration'):
             duration = int(request.args.get('duration'))
 
-        # 如果是端口号
-        if request.args.get('type') == 'port':
+        if request.args.get('type') == 'port':      # 如果是端口号
             port = request.args.get('num')
             pid = port_to_pid(port)     # 端口号转换成进程号
 
             if port and pid:
-                html = draw_data_from_mysql(f'port_{port}', f'pid_{pid}', start_time, duration)
+                html = draw_data_from_mysql(port=f'port_{port}', pid=f'pid_{pid}', start_time=start_time, duration=duration)
                 return html
             else:
                 return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
 
-        # 如果是进程号
-        if request.args.get('type') == 'pid':
+        if request.args.get('type') == 'pid':       # 如果是进程号
             pid = request.args.get('num')
-            html = draw_data_from_mysql(None, f'pid_{pid}', start_time, duration)
+            html = draw_data_from_mysql(pid=f'pid_{pid}', start_time=start_time, duration=duration)
             return html
+
+        # 画系统资源使用情况
+        if cfg.IS_MONITOR_SYSTEM:
+            if request.args.get('system'):
+                system = int(request.args.get('system'))
+
+            html = draw_data_from_mysql(start_time=start_time, duration=duration, system=system)
+            return html
+        else:
+            return json.dumps({'code': -1, 'message': 'The current setting is not to monitor system resources.'}, ensure_ascii=False)
 
     except Exception as err:
         htmls = cfg.ERROR.format(traceback.format_exc())

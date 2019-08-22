@@ -3,6 +3,7 @@
 # Author: leeyoshinari
 # Monitoring
 import os
+import re
 import time
 import traceback
 import config as cfg
@@ -13,21 +14,27 @@ from extern import ports_to_pids
 class PerMon(object):
     def __init__(self):
         self._is_run = 0    # 是否开始监控，0为停止监控，1为开始监控
-        self._pid = []      # 存放待监控的进程号
+        self._pid = [1111]      # 存放待监控的进程号
         self._port = []     # 存放待监控的端口号
         self.db = None
         self.cursor = None
         self._total_time = 0     # 监控总时长，初始化为0
         self.interval = int(cfg.INTERVAL)   # 每次监控时间间隔
+        self.is_monitor_system = cfg.IS_MONITOR_SYSTEM      # 是否监控系统资源
+        self.error_times = cfg.ERROR_TIMES  # 命令执行失败次数
         self.disk = cfg.DISK        # 待监控的服务部署的磁盘号
 
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
 
+        self.re_cpu = re.compile('(\d{1,2}.\d) id')
+        self.re_mem = re.compile('(\d{3,})[ ,+]free')
+
         self.get_cpu_cores()
         self.get_total_mem()
 
         self.start_time = 0     # 初始化开始监控时间
+        self.run_error = 0      # 初始化命令执行失败次数
         self.FGC = 0            # 初始化Full GC次数
 
     @property
@@ -68,6 +75,11 @@ class PerMon(object):
             监控CPU和内存.
         """
         while True:
+            if self._is_run == 0 and self.is_monitor_system:
+                _, _, total_cpu, total_mem = self.get_cpu(1111)  # 获取系统CPU和剩余内存
+                if total_cpu and total_mem:
+                    logger.logger.info(f'system: cpu and mem,{total_cpu},{total_mem}')
+
             if self._is_run == 1:       # 开始监控
                 self.start_time = time.time()   # 开始监控时间
                 start_search_time = time.time()
@@ -84,26 +96,41 @@ class PerMon(object):
                                 break'''
 
                             try:
-                                for port, pid in zip(self._port, self._pid):
-                                    cpu, mem = self.get_cpu(pid)    # 获取CPU和内存
+                                for i in range(len(self._pid)):
+                                    cpu, mem, total_cpu, total_mem = self.get_cpu(self._pid[i])    # 获取CPU和内存
+
+                                    if self.is_monitor_system and total_cpu and total_mem:
+                                        logger.logger.info(f'system: cpu and mem,{total_cpu},{total_mem}')
+                                        self.mem_alert(total_mem)
+
                                     if cpu is None:
-                                        # 如果没有获取到，可能出现异常，则重新根据端口号查询进程号
-                                        # 正常情况不会出现异常，如果出现异常，可能端口在重启
-                                        self._is_run = 2
-                                        pid_transfor = ports_to_pids(self._port)  # 端口号转进程号
-                                        if pid_transfor:
-                                            if isinstance(pid_transfor, str):
-                                                logger.logger.error(f'The pid of {pid_transfor} is not existed.')
-                                            elif isinstance(pid_transfor, list):
-                                                self._pid = pid_transfor
-                                                self._is_run = 1
+                                        if self._port:
+                                            # 如果没有获取到，可能出现异常，则重新根据端口号查询进程号
+                                            # 正常情况不会出现异常，如果出现异常，可能端口在重启
+                                            self._is_run = 2
+                                            pid_transfor = ports_to_pids(self._port)  # 端口号转进程号
+                                            if pid_transfor:
+                                                if isinstance(pid_transfor, str):
+                                                    logger.logger.error(f'The pid of {pid_transfor} is not existed.')
+                                                elif isinstance(pid_transfor, list):
+                                                    self._pid = pid_transfor
+                                                    self._is_run = 1
 
-                                        time.sleep(cfg.SLEEPTIME)
-                                        continue
+                                            time.sleep(cfg.SLEEPTIME)
+                                            continue
+                                        else:
+                                            if self.run_error == self.error_times:  # 如果命令执行失败次数等于设置次数，停止监控
+                                                self._is_run = 0
 
-                                    jvm = self.get_mem(pid)     # 获取JVM内存
+                                            self.run_error += 1     # 命令执行失败次数加1
+                                            logger.logger.error(f'The number of running command failed is {self.run_error}.')
+                                            time.sleep(cfg.SLEEPTIME)
+                                            continue
 
-                                    logger.logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
+                                    jvm = self.get_mem(self._pid[i])     # 获取JVM内存
+
+                                    logger.logger.info(f'cpu_and_mem: port_{self._port[i]},pid_{self._pid[i]},{cpu},{mem},{jvm}')
+                                    self.run_error = 0      # 命令执行成功后，重新初始化0
 
                             except Exception as err:
                                 logger.logger.error(traceback.format_exc())
@@ -119,7 +146,7 @@ class PerMon(object):
                         logger.logger.info('Stop monitor.')
                         break
             else:
-                time.sleep(cfg.SLEEPTIME)
+                time.sleep(0.5)
 
     def write_io(self):
         """
@@ -147,7 +174,7 @@ class PerMon(object):
                         # logger.logger.info('Stop monitor, because total time is up.')
                         break
 
-                    if self._is_run == 0 and self._is_run == 2:
+                    if self._is_run == 0 or self._is_run == 2:
                         # logger.logger.info('Stop monitor.')
                         break
             else:
@@ -181,7 +208,7 @@ class PerMon(object):
                         # logger.logger.info('Stop monitor, because total time is up.')
                         break
 
-                    if self._is_run == 0 and self._is_run == 2:
+                    if self._is_run == 0 or self._is_run == 2:
                         # logger.logger.info('Stop monitor.')
                         break
             else:
@@ -197,12 +224,24 @@ class PerMon(object):
 
         cpu = None
         mem = None
+        total_cpu = None
+        total_mem = None
         if str(pid) in res:
             ind = res.index(str(pid))
             cpu = float(res[ind + 8]) / self.cpu_cores      # 计算CPU使用率
             mem = float(res[ind + 9]) * self.total_mem      # 计算占用内存大小
 
-        return cpu, mem
+        r = self.re_cpu.findall(res[2])
+        if r:
+            total_cpu = 1 - float(r[0])
+
+        '''r = self.re_mem.findall(res[3])
+        if r:
+            total_mem = float(r[0]) / 1024 / 1024'''
+        result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
+        total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+
+        return cpu, mem, total_cpu, total_mem
 
     def get_mem(self, pid):
         """
@@ -310,6 +349,19 @@ class PerMon(object):
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
 
         logger.logger.info(f'Total memory is {self.total_mem * 100}')
+
+    def mem_alert(self, mem):
+        """
+            当内存过低的时候，发出警告，并清理缓存
+        """
+        if mem <= cfg.MIN_MEM:
+            logger.logger.warning(f'Current memory is {mem}, memory is too low.')
+            if cfg.IS_MEM_ALERT:
+                pass
+
+            if cfg.IS_CLEAR_CACHE:
+                os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
+                logger.logger.info('Clear cache successful.')
 
     def __del__(self):
         pass

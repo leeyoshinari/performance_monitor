@@ -6,6 +6,7 @@ import base64
 import time
 import glob
 import math
+import json
 import traceback
 import datetime
 import matplotlib.pyplot as plt
@@ -16,18 +17,24 @@ from logger import logger
 from extern import DealLogs
 
 
-def draw_data_from_mysql(port, pid, start_time=None, duration=None):
+def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, system=None):
     """
     Read data from MySQL.
     Return html included plotting, and data.
     """
-    search = 0
+    search = None
     pid_num = int(pid.split('_')[-1])
 
     if port:
         search = port
     elif pid:
         search = pid
+
+    if system is not None:
+        if cfg.IS_MONITOR_SYSTEM:
+            search = 'system'
+        else:
+            return json.dumps({'code': -1, 'message': 'The current setting is not to monitor system.'}, ensure_ascii=False)
 
     logs = glob.glob(cfg.LOG_PATH + '/*.log')  # 获取所有日志
 
