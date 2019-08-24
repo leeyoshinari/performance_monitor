@@ -53,9 +53,9 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         end_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
         # 画图
-        image_html = draw(deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io, deal_logs.handles, end_time - start_time)
+        image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io, deal_logs.handles, end_time - start_time)
         # 计算百分位数
-        per_html = get_lines(deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5])
+        per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5])
         # 获取java应用垃圾回收相关数据
         gc_html = get_gc(pid_num)
         # 将所有数据组装成html
@@ -70,74 +70,85 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         raise Exception(err)
 
 
-def draw(cpu, mem, IO, handles, total_time):
+def draw(type, system, cpu, mem, IO, handles, total_time):
     """
         画图
     """
-    if cfg.IS_IO:
-        fig = plt.figure('figure', figsize=(20, 15))
-        ax1 = plt.subplot(3, 1, 1)
-        ax2 = plt.subplot(3, 1, 2)
-        ax3 = plt.subplot(3, 1, 3)
-    elif cfg.IS_HANDLE:
-        fig = plt.figure('figure', figsize=(20, 20))
-        ax1 = plt.subplot(4, 1, 1)
-        ax2 = plt.subplot(4, 1, 2)
-        ax3 = plt.subplot(4, 1, 3)
-        ax4 = plt.subplot(4, 1, 4)
+    if type == 'system':
+        if cfg.IS_IO:
+            fig = plt.figure('figure', figsize=(20, 15))
+            ax1 = plt.subplot(3, 1, 1)
+            ax2 = plt.subplot(3, 1, 2)
+            ax3 = plt.subplot(3, 1, 3)
+        else:
+            fig = plt.figure('figure', figsize=(20, 10))
+            ax1 = plt.subplot(2, 1, 1)
+            ax2 = plt.subplot(2, 1, 2)
     else:
-        fig = plt.figure('figure', figsize=(20, 10))
-        ax1 = plt.subplot(2, 1, 1)
-        ax2 = plt.subplot(2, 1, 2)
+        if cfg.IS_IO:
+            fig = plt.figure('figure', figsize=(20, 15))
+            ax1 = plt.subplot(3, 1, 1)
+            ax2 = plt.subplot(3, 1, 2)
+            ax3 = plt.subplot(3, 1, 3)
+        elif cfg.IS_HANDLE:
+            fig = plt.figure('figure', figsize=(20, 20))
+            ax1 = plt.subplot(4, 1, 1)
+            ax2 = plt.subplot(4, 1, 2)
+            ax3 = plt.subplot(4, 1, 3)
+            ax4 = plt.subplot(4, 1, 4)
+        else:
+            fig = plt.figure('figure', figsize=(20, 10))
+            ax1 = plt.subplot(2, 1, 1)
+            ax2 = plt.subplot(2, 1, 2)
 
-    plt.sca(ax1)
-    plt.plot(cpu, color='r')
-    plt.grid()
-    plt.xlim(0, len(cpu))
-    plt.ylim(0, 100)
-    plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), sum(cpu) / len(cpu), math.floor(total_time / 360) / 10), size=12)
-    plt.margins(0, 0)
-
-    plt.sca(ax2)
-    plt.plot(mem[0], color='r', label='Memory')
-
-    if sum(mem[1]) == 0:
-        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), math.floor(total_time / 360) / 10), size=12)
-    else:
-        plt.plot(mem[1], color='b', label='JVM')
-        plt.legend(loc='upper right')
-        plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), math.floor(total_time / 360) / 10), size=12)
-
-    plt.grid()
-    plt.xlim(0, len(mem[0]))
-    plt.ylim(0, max(mem[0]) + 1)
-    plt.margins(0, 0)
-
-    if cfg.IS_IO:
-        plt.sca(ax3)
-        plt.plot(IO[3], color='black', label='rkB/s')
-        plt.plot(IO[4], color='b', label='wkB/s')
-        plt.legend(loc='upper left')
+        plt.sca(ax1)
+        plt.plot(cpu, color='r')
         plt.grid()
-        plt.xlim(0, len(IO[3]))
-        plt.ylim(0, max(max(IO[3]), max(IO[4])))
-        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), math.floor(total_time / 360) / 10), size=12)
+        plt.xlim(0, len(cpu))
+        plt.ylim(0, 100)
+        plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), sum(cpu) / len(cpu), math.floor(total_time / 360) / 10), size=12)
         plt.margins(0, 0)
 
-        ax_util = ax3.twinx()
-        plt.sca(ax_util)
-        plt.plot(IO[5], color='red', label='%util')
-        plt.legend(loc='upper right')
-        plt.ylim(0, max(IO[5]))
+        plt.sca(ax2)
+        plt.plot(mem[0], color='r', label='Memory')
 
-    if cfg.IS_HANDLE:
-        plt.sca(ax4)
-        plt.plot(handles, color='r')
+        if sum(mem[1]) == 0:
+            plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), math.floor(total_time / 360) / 10), size=12)
+        else:
+            plt.plot(mem[1], color='b', label='JVM')
+            plt.legend(loc='upper right')
+            plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), math.floor(total_time / 360) / 10), size=12)
+
         plt.grid()
-        plt.xlim(0, len(handles))
-        plt.ylim(0, max(handles) + 10)
-        plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), math.floor(total_time / 360) / 10), size=12)
+        plt.xlim(0, len(mem[0]))
+        plt.ylim(0, max(mem[0]) + 1)
         plt.margins(0, 0)
+
+        if cfg.IS_IO:
+            plt.sca(ax3)
+            plt.plot(IO[3], color='black', label='rkB/s')
+            plt.plot(IO[4], color='b', label='wkB/s')
+            plt.legend(loc='upper left')
+            plt.grid()
+            plt.xlim(0, len(IO[3]))
+            plt.ylim(0, max(max(IO[3]), max(IO[4])))
+            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), math.floor(total_time / 360) / 10), size=12)
+            plt.margins(0, 0)
+
+            ax_util = ax3.twinx()
+            plt.sca(ax_util)
+            plt.plot(IO[5], color='red', label='%util')
+            plt.legend(loc='upper right')
+            plt.ylim(0, max(IO[5]))
+
+        if cfg.IS_HANDLE:
+            plt.sca(ax4)
+            plt.plot(handles, color='r')
+            plt.grid()
+            plt.xlim(0, len(handles))
+            plt.ylim(0, max(handles) + 10)
+            plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), math.floor(total_time / 360) / 10), size=12)
+            plt.margins(0, 0)
 
     image_byte = BytesIO()
     fig.savefig(image_byte, format='png', bbox_inches='tight')      # 把图片保存成二进制格式
@@ -148,7 +159,7 @@ def draw(cpu, mem, IO, handles, total_time):
     return html
 
 
-def get_lines(cpu, util, dutil):
+def get_lines(system_cpu, cpu, util, dutil):
     """
         计算百分位数，75%line、90%line、95%line、99%line
     """

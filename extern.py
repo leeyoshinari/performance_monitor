@@ -52,6 +52,7 @@ class DealLogs(object):
 		self.is_monitor_system = cfg.IS_MONITOR_SYSTEM  # 是否监控系统资源
 		self.total_time = []
 		self.system = [[], []]      # cpu、内存
+		self.disk_io = [[], [], []]   # 磁盘读、写、使用率
 		self.cpu_and_mem = [[], [], []]     # cpu、内存、jvm
 		self.io = [[], [], [], [], [], []]  # 进程读、写、使用率，磁盘读、写、使用率
 		self.handles = []
@@ -226,22 +227,28 @@ class DealLogs(object):
 
 			if endIndex == -1:      # 从startIndex开始，到日志结束
 				for j in range(startIndex, len(lines)):
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
 			else:       # 从startIndex开始到endIndex
 				for j in range(startIndex, endIndex):
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
@@ -252,11 +259,14 @@ class DealLogs(object):
 				lines = f.readlines()
 
 			for j in range(startIndex, len(lines)):     # 第一个日志，从startIndex开始，到日志结束
-				if 'system' in lines[j]:
-					self.system_cpu_mem(lines[j].strip())
 				if 'cpu_and_mem' in lines[j]:
 					self.deal_total_time(lines[j].strip())
 					self.deal_cpu_and_mem(lines[j].strip())
+				if 'CpuAndMem' in lines[j]:
+					self.deal_total_time(lines[j].strip())
+					self.system_cpu_mem(lines[j].strip())
+				if 'disk_util' in lines[j]:
+					self.system_io(lines[j].strip())
 				if 'r_w_util' in lines[j]:
 					self.deal_io(lines[j].strip())
 				if 'handles' in lines[j]:
@@ -267,22 +277,28 @@ class DealLogs(object):
 
 			if endIndex == -1:      # 遍历整个日志
 				for j in range(len(lines)):
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
 			else:
 				for j in range(0, endIndex):    # 从日志第一行开始，直到endIndex
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
@@ -293,11 +309,14 @@ class DealLogs(object):
 				lines = f.readlines()
 
 			for j in range(startIndex, len(lines)):     # 第一个日志，从startIndex开始，到日志结束
-				if 'system' in lines[j]:
-					self.system_cpu_mem(lines[j].strip())
 				if 'cpu_and_mem' in lines[j]:
 					self.deal_total_time(lines[j].strip())
 					self.deal_cpu_and_mem(lines[j].strip())
+				if 'CpuAndMem' in lines[j]:
+					self.deal_total_time(lines[j].strip())
+					self.system_cpu_mem(lines[j].strip())
+				if 'disk_util' in lines[j]:
+					self.system_io(lines[j].strip())
 				if 'r_w_util' in lines[j]:
 					self.deal_io(lines[j].strip())
 				if 'handles' in lines[j]:
@@ -308,11 +327,14 @@ class DealLogs(object):
 					lines = f.readlines()
 
 				for j in range(len(lines)):
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
@@ -323,22 +345,28 @@ class DealLogs(object):
 
 			if endIndex == -1:          # 遍历最后一个日志
 				for j in range(len(lines)):
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
 			else:
 				for j in range(0, endIndex):        # 从日志第一行开始，直到endIndex
-					if 'system' in lines[j]:
-						self.system_cpu_mem(lines[j].strip())
 					if 'cpu_and_mem' in lines[j]:
 						self.deal_total_time(lines[j].strip())
 						self.deal_cpu_and_mem(lines[j].strip())
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
@@ -349,10 +377,21 @@ class DealLogs(object):
 			从日志的每一行找出CPU、内存
 		"""
 		if self.is_monitor_system:
-			if self.search:
+			if self.search == 'system':
 				res = line.split(',')
 				self.system[0].append(float(res[-2]))       # CPU
 				self.system[1].append(float(res[-1]))       # 内存
+
+	def system_io(self, line):
+		"""
+			从日志的每一行找出磁盘读、写、使用率
+		"""
+		if self.is_monitor_system:
+			if self.search == 'system':
+				res = line.split(',')
+				self.disk_io[0].append(float(res[-3]))  # 磁盘读
+				self.disk_io[1].append(float(res[-2]))  # 磁盘写
+				self.disk_io[2].append(float(res[-1]))  # 磁盘总使用率
 
 	def deal_cpu_and_mem(self, line):
 		"""

@@ -100,7 +100,7 @@ class PerMon(object):
                                     cpu, mem, total_cpu, total_mem = self.get_cpu(self._pid[i])    # 获取CPU和内存
 
                                     if self.is_monitor_system and total_cpu and total_mem:
-                                        logger.logger.info(f'system: cpu and mem,{total_cpu},{total_mem}')
+                                        logger.logger.info(f'system: CpuAndMem,{total_cpu},{total_mem}')
                                         self.mem_alert(total_mem)
 
                                     if cpu is None:
@@ -159,10 +159,11 @@ class PerMon(object):
                 while True:
                     if time.time() - self.start_time < self._total_time:
                         try:
-                            for iport, ipid in zip(self._port, self._pid):
-                                ioer = self.get_io(ipid)
+                            for i in range(len(self._pid)):
+                                ioer = self.get_io(self._pid[i])
 
-                                logger.logger.info(f'r_w_util: port_{iport},pid_{ipid},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
+                                logger.logger.info(f'r_w_util: port_{self._port[i]},pid_{self._pid[i]},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
+                                logger.logger.info(f'system: disk_util,{ioer[2]},{ioer[3]},{ioer[4]}')
 
                         except Exception as err:
                             logger.logger.error(traceback.format_exc())
