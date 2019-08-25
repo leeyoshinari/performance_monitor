@@ -17,14 +17,10 @@ ERROR_TIMES = 5     # times, number of running command. When equal, automaticall
 
 IS_MONITOR_SYSTEM = True    # Whether to monitor system's CPU and Memory.
 IS_MEM_ALERT = True     # Whether to alert when memory is too low. Alert by sending email.
-MIN_MEM = 1             # Minxium memory, uint: G
-IS_CLEAR_CACHE = True   # Whether to clear cache when memory is too low.
+MIN_MEM = 2             # Minxium memory, uint: G
 # 0: don't clear cache, 1: clear page caches, 2: clear dentries and inodes caches, 3: include 1 and 2;
 # echo 1 >/proc/sys/vm/drop_caches
 ECHO = 0
-
-IS_SEND_RESULT = True       # Whether to send monitoring results periodically.
-SEND_INTERVAL = 3600        # Interval, send results interval.
 
 SMTP_SERVER = 'smtp.sina.com'       # SMTP server
 SENDER_NAME = '张三'          # sender name
@@ -38,8 +34,8 @@ IS_HANDLE = False   # Whether to monitor handles
 
 DISK = 'device1'   # Which disk your application runs
 
-START_TIME = 'startTime.txt'
-FGC_TIMES = 'FullGC.txt'
+START_TIME = 'startTime.txt'    # Store the time of start monitoring.
+FGC_TIMES = 'FullGC.txt'        # Store the time of every FullGC time.
 
 # html
 HTML = '<html><body>{}</body><html>'

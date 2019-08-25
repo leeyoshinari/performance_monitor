@@ -53,11 +53,15 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         end_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
         # 画图
-        image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io, deal_logs.handles, end_time - start_time)
+        image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
+                          deal_logs.io, deal_logs.disk_io, deal_logs.handles, end_time - start_time)
         # 计算百分位数
-        per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5])
+        per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5], search)
         # 获取java应用垃圾回收相关数据
-        gc_html = get_gc(pid_num)
+        if search == 'system':
+            gc_html = ''
+        else:
+            gc_html = get_gc(pid_num)
         # 将所有数据组装成html
         html = cfg.HTML.format(cfg.HEADER.format(pid_num) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
         del deal_logs
@@ -70,7 +74,7 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         raise Exception(err)
 
 
-def draw(type, system, cpu, mem, IO, handles, total_time):
+def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
     """
         画图
     """
@@ -101,6 +105,41 @@ def draw(type, system, cpu, mem, IO, handles, total_time):
             ax1 = plt.subplot(2, 1, 1)
             ax2 = plt.subplot(2, 1, 2)
 
+    if type == 'system':
+        plt.sca(ax1)
+        plt.plot(system[0], color='r')
+        plt.grid()
+        plt.xlim(0, len(system[0]))
+        plt.ylim(0, 100)
+        plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(system[0]), sum(system[0]) / len(system[0]), math.floor(total_time / 360) / 10), size=12)
+        plt.margins(0, 0)
+
+        plt.sca(ax2)
+        plt.plot(system[1], color='r', label='Memory')
+        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(system[1]), math.floor(total_time / 360) / 10), size=12)
+        plt.grid()
+        plt.xlim(0, len(system[1]))
+        plt.ylim(0, max(system[1]) + 1)
+        plt.margins(0, 0)
+
+        if cfg.IS_IO:
+            plt.sca(ax3)
+            plt.plot(disk_io[0], color='black', label='rkB/s')
+            plt.plot(disk_io[1], color='b', label='wkB/s')
+            plt.legend(loc='upper left')
+            plt.grid()
+            plt.xlim(0, len(disk_io[2]))
+            plt.ylim(0, max(max(disk_io[0]), max(disk_io[1])))
+            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(disk_io[2]), math.floor(total_time / 360) / 10), size=12)
+            plt.margins(0, 0)
+
+            ax_util = ax3.twinx()
+            plt.sca(ax_util)
+            plt.plot(disk_io[2], color='red', label='%util')
+            plt.legend(loc='upper right')
+            plt.ylim(0, max(disk_io[2]))
+
+    else:
         plt.sca(ax1)
         plt.plot(cpu, color='r')
         plt.grid()
@@ -159,7 +198,7 @@ def draw(type, system, cpu, mem, IO, handles, total_time):
     return html
 
 
-def get_lines(system_cpu, cpu, util, dutil):
+def get_lines(system_cpu, cpu, util, dutil, type):
     """
         计算百分位数，75%line、90%line、95%line、99%line
     """
@@ -168,16 +207,23 @@ def get_lines(system_cpu, cpu, util, dutil):
     dutil.sort()
 
     if cfg.IS_IO:
-        line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
-        line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
-        line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
-        line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
+        if type == 'system':
+            line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
+            line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
+            line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
+            line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
+        else:
+            line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
+            line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
+            line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
+            line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
+
         htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
     else:
-        line75 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)])
-        line90 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)])
-        line95 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)])
-        line99 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)])
+        line75 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)] if type == 'system' else cpu[int(len(cpu) * 0.75)])
+        line90 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.90)] if type == 'system' else cpu[int(len(cpu) * 0.90)])
+        line95 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)] if type == 'system' else cpu[int(len(cpu) * 0.95)])
+        line99 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.99)] if type == 'system' else cpu[int(len(cpu) * 0.99)])
         htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
 
     return htmls

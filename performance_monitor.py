@@ -78,7 +78,8 @@ class PerMon(object):
             if self._is_run == 0 and self.is_monitor_system:
                 _, _, total_cpu, total_mem = self.get_cpu(1111)  # 获取系统CPU和剩余内存
                 if total_cpu and total_mem:
-                    logger.logger.info(f'system: cpu and mem,{total_cpu},{total_mem}')
+                    logger.logger.info(f'system: CpuAndMem,{total_cpu},{total_mem}')
+                    self.mem_alert(total_mem)
 
             if self._is_run == 1:       # 开始监控
                 self.start_time = time.time()   # 开始监控时间
@@ -119,7 +120,7 @@ class PerMon(object):
                                             time.sleep(cfg.SLEEPTIME)
                                             continue
                                         else:
-                                            if self.run_error == self.error_times:  # 如果命令执行失败次数等于设置次数，停止监控
+                                            if self.run_error > self.error_times:  # 如果命令执行失败次数大于设置次数，停止监控
                                                 self._is_run = 0
 
                                             self.run_error += 1     # 命令执行失败次数加1
@@ -146,13 +147,17 @@ class PerMon(object):
                         logger.logger.info('Stop monitor.')
                         break
             else:
-                time.sleep(0.5)
+                time.sleep(1)
 
     def write_io(self):
         """
             监控磁盘IO
         """
         while True:
+            if self._is_run != 1 and self.is_monitor_system:
+                disk_r, disk_w, disk_util = self.get_disk_io()
+                logger.logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
+
             if self._is_run == 1:
                 self.start_time = time.time()
 
@@ -163,7 +168,8 @@ class PerMon(object):
                                 ioer = self.get_io(self._pid[i])
 
                                 logger.logger.info(f'r_w_util: port_{self._port[i]},pid_{self._pid[i]},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
-                                logger.logger.info(f'system: disk_util,{ioer[2]},{ioer[3]},{ioer[4]}')
+                                if self.is_monitor_system:
+                                    logger.logger.info(f'system: disk_util,{ioer[2]},{ioer[3]},{ioer[4]}')
 
                         except Exception as err:
                             logger.logger.error(traceback.format_exc())
@@ -179,7 +185,7 @@ class PerMon(object):
                         # logger.logger.info('Stop monitor.')
                         break
             else:
-                time.sleep(cfg.SLEEPTIME)
+                time.sleep(1)
 
     def write_handle(self):
         """
@@ -192,12 +198,12 @@ class PerMon(object):
                 while True:
                     if time.time() - self.start_time < self._total_time:
                         try:
-                            for hport, hpid in zip(self._port, self._pid):
-                                handles = self.get_handle(hpid)
+                            for i in range(len(self._pid)):
+                                handles = self.get_handle(self._pid[i])
                                 if handles is None:
                                     continue
 
-                                logger.logger.info(f'handles: port_{hport},pid_{hpid},{handles}')
+                                logger.logger.info(f'handles: port_{self._port[i]},pid_{self._pid[i]},{handles}')
 
                         except Exception as err:
                             logger.logger.info(traceback.format_exc())
@@ -351,16 +357,17 @@ class PerMon(object):
 
         logger.logger.info(f'Total memory is {self.total_mem * 100}')
 
-    def mem_alert(self, mem):
+    @staticmethod
+    def mem_alert(mem):
         """
             当内存过低的时候，发出警告，并清理缓存
         """
         if mem <= cfg.MIN_MEM:
             logger.logger.warning(f'Current memory is {mem}, memory is too low.')
-            if cfg.IS_MEM_ALERT:
+            if cfg.IS_MEM_ALERT:    # 是否邮件发送警告
                 pass
 
-            if cfg.IS_CLEAR_CACHE:
+            if cfg.ECHO:    # 是否清理缓存
                 os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
                 logger.logger.info('Clear cache successful.')
 
