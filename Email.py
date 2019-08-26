@@ -15,14 +15,15 @@ import config as cfg
 def sendMsg(msg):
 	logger.logger.info(msg)
 	message = MIMEMultipart()
-	if msg['smtp_server'] == 'smtp.sina.com':   # 新浪邮箱的Header不能使用utf-8的编码方式
+	if cfg.SMTP_SERVER == 'smtp.sina.com':   # 新浪邮箱的Header不能使用utf-8的编码方式
 		message['From'] = Header(cfg.SENDER_NAME)    # 发件人名字
 	else:
 		message['From'] = Header(cfg.SENDER_NAME, 'utf-8')
 	message['To'] = Header(cfg.RECEIVER_NAME, 'utf-8')       # 收件人名字
-	message['Subject'] = Header(msg['subject'], 'utf-8')        # 邮件主题
+	message['Subject'] = Header('服务器剩余内存预警', 'utf-8')        # 邮件主题
 
-	email_text = MIMEText(msg['fail_test'], 'html', 'utf-8')
+	text = f"{cfg.IP}服务器当前剩余内存为{msg['free_mem']:.2f}G，请注意！"
+	email_text = MIMEText(text, 'plain', 'utf-8')
 	message.attach(email_text)      # 添加邮件正文
 
 	try:

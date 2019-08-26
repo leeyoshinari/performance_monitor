@@ -8,6 +8,7 @@ import time
 import traceback
 import config as cfg
 from logger import logger
+from Email import sendMsg
 from extern import ports_to_pids
 
 
@@ -365,7 +366,8 @@ class PerMon(object):
         if mem <= cfg.MIN_MEM:
             logger.logger.warning(f'Current memory is {mem}, memory is too low.')
             if cfg.IS_MEM_ALERT:    # 是否邮件发送警告
-                pass
+                msg = {'free_mem': mem}
+                sendMsg(msg['free_mem'])
 
             if cfg.ECHO:    # 是否清理缓存
                 os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
