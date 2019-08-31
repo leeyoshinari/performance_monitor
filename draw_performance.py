@@ -53,8 +53,8 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         end_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
         # 画图
-        image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
-                          deal_logs.io, deal_logs.disk_io, deal_logs.handles, end_time - start_time)
+        image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io,
+                          deal_logs.disk_io, deal_logs.handles, deal_logs.total_time, end_time - start_time)
         # 计算百分位数
         per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5], search)
         # 获取java应用垃圾回收相关数据
@@ -74,10 +74,25 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         raise Exception(err)
 
 
-def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
+def draw(type, system, cpu, mem, IO, disk_io, handles, times, total_time):
     """
         画图
     """
+    length = len(times)
+    if length < 7:
+        logger.logger.error('Too less data, please wait a minute.')
+        return cfg.ERROR.format('Too less data, please wait a minute.')
+
+    index = []
+    labels = []
+    delta = length / 6
+    for i in range(6):
+        index.append(int(i * delta))
+        labels.append(times[int(i * delta)])
+
+    index.append(length - 1)
+    labels.append(times[length - 1])
+
     if type == 'system':
         if cfg.IS_IO:
             fig = plt.figure('figure', figsize=(20, 15))
@@ -112,6 +127,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
         plt.xlim(0, len(system[0]))
         plt.ylim(0, 100)
         plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(system[0]), sum(system[0]) / len(system[0]), math.floor(total_time / 360) / 10), size=12)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         plt.sca(ax2)
@@ -120,6 +136,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
         plt.grid()
         plt.xlim(0, len(system[1]))
         plt.ylim(0, max(system[1]) + 1)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         if cfg.IS_IO:
@@ -131,6 +148,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
             plt.xlim(0, len(disk_io[2]))
             plt.ylim(0, max(max(disk_io[0]), max(disk_io[1])))
             plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(disk_io[2]), math.floor(total_time / 360) / 10), size=12)
+            plt.xticks(index, labels)
             plt.margins(0, 0)
 
             ax_util = ax3.twinx()
@@ -146,6 +164,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
         plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), sum(cpu) / len(cpu), math.floor(total_time / 360) / 10), size=12)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         plt.sca(ax2)
@@ -161,6 +180,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
         plt.grid()
         plt.xlim(0, len(mem[0]))
         plt.ylim(0, max(mem[0]) + 1)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         if cfg.IS_IO:
@@ -172,6 +192,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
             plt.xlim(0, len(IO[3]))
             plt.ylim(0, max(max(IO[3]), max(IO[4])))
             plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), math.floor(total_time / 360) / 10), size=12)
+            plt.xticks(index, labels)
             plt.margins(0, 0)
 
             ax_util = ax3.twinx()
@@ -187,6 +208,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, total_time):
             plt.xlim(0, len(handles))
             plt.ylim(0, max(handles) + 10)
             plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), math.floor(total_time / 360) / 10), size=12)
+            plt.xticks(index, labels)
             plt.margins(0, 0)
 
     image_byte = BytesIO()

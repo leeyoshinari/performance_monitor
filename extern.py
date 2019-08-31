@@ -51,6 +51,7 @@ class DealLogs(object):
 		self.is_handle = cfg.IS_HANDLE
 		self.is_monitor_system = cfg.IS_MONITOR_SYSTEM  # 是否监控系统资源
 		self.total_time = []
+		self.system_total_time = []
 		self.system = [[], []]      # cpu、内存
 		self.disk_io = [[], [], []]   # 磁盘读、写、使用率
 		self.cpu_and_mem = [[], [], []]     # cpu、内存、jvm
@@ -409,8 +410,6 @@ class DealLogs(object):
 		"""
 		if self.search in line:
 			try:
-				if len(self.total_time) > 2:
-					self.total_time.pop(1)
 				self.total_time.append(self.recompile(line).group())
 			except Exception as err:
 				logger.logger.error(err)
