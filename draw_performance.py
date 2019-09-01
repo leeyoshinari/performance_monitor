@@ -128,7 +128,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
 
     if type == 'system':
         plt.sca(ax1)
-        plt.plot(system[0], color='r')
+        plt.plot(system[0], color='r', linewidth=0.3)
         plt.grid()
         plt.xlim(0, len(system[0]))
         plt.ylim(0, 100)
@@ -137,7 +137,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
         plt.margins(0, 0)
 
         plt.sca(ax2)
-        plt.plot(system[1], color='r', label='Memory')
+        plt.plot(system[1], color='r', linewidth=1, label='Memory')
         plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(system[1]), math.floor(total_time / 360) / 10), size=12)
         plt.grid()
         plt.xlim(0, len(system[1]))
@@ -147,8 +147,8 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
 
         if cfg.IS_IO:
             plt.sca(ax3)
-            plt.plot(disk_io[0], color='black', label='rkB/s')
-            plt.plot(disk_io[1], color='b', label='wkB/s')
+            plt.plot(disk_io[0], color='black', linewidth=1, label='rkB/s')
+            plt.plot(disk_io[1], color='b', linewidth=1, label='wkB/s')
             plt.legend(loc='upper left')
             plt.grid()
             plt.xlim(0, len(disk_io[2]))
@@ -159,13 +159,13 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
 
             ax_util = ax3.twinx()
             plt.sca(ax_util)
-            plt.plot(disk_io[2], color='red', label='%util')
+            plt.plot(disk_io[2], color='red', linewidth=1, label='%util')
             plt.legend(loc='upper right')
             plt.ylim(0, max(disk_io[2]))
 
     else:
         plt.sca(ax1)
-        plt.plot(cpu, color='r')
+        plt.plot(cpu, color='r', linewidth=0.3)
         plt.grid()
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
@@ -174,12 +174,12 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
         plt.margins(0, 0)
 
         plt.sca(ax2)
-        plt.plot(mem[0], color='r', label='Memory')
+        plt.plot(mem[0], color='r', linewidth=1, label='Memory')
 
         if sum(mem[1]) == 0:
             plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), math.floor(total_time / 360) / 10), size=12)
         else:
-            plt.plot(mem[1], color='b', label='JVM')
+            plt.plot(mem[1], color='b', linewidth=1, label='JVM')
             plt.legend(loc='upper right')
             plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), math.floor(total_time / 360) / 10), size=12)
 
@@ -191,8 +191,8 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
 
         if cfg.IS_IO:
             plt.sca(ax3)
-            plt.plot(IO[3], color='black', label='rkB/s')
-            plt.plot(IO[4], color='b', label='wkB/s')
+            plt.plot(IO[3], color='black', linewidth=1, label='rkB/s')
+            plt.plot(IO[4], color='b', linewidth=1, label='wkB/s')
             plt.legend(loc='upper left')
             plt.grid()
             plt.xlim(0, len(IO[3]))
@@ -203,13 +203,13 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
 
             ax_util = ax3.twinx()
             plt.sca(ax_util)
-            plt.plot(IO[5], color='red', label='%util')
+            plt.plot(IO[5], color='red', linewidth=1, label='%util')
             plt.legend(loc='upper right')
             plt.ylim(0, max(IO[5]))
 
         if cfg.IS_HANDLE:
             plt.sca(ax4)
-            plt.plot(handles, color='r')
+            plt.plot(handles, color='r', linewidth=1)
             plt.grid()
             plt.xlim(0, len(handles))
             plt.ylim(0, max(handles) + 10)
