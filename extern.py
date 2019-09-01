@@ -51,7 +51,7 @@ class DealLogs(object):
 		self.is_handle = cfg.IS_HANDLE
 		self.is_monitor_system = cfg.IS_MONITOR_SYSTEM  # 是否监控系统资源
 		self.total_time = []
-		self.system_total_time = []
+		self.io_total_time = []
 		self.system = [[], []]      # cpu、内存
 		self.disk_io = [[], [], []]   # 磁盘读、写、使用率
 		self.cpu_and_mem = [[], [], []]     # cpu、内存、jvm
@@ -235,8 +235,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -249,8 +251,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -267,8 +271,10 @@ class DealLogs(object):
 					self.deal_total_time(lines[j].strip())
 					self.system_cpu_mem(lines[j].strip())
 				if 'disk_util' in lines[j]:
+					self.deal_io_total_time(lines[j].strip())
 					self.system_io(lines[j].strip())
 				if 'r_w_util' in lines[j]:
+					self.deal_io_total_time(lines[j].strip())
 					self.deal_io(lines[j].strip())
 				if 'handles' in lines[j]:
 					self.deal_handle(lines[j].strip())
@@ -285,8 +291,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -299,8 +307,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -317,8 +327,10 @@ class DealLogs(object):
 					self.deal_total_time(lines[j].strip())
 					self.system_cpu_mem(lines[j].strip())
 				if 'disk_util' in lines[j]:
+					self.deal_io_total_time(lines[j].strip())
 					self.system_io(lines[j].strip())
 				if 'r_w_util' in lines[j]:
+					self.deal_io_total_time(lines[j].strip())
 					self.deal_io(lines[j].strip())
 				if 'handles' in lines[j]:
 					self.deal_handle(lines[j].strip())
@@ -335,8 +347,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -353,8 +367,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -367,8 +383,10 @@ class DealLogs(object):
 						self.deal_total_time(lines[j].strip())
 						self.system_cpu_mem(lines[j].strip())
 					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.system_io(lines[j].strip())
 					if 'r_w_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
 					if 'handles' in lines[j]:
 						self.deal_handle(lines[j].strip())
@@ -406,11 +424,21 @@ class DealLogs(object):
 
 	def deal_total_time(self, line):
 		"""
-			找到监控结果的开始时间和结束时间
+			找到监控结果的时间
 		"""
 		if self.search in line:
 			try:
 				self.total_time.append(self.recompile(line).group())
+			except Exception as err:
+				logger.logger.error(err)
+
+	def deal_io_total_time(self, line):
+		"""
+			找到监控结果的时间
+		"""
+		if self.search in line:
+			try:
+				self.io_total_time.append(self.recompile(line).group())
 			except Exception as err:
 				logger.logger.error(err)
 
