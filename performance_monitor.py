@@ -226,8 +226,8 @@ class PerMon(object):
         """
             使用top命令获取指定进程的CPU(%)和内存(G)
         """
-        result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()[-1]       # 执行top命令
-        res = result.strip().split(' ')
+        result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()       # 执行top命令
+        res = result[-1].strip().split(' ')
         logger.logger.debug(res)
 
         cpu = None
@@ -239,7 +239,7 @@ class PerMon(object):
             cpu = float(res[ind + 8]) / self.cpu_cores      # 计算CPU使用率
             mem = float(res[ind + 9]) * self.total_mem      # 计算占用内存大小
 
-        r = self.re_cpu.findall(res[2])
+        r = self.re_cpu.findall(result[2])
         if r:
             total_cpu = 1 - float(r[0])
 

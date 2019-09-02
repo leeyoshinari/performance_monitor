@@ -23,12 +23,18 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
     Return html included plotting, and data.
     """
     search = None
-    pid_num = int(pid.split('_')[-1])
 
     if port:
         search = port
     elif pid:
         search = pid
+
+    if pid is not None:
+        pid_num = int(pid.split('_')[-1])
+    elif system is not None:
+        pid_num = 'system'
+    else:
+        pid_num = None
 
     if system is not None:
         if cfg.IS_MONITOR_SYSTEM:
