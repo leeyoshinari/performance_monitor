@@ -5,7 +5,6 @@ import os
 import base64
 import time
 import glob
-import math
 import json
 import traceback
 import datetime
@@ -60,7 +59,7 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
 
         # 画图
         image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io,
-                          deal_logs.disk_io, deal_logs.handles, deal_logs.total_time, deal_logs.io_total_time, end_time - start_time)
+                          deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time, end_time - start_time)
         # 计算百分位数
         per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5], search)
         # 获取java应用垃圾回收相关数据
@@ -80,7 +79,7 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         raise Exception(err)
 
 
-def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_time):
+def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
     """
         画图
     """
@@ -90,6 +89,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
         logger.logger.error('Too less data, please wait a minute.')
         return cfg.ERROR.format('Too less data, please wait a minute.')
 
+    # x坐标及坐标刻度
     index = [[], []]
     labels = [[], []]
     delta = length / 6
@@ -105,6 +105,11 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
     labels[0].append(times[length - 1])
     labels[1].append(io_times[io_length - 1])
 
+    cpu_start_time = time.mktime(datetime.datetime.strptime(str(times[0]), '%Y-%m-%d %H:%M:%S').timetuple())
+    cpu_end_time = time.mktime(datetime.datetime.strptime(str(times[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
+    io_start_time = time.mktime(datetime.datetime.strptime(str(io_times[0]), '%Y-%m-%d %H:%M:%S').timetuple())
+    io_end_time = time.mktime(datetime.datetime.strptime(str(io_times[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
+
     if type == 'system':
         if cfg.IS_IO:
             fig = plt.figure('figure', figsize=(20, 15))
@@ -121,12 +126,6 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
             ax1 = plt.subplot(3, 1, 1)
             ax2 = plt.subplot(3, 1, 2)
             ax3 = plt.subplot(3, 1, 3)
-        elif cfg.IS_HANDLE:
-            fig = plt.figure('figure', figsize=(20, 20))
-            ax1 = plt.subplot(4, 1, 1)
-            ax2 = plt.subplot(4, 1, 2)
-            ax3 = plt.subplot(4, 1, 3)
-            ax4 = plt.subplot(4, 1, 4)
         else:
             fig = plt.figure('figure', figsize=(20, 10))
             ax1 = plt.subplot(2, 1, 1)
@@ -138,13 +137,13 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
         plt.grid()
         plt.xlim(0, len(system[0]))
         plt.ylim(0, 100)
-        plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(system[0]), sum(system[0]) / len(system[0]), math.floor(total_time / 360) / 10), size=12)
+        plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(system[0]), sum(system[0]) / len(system[0]), (cpu_end_time - cpu_start_time) / 3600), size=12)
         plt.xticks(index[0], labels[0])
         plt.margins(0, 0)
 
         plt.sca(ax2)
         plt.plot(system[1], color='r', linewidth=1, label='Memory')
-        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(system[1]), math.floor(total_time / 360) / 10), size=12)
+        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(system[1]), (cpu_end_time - cpu_start_time) / 3600), size=12)
         plt.grid()
         plt.xlim(0, len(system[1]))
         plt.ylim(0, max(system[1]) + 1)
@@ -159,7 +158,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
             plt.grid()
             plt.xlim(0, len(disk_io[2]))
             plt.ylim(0, max(max(disk_io[0]), max(disk_io[1])))
-            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(disk_io[2]), math.floor(total_time / 360) / 10), size=12)
+            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(disk_io[2]), (io_end_time - io_start_time) / 3600), size=12)
             plt.xticks(index[1], labels[1])
             plt.margins(0, 0)
 
@@ -175,7 +174,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
         plt.grid()
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
-        plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), sum(cpu) / len(cpu), math.floor(total_time / 360) / 10), size=12)
+        plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(max(cpu), sum(cpu) / len(cpu), (cpu_end_time - cpu_start_time) / 3600), size=12)
         plt.xticks(index[0], labels[0])
         plt.margins(0, 0)
 
@@ -183,11 +182,11 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
         plt.plot(mem[0], color='r', linewidth=1, label='Memory')
 
         if sum(mem[1]) == 0:
-            plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), math.floor(total_time / 360) / 10), size=12)
+            plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), (cpu_end_time - cpu_start_time) / 3600), size=12)
         else:
             plt.plot(mem[1], color='b', linewidth=1, label='JVM')
             plt.legend(loc='upper right')
-            plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), math.floor(total_time / 360) / 10), size=12)
+            plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), max(mem[1]), (cpu_end_time - cpu_start_time) / 3600), size=12)
 
         plt.grid()
         plt.xlim(0, len(mem[0]))
@@ -203,7 +202,7 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
             plt.grid()
             plt.xlim(0, len(IO[3]))
             plt.ylim(0, max(max(IO[3]), max(IO[4])))
-            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), math.floor(total_time / 360) / 10), size=12)
+            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), (io_end_time - io_start_time) / 3600), size=12)
             plt.xticks(index[1], labels[1])
             plt.margins(0, 0)
 
@@ -212,15 +211,6 @@ def draw(type, system, cpu, mem, IO, disk_io, handles, times, io_times, total_ti
             plt.plot(IO[5], color='red', linewidth=1, label='%util')
             plt.legend(loc='upper right')
             plt.ylim(0, max(IO[5]))
-
-        if cfg.IS_HANDLE:
-            plt.sca(ax4)
-            plt.plot(handles, color='r', linewidth=1)
-            plt.grid()
-            plt.xlim(0, len(handles))
-            plt.ylim(0, max(handles) + 10)
-            plt.title('Handle, max:{}, duration:{:.1f}h'.format(int(max(handles)), math.floor(total_time / 360) / 10), size=12)
-            plt.margins(0, 0)
 
     image_byte = BytesIO()
     fig.savefig(image_byte, format='png', bbox_inches='tight')      # 把图片保存成二进制格式

@@ -48,7 +48,6 @@ class DealLogs(object):
 	def __init__(self, search):
 		self.search = search    # 带端口号或进程号查询
 		self.is_io = cfg.IS_IO
-		self.is_handle = cfg.IS_HANDLE
 		self.is_monitor_system = cfg.IS_MONITOR_SYSTEM  # 是否监控系统资源
 		self.total_time = []
 		self.io_total_time = []
@@ -56,7 +55,6 @@ class DealLogs(object):
 		self.disk_io = [[], [], []]   # 磁盘读、写、使用率
 		self.cpu_and_mem = [[], [], []]     # cpu、内存、jvm
 		self.io = [[], [], [], [], [], []]  # 进程读、写、使用率，磁盘读、写、使用率
-		self.handles = []
 
 	def get_logs(self, logs, startTime=None, endTime=None):
 		"""
@@ -188,7 +186,7 @@ class DealLogs(object):
 			end_index: 结束寻找的位置
 			search_time: 寻找的值，单位为 1970纪元后经过的浮点秒数
 		"""
-		# 防止输入错的时间无法跳出循环
+		# 防止输入错的时间，或有较长的监控空白，无法跳出循环
 		if end_index - start_index < 2:
 			return start_index
 
@@ -196,12 +194,11 @@ class DealLogs(object):
 		index = int((start_index + end_index) / 2)
 		try:
 			t = time.mktime(datetime.datetime.strptime(self.recompile(lines[index]).group(), '%Y-%m-%d %H:%M:%S').timetuple())
-			if search_time - t > 2:
-				return self.get_index(lines, index, end_index, search_time)
-			elif search_time - t < -2:
-				return self.get_index(lines, start_index, index, search_time)
-			else:
+			if -1 <= search_time - t <= 1:
 				return index
+			else:
+				return self.get_index(lines, start_index, index, search_time)
+
 		except Exception as err:
 			logger.logger.warning(err)
 			return self.get_index(lines, start_index+1, end_index, search_time)
@@ -240,8 +237,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 			else:       # 从startIndex开始到endIndex
 				for j in range(startIndex, endIndex):
 					if 'cpu_and_mem' in lines[j]:
@@ -256,8 +251,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 
 		if len(log_list) == 2:      # 如果有两个监控日志文件
 			with open(logs[log_list[0]][1], 'r') as f:
@@ -276,8 +269,6 @@ class DealLogs(object):
 				if 'r_w_util' in lines[j]:
 					self.deal_io_total_time(lines[j].strip())
 					self.deal_io(lines[j].strip())
-				if 'handles' in lines[j]:
-					self.deal_handle(lines[j].strip())
 
 			with open(logs[log_list[1]][1], 'r') as f:
 				lines = f.readlines()
@@ -296,8 +287,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 			else:
 				for j in range(0, endIndex):    # 从日志第一行开始，直到endIndex
 					if 'cpu_and_mem' in lines[j]:
@@ -312,8 +301,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 
 		if len(log_list) > 2:       # 如果有大于两个监控日志文件
 			with open(logs[log_list[0]][1], 'r') as f:
@@ -332,8 +319,6 @@ class DealLogs(object):
 				if 'r_w_util' in lines[j]:
 					self.deal_io_total_time(lines[j].strip())
 					self.deal_io(lines[j].strip())
-				if 'handles' in lines[j]:
-					self.deal_handle(lines[j].strip())
 
 			for m in range(1, len(log_list)-1):         # 遍历中间所有日志
 				with open(logs[log_list[m]][1], 'r') as f:
@@ -352,8 +337,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 
 			with open(logs[log_list[-1]][1], 'r') as f:
 				lines = f.readlines()
@@ -372,8 +355,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 			else:
 				for j in range(0, endIndex):        # 从日志第一行开始，直到endIndex
 					if 'cpu_and_mem' in lines[j]:
@@ -388,8 +369,6 @@ class DealLogs(object):
 					if 'r_w_util' in lines[j]:
 						self.deal_io_total_time(lines[j].strip())
 						self.deal_io(lines[j].strip())
-					if 'handles' in lines[j]:
-						self.deal_handle(lines[j].strip())
 
 	def system_cpu_mem(self, line):
 		"""
@@ -455,15 +434,6 @@ class DealLogs(object):
 				self.io[3].append(float(res[-3]))  # 磁盘读
 				self.io[4].append(float(res[-2]))  # 磁盘写
 				self.io[5].append(float(res[-1]))  # 磁盘总使用率
-
-	def deal_handle(self, line):
-		"""
-			从日志的每一行找出句柄数据
-		"""
-		if self.search in line:
-			if self.is_handle:
-				res = line.split(',')
-				self.handles.append(float(res[-1]))  # 句柄数
 
 	def recompile(self, line):
 		"""

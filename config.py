@@ -8,10 +8,10 @@ PORT = '5555'
 
 # monitor config
 LEVEL = 'INFO'      # log level
-BACKUP_COUNT = 7    # log backup counter
+BACKUP_COUNT = 9    # log backup counter
 LOG_PATH = 'logs'   # log path
 
-INTERVAL = 0.5  # interval, run command interval.
+INTERVAL = 1  # interval, run command interval.
 SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 ERROR_TIMES = 5     # times, number of running command. When equal, automatically stopped monitor.
 

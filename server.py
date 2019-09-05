@@ -23,8 +23,6 @@ permon = PerMon()
 t = [threading.Thread(target=permon.write_cpu_mem, args=())]
 if cfg.IS_IO:
     t.append(threading.Thread(target=permon.write_io, args=()))
-if cfg.IS_HANDLE:
-    t.append(threading.Thread(target=permon.write_handle, args=()))
 
 for i in range(len(t)):
     t[i].start()

@@ -17,8 +17,6 @@ class PerMon(object):
         self._is_run = 0    # 是否开始监控，0为停止监控，1为开始监控
         self._pid = [1111]      # 存放待监控的进程号
         self._port = []     # 存放待监控的端口号
-        self.db = None
-        self.cursor = None
         self._total_time = 0     # 监控总时长，初始化为0
         self.interval = int(cfg.INTERVAL)   # 每次监控时间间隔
         self.is_monitor_system = cfg.IS_MONITOR_SYSTEM      # 是否监控系统资源
@@ -165,12 +163,16 @@ class PerMon(object):
                 while True:
                     if time.time() - self.start_time < self._total_time:
                         try:
+                            ioer = self.get_io(1)
+                            if self.is_monitor_system:
+                                logger.logger.info(f'system: disk_util,{ioer[2]},{ioer[3]},{ioer[4]}')
+
                             for i in range(len(self._pid)):
-                                ioer = self.get_io(self._pid[i])
+                                # ioer = self.get_io(self._pid[i])
 
                                 logger.logger.info(f'r_w_util: port_{self._port[i]},pid_{self._pid[i]},{ioer[0]},{ioer[1]},{ioer[-1]},{ioer[2]},{ioer[3]},{ioer[4]}')
-                                if self.is_monitor_system:
-                                    logger.logger.info(f'system: disk_util,{ioer[2]},{ioer[3]},{ioer[4]}')
+                                # if self.is_monitor_system:
+                                #     logger.logger.info(f'system: disk_util,{ioer[2]},{ioer[3]},{ioer[4]}')
 
                         except Exception as err:
                             logger.logger.error(traceback.format_exc())
@@ -187,40 +189,6 @@ class PerMon(object):
                         break
             else:
                 time.sleep(1)
-
-    def write_handle(self):
-        """
-            监控句柄数
-        """
-        while True:
-            if self._is_run == 1:
-                self.start_time = time.time()
-
-                while True:
-                    if time.time() - self.start_time < self._total_time:
-                        try:
-                            for i in range(len(self._pid)):
-                                handles = self.get_handle(self._pid[i])
-                                if handles is None:
-                                    continue
-
-                                logger.logger.info(f'handles: port_{self._port[i]},pid_{self._pid[i]},{handles}')
-
-                        except Exception as err:
-                            logger.logger.info(traceback.format_exc())
-                            time.sleep(cfg.SLEEPTIME)
-                            continue
-
-                    else:
-                        self._is_run = 0
-                        # logger.logger.info('Stop monitor, because total time is up.')
-                        break
-
-                    if self._is_run == 0 or self._is_run == 2:
-                        # logger.logger.info('Stop monitor.')
-                        break
-            else:
-                time.sleep(cfg.SLEEPTIME)
 
     def get_cpu(self, pid):
         """
@@ -241,7 +209,7 @@ class PerMon(object):
 
         r = self.re_cpu.findall(result[2])
         if r:
-            total_cpu = 1 - float(r[0])
+            total_cpu = 100 - float(r[0])
 
         '''r = self.re_mem.findall(res[3])
         if r:
