@@ -33,7 +33,7 @@ for i in range(len(t)):
 @server.route('/runMonitor', methods=['get'])
 def runMonitor():
     try:
-        port = None
+        port = ''
         pids = ''
         ports = []
         is_run = int(request.args.get('isRun'))
@@ -55,6 +55,8 @@ def runMonitor():
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
             pids = pid.split(',')
+
+        # 是否传入监控总时间
         if request.args.get('totalTime'):
             total_time = int(request.args.get('totalTime'))
         else:
