@@ -15,6 +15,7 @@ INTERVAL = 1  # interval, run command interval.
 SLEEPTIME = 3   # interval, when stopping monitor, polling to start monitor when satisfying condition.
 ERROR_TIMES = 5     # times, number of running command. When equal, automatically stopped monitor.
 
+IS_JVM_ALERT = True     # Whether to alert when the frequency of Full GC is too high.
 IS_MONITOR_SYSTEM = True    # Whether to monitor system's CPU and Memory.
 IS_MEM_ALERT = True     # Whether to alert when memory is too low. Alert by sending email.
 MIN_MEM = 2             # Minxium memory, uint: G
@@ -28,9 +29,6 @@ SENDER_EMAIL = 'zhangsan@qq.com'        # sender's email
 PASSWORD = 'UjBWYVJFZE9RbFpIV1QwOVBUMDlQUT09'       # email password, base64 encode.
 RECEIVER_NAME = 'baidu_all'     # receiver name
 RECEIVER_EMAIL = ['zhangsan@qq.com', 'zhangsi@qq.com']    # receiver's email
-
-IS_IO = True    # Whether to monitor IO
-IS_HANDLE = False   # Whether to monitor handles
 
 DISK = 'device1'   # Which disk your application runs
 

@@ -20,9 +20,8 @@ server = Flask(__name__)
 permon = PerMon()
 
 # 开启多线程
-t = [threading.Thread(target=permon.write_cpu_mem, args=())]
-if cfg.IS_IO:
-    t.append(threading.Thread(target=permon.write_io, args=()))
+t = [threading.Thread(target=permon.write_cpu_mem, args=()),
+     threading.Thread(target=permon.write_io, args=())]
 
 for i in range(len(t)):
     t[i].start()

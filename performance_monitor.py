@@ -5,6 +5,7 @@
 import os
 import re
 import time
+import threading
 import traceback
 import config as cfg
 from logger import logger
@@ -35,6 +36,7 @@ class PerMon(object):
         self.start_time = 0     # 初始化开始监控时间
         self.run_error = 0      # 初始化命令执行失败次数
         self.FGC = 0            # 初始化Full GC次数
+        self.FGC_time = []      # 存放full gc的时间
 
     @property
     def is_run(self):
@@ -143,7 +145,6 @@ class PerMon(object):
                     logger.logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
                 if cpu is not None and mem is not None:
                     logger.logger.info(f'system: CpuAndMem,{cpu},{mem}')
-                    self.mem_alert(mem)
 
             if self._is_run == 1:
                 self.start_time = time.time()
@@ -157,7 +158,6 @@ class PerMon(object):
                                     logger.logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
                                 if cpu is not None and mem is not None:
                                     logger.logger.info(f'system: CpuAndMem,{cpu},{mem}')
-                                    self.mem_alert(mem)
 
                             for i in range(len(self._pid)):
                                 # ioer = self.get_io(self._pid[i])
@@ -212,8 +212,19 @@ class PerMon(object):
             fgc = int(res[14])
             if self.FGC != fgc:
                 self.FGC = fgc
+                self.FGC_time.append(time.time())
+                if len(self.FGC_time) > 2:
+                    frequency = (self.FGC_time[-1] - self.FGC_time[0]) / self.FGC
+                    if frequency < 3600:
+                        thread = threading.Thread(target=self.jvm_alert, args=(frequency, pid,))
+                        thread.start()
+
                 with open(cfg.FGC_TIMES, 'a') as f:
                     f.write(f"{self.FGC}--{time.strftime('%Y-%m-%d %H:%M:%S')}" + "\n")
+
+            # 清空存放Full GC时间的变量
+            if self.FGC == 0:
+                self.FGC_time = []
 
         except Exception as err:
             logger.logger.info(err)
@@ -271,6 +282,10 @@ class PerMon(object):
 
             result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
             mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024      # 系统可用内存
+            if mem <= cfg.MIN_MEM:
+                logger.logger.warning(f'Current memory is {mem}, memory is too low.')
+                thread = threading.Thread(target=self.mem_alert, args=(mem,))
+                thread.start()
 
         except Exception as err:
             logger.logger.error(err)
@@ -317,15 +332,22 @@ class PerMon(object):
         """
             当内存过低的时候，发出警告，并清理缓存
         """
-        if mem <= cfg.MIN_MEM:
-            logger.logger.warning(f'Current memory is {mem}, memory is too low.')
-            if cfg.IS_MEM_ALERT:    # 是否邮件发送警告
-                msg = {'free_mem': mem}
-                sendMsg(msg)
+        if cfg.IS_MEM_ALERT:    # 是否邮件发送警告
+            msg = {'msg': f'当前剩余内存为{mem:.2f}G'}
+            sendMsg(msg)
 
-            if cfg.ECHO:    # 是否清理缓存
-                os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
-                logger.logger.info('Clear cache successful.')
+        if cfg.ECHO:    # 是否清理缓存
+            os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
+            logger.logger.info('Clear cache successful.')
+
+    @staticmethod
+    def jvm_alert(frequency, pid):
+        """
+            当Full GC频繁时，发出警告
+        """
+        if cfg.IS_JVM_ALERT:    # 是否邮件发送警告
+            msg = {'msg': f'{pid}进程，最近一次Full GC频率为{frequency}'}
+            sendMsg(msg)
 
     def __del__(self):
         pass

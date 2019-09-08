@@ -20,9 +20,9 @@ def sendMsg(msg):
 	else:
 		message['From'] = Header(cfg.SENDER_NAME, 'utf-8')
 	message['To'] = Header(cfg.RECEIVER_NAME, 'utf-8')       # 收件人名字
-	message['Subject'] = Header('服务器剩余内存预警', 'utf-8')        # 邮件主题
+	message['Subject'] = Header('Warning', 'utf-8')        # 邮件主题
 
-	text = f"{cfg.IP}服务器当前剩余内存为{msg['free_mem']:.2f}G，请注意！"
+	text = f"{cfg.IP}服务器{msg['msg']}，请注意！"
 	email_text = MIMEText(text, 'plain', 'utf-8')
 	message.attach(email_text)      # 添加邮件正文
 
