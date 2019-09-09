@@ -1,5 +1,5 @@
 # performace_monitor
-Continuously monitor the value of CPU, memory, IO and handles of the specified port or PID in the Linux system.
+Continuously monitor the value of CPU, memory, IO of the specified port or PID in the Linux system.
 Monitor can be started or stopped at any time. And plotting them.
 
 ## Usage
