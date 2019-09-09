@@ -27,9 +27,6 @@ class PerMon(object):
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
 
-        self.re_cpu = re.compile('(\d{1,2}.\d) id')
-        self.re_mem = re.compile('(\d{3,})[ ,+]free')
-
         self.get_cpu_cores()
         self.get_total_mem()
 
@@ -235,18 +232,18 @@ class PerMon(object):
         """
             使用iotop命令获取指定进程读写磁盘速率
         """
-        '''result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]    # 执行iotop命令
+        result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]    # 执行iotop命令
         res = result.strip().split(' ')
-        logger.logger.debug(res)'''
+        logger.logger.debug(res)
 
         disk_r, disk_w, disk_util, _, _ = self.get_system_cpu_io()      # 获取磁盘读写速率和IO(%)
 
         writer = 0
         reader = 0
-        '''if str(pid) in res:
+        if str(pid) in res:
             ind = res.index(str(pid))
             writer = float(res[ind + 3])    # 读磁盘的速率(kB/s)
-            reader = float(res[ind + 5])    # 写磁盘的速率(kB/s)'''
+            reader = float(res[ind + 5])    # 写磁盘的速率(kB/s)
 
         # 通过进程读写速率和整个磁盘的读写速率，计算进程的IO
         try:
@@ -261,6 +258,7 @@ class PerMon(object):
         """
             使用iostat命令获取磁盘读写速率和IO(%)
         """
+        time.sleep(0.4)     # 延时，约1秒监控1次
         disk_r = None
         disk_w = None
         disk_util = None

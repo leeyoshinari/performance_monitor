@@ -47,7 +47,6 @@ def port_to_pid(port):
 class DealLogs(object):
 	def __init__(self, search):
 		self.search = search    # 带端口号或进程号查询
-		self.is_io = cfg.IS_IO
 		self.is_monitor_system = cfg.IS_MONITOR_SYSTEM  # 是否监控系统资源
 		self.total_time = []
 		self.io_total_time = []
@@ -426,14 +425,13 @@ class DealLogs(object):
 			从日志的每一行找出IO数据
 		"""
 		if self.search in line:
-			if self.is_io:
-				res = line.split(',')
-				self.io[0].append(float(res[-6]))  # 进程读
-				self.io[1].append(float(res[-5]))  # 进程写
-				self.io[2].append(float(res[-4]))  # 进程磁盘使用率
-				self.io[3].append(float(res[-3]))  # 磁盘读
-				self.io[4].append(float(res[-2]))  # 磁盘写
-				self.io[5].append(float(res[-1]))  # 磁盘总使用率
+			res = line.split(',')
+			self.io[0].append(float(res[-6]))  # 进程读
+			self.io[1].append(float(res[-5]))  # 进程写
+			self.io[2].append(float(res[-4]))  # 进程磁盘使用率
+			self.io[3].append(float(res[-3]))  # 磁盘读
+			self.io[4].append(float(res[-2]))  # 磁盘写
+			self.io[5].append(float(res[-1]))  # 磁盘总使用率
 
 	def recompile(self, line):
 		"""

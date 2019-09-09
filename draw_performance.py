@@ -61,7 +61,7 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io,
                           deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time, end_time - start_time)
         # 计算百分位数
-        per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[2], deal_logs.io[5], search)
+        per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[5], deal_logs.disk_io[2], search)
         # 获取java应用垃圾回收相关数据
         if search == 'system':
             gc_html = ''
@@ -110,26 +110,10 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
     io_start_time = time.mktime(datetime.datetime.strptime(str(io_times[0]), '%Y-%m-%d %H:%M:%S').timetuple())
     io_end_time = time.mktime(datetime.datetime.strptime(str(io_times[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
-    if type == 'system':
-        if cfg.IS_IO:
-            fig = plt.figure('figure', figsize=(20, 15))
-            ax1 = plt.subplot(3, 1, 1)
-            ax2 = plt.subplot(3, 1, 2)
-            ax3 = plt.subplot(3, 1, 3)
-        else:
-            fig = plt.figure('figure', figsize=(20, 10))
-            ax1 = plt.subplot(2, 1, 1)
-            ax2 = plt.subplot(2, 1, 2)
-    else:
-        if cfg.IS_IO:
-            fig = plt.figure('figure', figsize=(20, 15))
-            ax1 = plt.subplot(3, 1, 1)
-            ax2 = plt.subplot(3, 1, 2)
-            ax3 = plt.subplot(3, 1, 3)
-        else:
-            fig = plt.figure('figure', figsize=(20, 10))
-            ax1 = plt.subplot(2, 1, 1)
-            ax2 = plt.subplot(2, 1, 2)
+    fig = plt.figure('figure', figsize=(20, 15))
+    ax1 = plt.subplot(3, 1, 1)
+    ax2 = plt.subplot(3, 1, 2)
+    ax3 = plt.subplot(3, 1, 3)
 
     if type == 'system':
         plt.sca(ax1)
@@ -150,23 +134,22 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
         plt.xticks(index[0], labels[0])
         plt.margins(0, 0)
 
-        if cfg.IS_IO:
-            plt.sca(ax3)
-            plt.plot(disk_io[0], color='black', linewidth=1, label='rkB/s')
-            plt.plot(disk_io[1], color='b', linewidth=1, label='wkB/s')
-            plt.legend(loc='upper left')
-            plt.grid()
-            plt.xlim(0, len(disk_io[2]))
-            plt.ylim(0, max(max(disk_io[0]), max(disk_io[1])))
-            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(disk_io[2]), (io_end_time - io_start_time) / 3600), size=12)
-            plt.xticks(index[1], labels[1])
-            plt.margins(0, 0)
+        plt.sca(ax3)
+        plt.plot(disk_io[0], color='black', linewidth=1, label='rkB/s')
+        plt.plot(disk_io[1], color='b', linewidth=1, label='wkB/s')
+        plt.legend(loc='upper left')
+        plt.grid()
+        plt.xlim(0, len(disk_io[2]))
+        plt.ylim(0, max(max(disk_io[0]), max(disk_io[1])))
+        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(disk_io[2]), (io_end_time - io_start_time) / 3600), size=12)
+        plt.xticks(index[1], labels[1])
+        plt.margins(0, 0)
 
-            ax_util = ax3.twinx()
-            plt.sca(ax_util)
-            plt.plot(disk_io[2], color='red', linewidth=1, label='%util')
-            plt.legend(loc='upper right')
-            plt.ylim(0, max(disk_io[2]))
+        ax_util = ax3.twinx()
+        plt.sca(ax_util)
+        plt.plot(disk_io[2], color='red', linewidth=1, label='%util')
+        plt.legend(loc='upper right')
+        plt.ylim(0, max(disk_io[2]))
 
     else:
         plt.sca(ax1)
@@ -194,23 +177,22 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
         plt.xticks(index[0], labels[0])
         plt.margins(0, 0)
 
-        if cfg.IS_IO:
-            plt.sca(ax3)
-            plt.plot(IO[3], color='black', linewidth=1, label='rkB/s')
-            plt.plot(IO[4], color='b', linewidth=1, label='wkB/s')
-            plt.legend(loc='upper left')
-            plt.grid()
-            plt.xlim(0, len(IO[3]))
-            plt.ylim(0, max(max(IO[3]), max(IO[4])))
-            plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), (io_end_time - io_start_time) / 3600), size=12)
-            plt.xticks(index[1], labels[1])
-            plt.margins(0, 0)
+        plt.sca(ax3)
+        plt.plot(IO[3], color='black', linewidth=1, label='rkB/s')
+        plt.plot(IO[4], color='b', linewidth=1, label='wkB/s')
+        plt.legend(loc='upper left')
+        plt.grid()
+        plt.xlim(0, len(IO[3]))
+        plt.ylim(0, max(max(IO[3]), max(IO[4])))
+        plt.title('IO, max:{:.2f}%, duration:{:.1f}h'.format(max(IO[5]), (io_end_time - io_start_time) / 3600), size=12)
+        plt.xticks(index[1], labels[1])
+        plt.margins(0, 0)
 
-            ax_util = ax3.twinx()
-            plt.sca(ax_util)
-            plt.plot(IO[5], color='red', linewidth=1, label='%util')
-            plt.legend(loc='upper right')
-            plt.ylim(0, max(IO[5]))
+        ax_util = ax3.twinx()
+        plt.sca(ax_util)
+        plt.plot(IO[5], color='red', linewidth=1, label='%util')
+        plt.legend(loc='upper right')
+        plt.ylim(0, max(IO[5]))
 
     image_byte = BytesIO()
     fig.savefig(image_byte, format='png', bbox_inches='tight')      # 把图片保存成二进制格式
@@ -229,25 +211,18 @@ def get_lines(system_cpu, cpu, util, dutil, type):
     cpu.sort()
     dutil.sort()
 
-    if cfg.IS_IO:
-        if type == 'system':
-            line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
-            line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
-            line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
-            line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
-        else:
-            line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
-            line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
-            line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
-            line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
-
-        htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
+    if type == 'system':
+        line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
+        line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
+        line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
+        line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
     else:
-        line75 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)] if type == 'system' else cpu[int(len(cpu) * 0.75)])
-        line90 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.90)] if type == 'system' else cpu[int(len(cpu) * 0.90)])
-        line95 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)] if type == 'system' else cpu[int(len(cpu) * 0.95)])
-        line99 = 'CPU: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.99)] if type == 'system' else cpu[int(len(cpu) * 0.99)])
-        htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
+        line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], util[int(len(util) * 0.75)])
+        line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], util[int(len(util) * 0.90)])
+        line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], util[int(len(util) * 0.95)])
+        line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], util[int(len(util) * 0.99)])
+
+    htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
 
     return htmls
 
