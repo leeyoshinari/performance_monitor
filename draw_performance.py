@@ -127,7 +127,7 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
 
         plt.sca(ax2)
         plt.plot(system[1], color='r', linewidth=1, label='Memory')
-        plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(system[1]), (cpu_end_time - cpu_start_time) / 3600), size=12)
+        plt.title('Free Memory(G), min:{:.2f}G, duration:{:.1f}h'.format(min(system[1]), (cpu_end_time - cpu_start_time) / 3600), size=12)
         plt.grid()
         plt.xlim(0, len(system[1]))
         plt.ylim(0, max(system[1]) + 1)
@@ -165,7 +165,7 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
         plt.plot(mem[0], color='r', linewidth=1, label='Memory')
 
         if sum(mem[1]) == 0:
-            plt.title('Memory(G) max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), (cpu_end_time - cpu_start_time) / 3600), size=12)
+            plt.title('Memory(G), max:{:.2f}G, duration:{:.1f}h'.format(max(mem[0]), (cpu_end_time - cpu_start_time) / 3600), size=12)
         else:
             plt.plot(mem[1], color='b', linewidth=1, label='JVM')
             plt.legend(loc='upper right')

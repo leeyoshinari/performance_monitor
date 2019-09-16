@@ -130,6 +130,7 @@ class DealLogs(object):
 
 			# 如果监控结果开始索引等于日志总数，且没有找到日志开始索引，则表明需要从所有日志中读取结果，设置startIndex为0
 			if startLogSort == len(logs) and startIndex == -1:
+				startLogSort -= 1
 				startIndex = 0
 
 			return {'startIndex': startIndex, 'startLogSort': startLogSort, 'endIndex': endIndex, 'endLogSort': endLogSort, 'logs': data}
@@ -153,6 +154,7 @@ class DealLogs(object):
 
 			# 如果监控结果开始索引等于日志总数，且没有找到日志开始索引，则表明需要从所有日志中读取结果，设置startIndex为0
 			if startLogSort == len(logs) and startIndex == -1:
+				startLogSort -= 1
 				startIndex = 0
 
 			return {'startIndex': startIndex, 'startLogSort': startLogSort, 'endIndex': endIndex, 'endLogSort': endLogSort, 'logs': data}
