@@ -13,7 +13,7 @@ import config as cfg
 
 
 def sendMsg(msg):
-	logger.logger.info(msg)
+	logger.info(msg)
 	message = MIMEMultipart()
 	if cfg.SMTP_SERVER == 'smtp.sina.com':   # 新浪邮箱的Header不能使用utf-8的编码方式
 		message['From'] = Header(cfg.SENDER_NAME)    # 发件人名字
@@ -32,7 +32,7 @@ def sendMsg(msg):
 		server = emailServer(cfg.SMTP_SERVER, 465, cfg.SENDER_EMAIL, cfg.PASSWORD)
 		server.sendmail(cfg.SENDER_EMAIL, cfg.RECEIVER_EMAIL, message.as_string())     # 发送邮件
 		server.quit()
-		logger.logger.info('Send email successfully.')
+		logger.info('Send email successfully.')
 	except Exception as err:
-		logger.logger.error(traceback.format_exc())
+		logger.error(traceback.format_exc())
 		sendMsg(msg)

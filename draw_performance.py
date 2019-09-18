@@ -54,12 +54,9 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         else:
             deal_logs.read_data_from_logs(logs)
 
-        start_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[0]), '%Y-%m-%d %H:%M:%S').timetuple())
-        end_time = time.mktime(datetime.datetime.strptime(str(deal_logs.total_time[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
-
         # 画图
         image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3], deal_logs.io,
-                          deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time, end_time - start_time)
+                          deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
         # 计算百分位数
         per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.io[5], deal_logs.disk_io[2], search)
         # 获取java应用垃圾回收相关数据
@@ -74,19 +71,19 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         return html
     except Exception as err:
         del deal_logs
-        logger.logger.error(err)
-        logger.logger.error(traceback.format_exc())
+        logger.error(err)
+        logger.error(traceback.format_exc())
         raise Exception(err)
 
 
-def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
+def draw(types, system, cpu, mem, IO, disk_io, times, io_times):
     """
         画图
     """
     length = len(times)
     io_length = len(io_times)
     if length < 7 or io_length < 7:
-        logger.logger.error('Too less data, please wait a minute.')
+        logger.error('Too less data, please wait a minute.')
         return cfg.ERROR.format('Too less data, please wait a minute.')
 
     # x坐标及坐标刻度
@@ -115,7 +112,7 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
     ax2 = plt.subplot(3, 1, 2)
     ax3 = plt.subplot(3, 1, 3)
 
-    if type == 'system':
+    if types == 'system':
         plt.sca(ax1)
         plt.plot(system[0], color='r', linewidth=0.3)
         plt.grid()
@@ -203,7 +200,7 @@ def draw(type, system, cpu, mem, IO, disk_io, times, io_times, total_time):
     return html
 
 
-def get_lines(system_cpu, cpu, util, dutil, type):
+def get_lines(system_cpu, cpu, util, dutil, types):
     """
         计算百分位数，75%line、90%line、95%line、99%line
     """
@@ -211,7 +208,7 @@ def get_lines(system_cpu, cpu, util, dutil, type):
     cpu.sort()
     dutil.sort()
 
-    if type == 'system':
+    if types == 'system':
         line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
         line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
         line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
@@ -251,7 +248,7 @@ def get_gc(pid):
             ffgc = runtime / fgc
 
     except Exception as err:
-        logger.logger.error(err)
+        logger.error(err)
         ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 
     htmls = f'<div id="GC" style="float:left; background-color:#CC6633; height:200px; width:300px"><h3 align="center">GC</h3><p align="center">YGC:&nbsp{ygc}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspYGCT:&nbsp{ygct}s<br>FGC:&nbsp{fgc}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspFGCT:&nbsp{fgct}s<br>Frequence of YGC:&nbsp{fygc:.2f}s<br>Frequence of FGC:&nbsp{ffgc:.2f}s</p></div>'

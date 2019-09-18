@@ -3,7 +3,6 @@
 # Author: leeyoshinari
 # Monitoring
 import os
-import re
 import time
 import threading
 import traceback
@@ -94,7 +93,7 @@ class PerMon(object):
                                             pid_transfor = ports_to_pids(self._port)  # 端口号转进程号
                                             if pid_transfor:
                                                 if isinstance(pid_transfor, str):
-                                                    logger.logger.error(f'The pid of {pid_transfor} is not existed.')
+                                                    logger.error(f'The pid of {pid_transfor} is not existed.')
                                                 elif isinstance(pid_transfor, list):
                                                     self._pid = pid_transfor
                                                     self._is_run = 1
@@ -106,72 +105,80 @@ class PerMon(object):
                                                 self._is_run = 0
 
                                             self.run_error += 1     # 命令执行失败次数加1
-                                            logger.logger.error(f'The number of running command failed is {self.run_error}.')
+                                            logger.error(f'The number of running command failed is {self.run_error}.')
                                             time.sleep(cfg.SLEEPTIME)
                                             continue
 
                                     jvm = self.get_mem(self._pid[i])     # 获取JVM内存
 
-                                    logger.logger.info(f'cpu_and_mem: port_{self._port[i]},pid_{self._pid[i]},{cpu},{mem},{jvm}')
+                                    logger.info(f'cpu_and_mem: port_{self._port[i]},pid_{self._pid[i]},{cpu},{mem},{jvm}')
                                     self.run_error = 0      # 命令执行成功后，重新初始化0
 
                             except Exception as err:
-                                logger.logger.error(traceback.format_exc())
+                                logger.error(traceback.format_exc())
                                 time.sleep(cfg.SLEEPTIME)
                                 continue
 
                     else:
                         self._is_run = 0    # if the total time is up, stop monitor.
-                        logger.logger.info('Stop monitor, because total time is up.')
+                        logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0:   # if _is_run=0, stop monitor.
-                        logger.logger.info('Stop monitor.')
+                        logger.info('Stop monitor.')
                         break
             else:
                 time.sleep(1)
+
+    def write_system_cpu_mem(self):
+        """
+            监控系统cpu和内存
+        """
+        while True:
+            if self.is_monitor_system:
+                disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
+                if disk_util is not None:
+                    logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
+                if cpu is not None and mem is not None:
+                    logger.info(f'system: CpuAndMem,{cpu},{mem}')
+
+                    if mem <= cfg.MIN_MEM:
+                        logger.warning(f'Current memory is {mem}, memory is too low.')
+                        thread = threading.Thread(target=self.mem_alert, args=(mem,))
+                        thread.start()
+
+            else:
+                break
 
     def write_io(self):
         """
             监控磁盘IO
         """
         while True:
-            if self._is_run != 1 and self.is_monitor_system:
-                disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io()
-                if disk_util is not None:
-                    logger.logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
-                if cpu is not None and mem is not None:
-                    logger.logger.info(f'system: CpuAndMem,{cpu},{mem}')
-
             if self._is_run == 1:
                 self.start_time = time.time()
 
                 while True:
                     if time.time() - self.start_time < self._total_time:
                         try:
-                            disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io()
-                            if self.is_monitor_system:
-                                if disk_util is not None:
-                                    logger.logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
-                                if cpu is not None and mem is not None:
-                                    logger.logger.info(f'system: CpuAndMem,{cpu},{mem}')
+                            disk_r, disk_w, disk_util, _, _ = self.get_system_cpu_io()
 
                             for i in range(len(self._pid)):
                                 # ioer = self.get_io(self._pid[i])
-                                logger.logger.info(f'r_w_util: port_{self._port[i]},pid_{self._pid[i]},0,0,0,{disk_r},{disk_w},{disk_util}')
+                                logger.info(f'r_w_util: port_{self._port[i]},pid_{self._pid[i]},0,0,0,{disk_r},{disk_w},{disk_util}')
 
                         except Exception as err:
-                            logger.logger.error(traceback.format_exc())
+                            logger.error(traceback.format_exc())
                             time.sleep(cfg.SLEEPTIME)
                             continue
 
                     else:
                         self._is_run = 0
-                        # logger.logger.info('Stop monitor, because total time is up.')
+                        # logger.info('Stop monitor, because total time is up.')
                         break
 
                     if self._is_run == 0 or self._is_run == 2:
-                        # logger.logger.info('Stop monitor.')
+                        # logger.info('Stop monitor.')
                         break
             else:
                 # time.sleep(1)
@@ -183,7 +190,7 @@ class PerMon(object):
         """
         result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()       # 执行top命令
         res = result[-1].strip().split(' ')
-        logger.logger.debug(res)
+        logger.debug(res)
 
         cpu = None
         mem = None
@@ -202,7 +209,7 @@ class PerMon(object):
         try:
             result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行jstat命令
             res = result.strip().split(' ')
-            logger.logger.debug(res)
+            logger.debug(res)
             mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算JVM大小
 
             # 将Full GC变化的时间以追加写入的方式写到文件里
@@ -213,6 +220,7 @@ class PerMon(object):
                 if len(self.FGC_time) > 2:
                     frequency = (self.FGC_time[-1] - self.FGC_time[0]) / self.FGC
                     if frequency < 3600:
+                        logger.warning(f'进程{pid}当前Full GC频率为{frequency}.')
                         thread = threading.Thread(target=self.jvm_alert, args=(frequency, pid,))
                         thread.start()
 
@@ -224,7 +232,7 @@ class PerMon(object):
                 self.FGC_time = []
 
         except Exception as err:
-            logger.logger.info(err)
+            logger.info(err)
 
         return mem / 1024 / 1024
 
@@ -234,7 +242,7 @@ class PerMon(object):
         """
         result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]    # 执行iotop命令
         res = result.strip().split(' ')
-        logger.logger.debug(res)
+        logger.debug(res)
 
         disk_r, disk_w, disk_util, _, _ = self.get_system_cpu_io()      # 获取磁盘读写速率和IO(%)
 
@@ -249,12 +257,12 @@ class PerMon(object):
         try:
             util = (writer + reader) / (disk_w + disk_r) * disk_util
         except Exception as err:
-            logger.logger.warning(err)
+            logger.warning(err)
             util = 0
 
         return [reader, writer, disk_r, disk_w, disk_util, util]
 
-    def get_system_cpu_io(self):
+    def get_system_cpu_io(self, types=None):
         """
             使用iostat命令获取磁盘读写速率和IO(%)
         """
@@ -267,26 +275,23 @@ class PerMon(object):
         try:
             result = os.popen(f'iostat -x -k {self.disk} 1 2 |tr -s " "').readlines()    # 执行iostat命令
             disk_res = result[-2].strip().split(' ')
-            logger.logger.debug(disk_res)
+            logger.debug(disk_res)
 
             if self.disk in disk_res:
                 disk_r = float(disk_res[5])         # 读磁盘的速率(kB/s)
                 disk_w = float(disk_res[6])         # 写磁盘的速率(kB/s)
                 disk_util = float(disk_res[-1])     # 磁盘IO(%)
 
-            cpu_res = result[-5].strip().split(' ')
-            if len(cpu_res) > 3:
-                cpu = 100 - float(cpu_res[-1])      # 系统CPU
+            if types:
+                cpu_res = result[-5].strip().split(' ')
+                if len(cpu_res) > 3:
+                    cpu = 100 - float(cpu_res[-1])      # 系统CPU
 
-            result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
-            mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024      # 系统可用内存
-            if mem <= cfg.MIN_MEM:
-                logger.logger.warning(f'Current memory is {mem}, memory is too low.')
-                thread = threading.Thread(target=self.mem_alert, args=(mem,))
-                thread.start()
+                result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
+                mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024      # 系统可用内存
 
         except Exception as err:
-            logger.logger.error(err)
+            logger.error(err)
 
         return disk_r, disk_w, disk_util, cpu, mem
 
@@ -298,7 +303,7 @@ class PerMon(object):
         """
         result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
         res = result[0].strip().split(' ')
-        logger.logger.debug(res)
+        logger.debug(res)
         handles = None
         if str(pid) in res:
             handles = int(res[0])
@@ -313,7 +318,7 @@ class PerMon(object):
 
         self.cpu_cores = int(result)
 
-        logger.logger.info(f'CPU core number is {self.cpu_cores}')
+        logger.info(f'CPU core number is {self.cpu_cores}')
 
     def get_total_mem(self):
         """
@@ -323,7 +328,7 @@ class PerMon(object):
 
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
 
-        logger.logger.info(f'Total memory is {self.total_mem * 100}')
+        logger.info(f'Total memory is {self.total_mem * 100}')
 
     @staticmethod
     def mem_alert(mem):
@@ -335,8 +340,9 @@ class PerMon(object):
             sendMsg(msg)
 
         if cfg.ECHO:    # 是否清理缓存
+            logger.info(f'Start clearing cache：echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
             os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
-            logger.logger.info('Clear cache successful.')
+            logger.info('Clear cache successful.')
 
     @staticmethod
     def jvm_alert(frequency, pid):

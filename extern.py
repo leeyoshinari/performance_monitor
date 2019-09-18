@@ -32,13 +32,13 @@ def port_to_pid(port):
 	try:
 		result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()       # 执行netstat命令
 		res = [line.strip() for line in result if str(port) in line]
-		logger.logger.debug(res[0])
+		logger.debug(res[0])
 		p = res[0].split(' ')
 		pp = p[3].split(':')[-1]
 		if str(port) == pp:
 			pid = p[-1].split('/')[0]
 	except Exception as err:
-		logger.logger.error(err)
+		logger.error(err)
 
 	return pid
 
@@ -169,7 +169,7 @@ class DealLogs(object):
 				if res:
 					return res.group()
 				else:
-					logger.logger.warning(lines[i])
+					logger.warning(lines[i])
 		if type == 1:
 			total_lines = len(lines)
 			for i in range(total_lines):
@@ -177,7 +177,7 @@ class DealLogs(object):
 				if res:
 					return res.group()
 				else:
-					logger.logger.warning(lines[i])
+					logger.warning(lines[i])
 
 	def get_index(self, lines, start_index, end_index, search_time):
 		"""
@@ -201,7 +201,7 @@ class DealLogs(object):
 				return self.get_index(lines, start_index, index, search_time)
 
 		except Exception as err:
-			logger.logger.warning(err)
+			logger.warning(err)
 			return self.get_index(lines, start_index+1, end_index, search_time)
 
 	def get_values(self, results):
@@ -410,7 +410,7 @@ class DealLogs(object):
 			try:
 				self.total_time.append(self.recompile(line).group())
 			except Exception as err:
-				logger.logger.error(err)
+				logger.error(err)
 
 	def deal_io_total_time(self, line):
 		"""
@@ -420,7 +420,7 @@ class DealLogs(object):
 			try:
 				self.io_total_time.append(self.recompile(line).group())
 			except Exception as err:
-				logger.logger.error(err)
+				logger.error(err)
 
 	def deal_io(self, line):
 		"""

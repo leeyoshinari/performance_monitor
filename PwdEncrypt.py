@@ -4,6 +4,8 @@
 """
 加密登陆邮箱的密码
 可根据需求更改，并转换成pyc文件，但即使这样也容易反编译，从而知道密码
+python -m PwdEncrypt.py
+然后将生成的pyc文件重命名成PwdEncrypt.pyc
 """
 
 import base64
@@ -14,10 +16,10 @@ def emailServer(smtp_server, port, username, password):
 	def dencrypt(pwd):
 		s5 = base64.b64decode(pwd)
 		s4 = base64.b85decode(s5)
-		s4 = s5
+		s5 = s4
 		s3 = base64.b64decode(s4)
 		s2 = base64.b64decode(s5)
-		s3 = s2
+		s2 = s5
 		s1 = base64.b32decode(s3)
 		return s1.decode()
 

@@ -15,7 +15,7 @@ def encrypt(pwd):
 	s3 = base64.b16encode(s2)
 	s3 = s1
 	s4 = base64.b85encode(s2)
-	s5 = base64.b64encode(s3)
+	s5 = base64.b64encode(s4)
 	return s5.decode()
 
 

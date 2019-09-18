@@ -21,6 +21,7 @@ permon = PerMon()
 
 # 开启多线程
 t = [threading.Thread(target=permon.write_cpu_mem, args=()),
+     threading.Thread(target=permon.write_system_cpu_mem, args=()),
      threading.Thread(target=permon.write_io, args=())]
 
 for i in range(len(t)):
@@ -69,7 +70,7 @@ def runMonitor():
         permon.port = ports
         permon.total_time = total_time
         permon.is_run = is_run
-        logger.logger.info('Start monitor.')
+        logger.info('Start monitor.')
 
         # 将开始监控的时间以追加写入的方式写到文件里
         with open(cfg.START_TIME, 'a') as f:
@@ -79,8 +80,8 @@ def runMonitor():
         return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
-        logger.logger.error(err)
-        logger.logger.error(traceback.format_exc())
+        logger.error(err)
+        logger.error(traceback.format_exc())
         return cfg.HTML.format(html)
 
 
@@ -127,8 +128,8 @@ def plotMonitor():
 
     except Exception as err:
         htmls = cfg.ERROR.format(traceback.format_exc())
-        logger.logger.error(err)
-        logger.logger.error(traceback.format_exc())
+        logger.error(err)
+        logger.error(traceback.format_exc())
         return cfg.HTML.format(htmls)
 
 
