@@ -205,8 +205,10 @@ def get_lines(system_cpu, cpu, util, dutil, types):
         计算百分位数，75%line、90%line、95%line、99%line
     """
     # 从小到大排序
+    system_cpu.sort()
     cpu.sort()
     dutil.sort()
+    util.sort()
 
     if types == 'system':
         line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])

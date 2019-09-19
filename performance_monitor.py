@@ -23,6 +23,7 @@ class PerMon(object):
         self.error_times = cfg.ERROR_TIMES  # 命令执行失败次数
         self.disk = cfg.DISK        # 待监控的服务部署的磁盘号
 
+        self.is_system = 0
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
 
@@ -136,16 +137,21 @@ class PerMon(object):
         """
         while True:
             if self.is_monitor_system:
-                disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
-                if disk_util is not None:
-                    logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
-                if cpu is not None and mem is not None:
-                    logger.info(f'system: CpuAndMem,{cpu},{mem}')
+                if self._is_run == 1 or self.is_system == 1:
+                    self.is_system = 1
+                    disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
+                    if disk_util is not None:
+                        logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
+                    if cpu is not None and mem is not None:
+                        logger.info(f'system: CpuAndMem,{cpu},{mem}')
 
-                    if mem <= cfg.MIN_MEM:
-                        logger.warning(f'Current memory is {mem}, memory is too low.')
-                        thread = threading.Thread(target=self.mem_alert, args=(mem,))
-                        thread.start()
+                        if mem <= cfg.MIN_MEM:
+                            logger.warning(f'Current memory is {mem}, memory is too low.')
+                            thread = threading.Thread(target=self.mem_alert, args=(mem,))
+                            thread.start()
+
+                else:
+                    time.sleep(1)
 
             else:
                 break
@@ -181,8 +187,7 @@ class PerMon(object):
                         # logger.info('Stop monitor.')
                         break
             else:
-                # time.sleep(1)
-                pass
+                time.sleep(1)
 
     def get_cpu(self, pid):
         """

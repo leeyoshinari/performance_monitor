@@ -195,10 +195,12 @@ class DealLogs(object):
 		index = int((start_index + end_index) / 2)
 		try:
 			t = time.mktime(datetime.datetime.strptime(self.recompile(lines[index]).group(), '%Y-%m-%d %H:%M:%S').timetuple())
-			if -1 <= search_time - t <= 1:
-				return index
-			else:
+			if search_time - t < 0:
 				return self.get_index(lines, start_index, index, search_time)
+			elif search_time - t > 0:
+				return self.get_index(lines, index, end_index, search_time)
+			else:
+				return index
 
 		except Exception as err:
 			logger.warning(err)
