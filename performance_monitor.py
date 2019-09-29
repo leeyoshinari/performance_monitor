@@ -1,191 +1,155 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
-# Monitoring
 import os
 import time
+import queue
 import threading
 import traceback
+from concurrent.futures import ThreadPoolExecutor
+
 import config as cfg
 from logger import logger
 from Email import sendMsg
-from extern import ports_to_pids
+from extern import port_to_pid
 
 
 class PerMon(object):
     def __init__(self):
-        self._is_run = 0    # 是否开始监控，0为停止监控，1为开始监控
-        self._pid = [1111]      # 存放待监控的进程号
-        self._port = []     # 存放待监控的端口号
-        self._total_time = 0     # 监控总时长，初始化为0
+        self.is_system = 0    # 是否开始监控系统，0为停止监控，1为开始监控
+        self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}
         self.interval = int(cfg.INTERVAL)   # 每次监控时间间隔
-        self.is_monitor_system = cfg.IS_MONITOR_SYSTEM      # 是否监控系统资源
         self.error_times = cfg.ERROR_TIMES  # 命令执行失败次数
         self.disk = cfg.DISK        # 待监控的服务部署的磁盘号
 
-        self.is_system = 0
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
 
         self.get_cpu_cores()
         self.get_total_mem()
 
-        self.start_time = 0     # 初始化开始监控时间
+        self.monitor_task = queue.Queue()   # 创建一个FIFO队列
+        self.executor = ThreadPoolExecutor(cfg.THREAD_NUM + 1)  # 创建一个线程池
+
         self.run_error = 0      # 初始化命令执行失败次数
         self.FGC = 0            # 初始化Full GC次数
         self.FGC_time = []      # 存放full gc的时间
 
     @property
-    def is_run(self):
-        return self._is_run
+    def start(self):
+        return self._msg
 
-    @is_run.setter
-    def is_run(self, value):
-        self._is_run = value
+    @start.setter
+    def start(self, value):
+        if value['port']:
+            if value['port'] in self._msg['port']:
+                index = self._msg['port'].index(value['port'])
+                self._msg['pid'][index] = value['pid']
+                if self._msg['is_run'][index] == 0:
+                    self._msg['is_run'][index] = value['is_run']
+                    self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                    self.monitor_task.put((self.write_cpu_mem, index))
+                else:
+                    pass
+            else:
+                self._msg['pid'].append(value['pid'])
+                self._msg['port'].append(value['port'])
+                self._msg['is_run'].append(value['is_run'])
+                self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
+                self.monitor_task.put((self.write_cpu_mem, len(self._msg['port'])-1))
+        else:
+            pass
+
+        if len(self._msg['port']) > 0:
+            self.is_system = 1
 
     @property
-    def pid(self):
-        return self._pid
+    def stop(self):
+        return self._msg
 
-    @pid.setter
-    def pid(self, value):
-        self._pid = value
+    @stop.setter
+    def stop(self, value):
+        index = self._msg['port'].index(value['port'])
+        self._msg['is_run'][index] = value['is_run']
 
-    @property
-    def port(self):
-        return self._port
+    def worker(self):
+        while True:
+            func, param = self.monitor_task.get()
+            func(param)
+            self.monitor_task.task_done()
 
-    @port.setter
-    def port(self, value):
-        self._port = value
+    def monitor(self):
+        for i in range(cfg.THREAD_NUM + 1):
+            self.executor.submit(self.worker)
 
-    @property
-    def total_time(self):
-        return self._total_time
+        self.monitor_task.put((self.write_system_cpu_mem, 1))
 
-    @total_time.setter
-    def total_time(self, value):
-        if value:
-            self._total_time = value + 60
-
-    def write_cpu_mem(self):
+    def write_cpu_mem(self, index):
         """
             监控CPU和内存.
         """
+        start_search_time = time.time()
+        port = self._msg['port'][index]
+        pid = self._msg['pid'][index]
         while True:
-            if self._is_run == 1:       # 开始监控
-                self.start_time = time.time()   # 开始监控时间
-                start_search_time = time.time()
+            if self._msg['isRun'][index] == 1:  # 开始监控
+                get_data_time = time.time()
+                if get_data_time - start_search_time > self.interval:   # 如果大于每次监控时间间隔，则开始监控
+                    start_search_time = get_data_time
+                    try:
+                        cpu, mem = self.get_cpu(pid)    # 获取CPU和内存
 
-                while True:
-                    if time.time() - self.start_time < self._total_time:    # 如果超过监控总时长，则停止监控
-                        get_data_time = time.time()
-                        if get_data_time - start_search_time > self.interval:   # 如果大于每次监控时间间隔，则开始监控
-                            start_search_time = get_data_time
-                            try:
-                                for i in range(len(self._pid)):
-                                    cpu, mem = self.get_cpu(self._pid[i])    # 获取CPU和内存
+                        if cpu is None:
+                            if port:
+                                # 如果没有获取到，可能出现异常，则重新根据端口号查询进程号
+                                # 正常情况不会出现异常，如果出现异常，可能端口在重启
+                                pid = port_to_pid(port)  # 端口号转进程号
+                                if pid:
+                                    self._msg['pid'][index] = pid
 
-                                    if cpu is None:
-                                        if self._port:
-                                            # 如果没有获取到，可能出现异常，则重新根据端口号查询进程号
-                                            # 正常情况不会出现异常，如果出现异常，可能端口在重启
-                                            self._is_run = 2
-                                            pid_transfor = ports_to_pids(self._port)  # 端口号转进程号
-                                            if pid_transfor:
-                                                if isinstance(pid_transfor, str):
-                                                    logger.error(f'The pid of {pid_transfor} is not existed.')
-                                                elif isinstance(pid_transfor, list):
-                                                    self._pid = pid_transfor
-                                                    self._is_run = 1
+                                time.sleep(cfg.SLEEPTIME)
+                                continue
+                            else:
+                                if self.run_error > self.error_times:  # 如果命令执行失败次数大于设置次数，停止监控
+                                    logger.error(f'{pid} has been stopped monitor, some errors may be occurred.')
+                                    break
 
-                                            time.sleep(cfg.SLEEPTIME)
-                                            continue
-                                        else:
-                                            if self.run_error > self.error_times:  # 如果命令执行失败次数大于设置次数，停止监控
-                                                self._is_run = 0
-
-                                            self.run_error += 1     # 命令执行失败次数加1
-                                            logger.error(f'The number of running command failed is {self.run_error}.')
-                                            time.sleep(cfg.SLEEPTIME)
-                                            continue
-
-                                    jvm = self.get_mem(self._pid[i])     # 获取JVM内存
-
-                                    logger.info(f'cpu_and_mem: port_{self._port[i]},pid_{self._pid[i]},{cpu},{mem},{jvm}')
-                                    self.run_error = 0      # 命令执行成功后，重新初始化0
-
-                            except Exception as err:
-                                logger.error(traceback.format_exc())
+                                self.run_error += 1     # 命令执行失败次数加1
+                                logger.error(f'The number of running command failed is {self.run_error}.')
                                 time.sleep(cfg.SLEEPTIME)
                                 continue
 
-                    else:
-                        self._is_run = 0    # if the total time is up, stop monitor.
-                        logger.info('Stop monitor, because total time is up.')
-                        break
+                        jvm = self.get_mem(pid)     # 获取JVM内存
 
-                    if self._is_run == 0:   # if _is_run=0, stop monitor.
-                        logger.info('Stop monitor.')
-                        break
-            else:
-                time.sleep(1)
+                        logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
+                        self.run_error = 0      # 命令执行成功后，重新初始化0
 
-    def write_system_cpu_mem(self):
+                    except Exception as err:
+                        logger.error(traceback.format_exc())
+                        time.sleep(cfg.SLEEPTIME)
+                        continue
+
+            if self._msg['isRun'][index] == 0:   # stop monitor.
+                logger.info(f'{port} has been stopped monitor')
+                break
+
+    def write_system_cpu_mem(self, is_system):
         """
             监控系统cpu和内存
         """
         while True:
-            if self.is_monitor_system:
-                if self._is_run == 1 or self.is_system == 1:
-                    self.is_system = 1
-                    disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
-                    if disk_util is not None:
-                        logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
-                    if cpu is not None and mem is not None:
-                        logger.info(f'system: CpuAndMem,{cpu},{mem}')
+            if self.is_system == 1:
+                disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
+                if disk_util is not None:
+                    logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
+                if cpu is not None and mem is not None:
+                    logger.info(f'system: CpuAndMem,{cpu},{mem}')
 
-                        if mem <= cfg.MIN_MEM:
-                            logger.warning(f'Current memory is {mem}, memory is too low.')
-                            thread = threading.Thread(target=self.mem_alert, args=(mem,))
-                            thread.start()
+                    if mem <= cfg.MIN_MEM:
+                        logger.warning(f'Current memory is {mem}, memory is too low.')
+                        thread = threading.Thread(target=self.mem_alert, args=(mem,))
+                        thread.start()
 
-                else:
-                    time.sleep(1)
-
-            else:
-                break
-
-    def write_io(self):
-        """
-            监控磁盘IO
-        """
-        while True:
-            if self._is_run == 1:
-                self.start_time = time.time()
-
-                while True:
-                    if time.time() - self.start_time < self._total_time:
-                        try:
-                            disk_r, disk_w, disk_util, _, _ = self.get_system_cpu_io()
-
-                            for i in range(len(self._pid)):
-                                # ioer = self.get_io(self._pid[i])
-                                logger.info(f'r_w_util: port_{self._port[i]},pid_{self._pid[i]},0,0,0,{disk_r},{disk_w},{disk_util}')
-
-                        except Exception as err:
-                            logger.error(traceback.format_exc())
-                            time.sleep(cfg.SLEEPTIME)
-                            continue
-
-                    else:
-                        self._is_run = 0
-                        # logger.info('Stop monitor, because total time is up.')
-                        break
-
-                    if self._is_run == 0 or self._is_run == 2:
-                        # logger.info('Stop monitor.')
-                        break
             else:
                 time.sleep(1)
 
@@ -193,7 +157,8 @@ class PerMon(object):
         """
             使用top命令获取指定进程的CPU(%)和内存(G)
         """
-        result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()       # 执行top命令
+        # result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()       # 执行top命令
+        result = os.popen(f'top -b |grep -P {pid} |tr -s " "').readlines()
         res = result[-1].strip().split(' ')
         logger.debug(res)
 
@@ -271,7 +236,6 @@ class PerMon(object):
         """
             使用iostat命令获取磁盘读写速率和IO(%)
         """
-        time.sleep(0.4)     # 延时，约1秒监控1次
         disk_r = None
         disk_w = None
         disk_util = None
@@ -352,7 +316,7 @@ class PerMon(object):
     @staticmethod
     def jvm_alert(frequency, pid):
         """
-            当Full GC频繁时，发出警告
+            当 Full GC 频繁时，发出警告
         """
         if cfg.IS_JVM_ALERT:    # 是否邮件发送警告
             msg = {'msg': f'{pid}进程，最近一次Full GC频率为{frequency}'}

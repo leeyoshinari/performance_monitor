@@ -7,77 +7,54 @@
 import time
 import json
 import traceback
-import threading
 from flask import Flask, request
 
 import config as cfg
 from logger import logger
 from draw_performance import draw_data_from_mysql
 from performance_monitor import PerMon
-from extern import port_to_pid, ports_to_pids
+from extern import port_to_pid
 
 server = Flask(__name__)
 permon = PerMon()
-
-# 开启多线程
-t = [threading.Thread(target=permon.write_cpu_mem, args=()),
-     threading.Thread(target=permon.write_system_cpu_mem, args=()),
-     threading.Thread(target=permon.write_io, args=())]
-
-for i in range(len(t)):
-    t[i].start()
+permon.monitor()
 
 
 # 开始监控
-# http://127.0.0.1:5555/runMonitor?isRun=1&type=pid&num=23121&totalTime=3600
+# http://127.0.0.1:5555/runMonitor?isRun=1&type=pid&num=23121
 @server.route('/runMonitor', methods=['get'])
 def runMonitor():
     try:
-        port = ''
-        pids = ''
-        ports = []
         is_run = int(request.args.get('isRun'))
-        if is_run == 0:     # 如果is_run为0，则停止监控
-            permon.is_run = 0
-            return json.dumps({'code': 0, 'message': 'Success.'}, ensure_ascii=False)
 
-        if is_run == 1:
-            if permon.is_run == 1:      # 如果is_run已经是1了，则提示先停止监控，避免页面重复刷新出现异常
-                return json.dumps({'code': -1, 'message': 'Please stop monitor first.'}, ensure_ascii=False)
+        if request.args.get('type') and request.args.get('num'):
+            # 如果传入的是端口号，则需要转换成进程号
+            if request.args.get('type') == 'port':
+                port = request.args.get('num')
+                pid = port_to_pid(port)
+                if pid is None:
+                    return cfg.HTML.format(cfg.ERROR.format('Error: The pid of {} is not existed.'.format(port)))
 
-        # 如果传入的是端口号，则需要转换成进程号
-        if request.args.get('type') == 'port':
-            port = request.args.get('num')
-            ports = port.split(',')
-            pids = ports_to_pids(ports)
+                if is_run == 0:
+                    if port in permon.stop['port']:
+                        permon.stop = {'port': port, 'pid': pid, 'is_run': 0}
+                        return cfg.HTML.format(cfg.ERROR.format(
+                            'Stop monitor successfully, the port is {}, the pid is {} .'.format(port, pid)))
+                    else:
+                        return cfg.HTML.format(cfg.ERROR.format('Warning: Please monitor {} firstly.'.format(port)))
 
-        # 如果传入的是进程号
-        if request.args.get('type') == 'pid':
-            pid = request.args.get('num')
-            pids = pid.split(',')
+                if is_run == 1:
+                    permon.start = {'port': port, 'pid': pid, 'is_run': 1}
+                    return cfg.HTML.format(cfg.ERROR.format(
+                        'Start monitor successfully, the port is {}, the pid is {} .'.format(port, pid)))
 
-        # 是否传入监控总时间
-        if request.args.get('totalTime'):
-            total_time = int(request.args.get('totalTime'))
+            # 如果传入的是进程号
+            if request.args.get('type') == 'pid':
+                return cfg.HTML.format(cfg.ERROR.format('This request is not supported'))
+
         else:
-            total_time = 66666666       # 如果监控时不传入监控时长，则默认此时长
+            return cfg.HTML.format(cfg.ERROR.format('This request is not supported'))
 
-        # 如果pids为str类型，说明端口号转进程号出现异常，进程可能不存在
-        if isinstance(pids, str):
-            return json.dumps({'code': -1, 'message': f'The pid of {pids} is not existed.'}, ensure_ascii=False)
-
-        permon.pid = pids
-        permon.port = ports
-        permon.total_time = total_time
-        permon.is_run = is_run
-        logger.info('Start monitor.')
-
-        # 将开始监控的时间以追加写入的方式写到文件里
-        with open(cfg.START_TIME, 'a') as f:
-            f.write(time.strftime('%Y-%m-%d %H:%M:%S') + '\n')
-
-        res = {'code': 0, 'message': {'port': port, 'pid': ','.join(permon.pid), 'total_time': total_time, 'startTime': time.strftime('%Y-%m-%d %H:%M:%S')}}
-        return json.dumps(res, ensure_ascii=False)
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
         logger.error(err)
@@ -92,6 +69,7 @@ def plotMonitor():
     start_time = None
     duration = None
     system = None
+    is_io = False
     try:
         # 画图开始时间
         if request.args.get('startTime'):
@@ -101,12 +79,16 @@ def plotMonitor():
         if request.args.get('duration'):
             duration = int(request.args.get('duration'))
 
+        if request.args.get('showIO'):
+            is_io = True
+
         if request.args.get('type') == 'port':      # 如果是端口号
             port = request.args.get('num')
             pid = port_to_pid(port)     # 端口号转换成进程号
 
             if port and pid:
-                html = draw_data_from_mysql(port=f'port_{port}', pid=f'pid_{pid}', start_time=start_time, duration=duration)
+                html = draw_data_from_mysql(port=f'port_{port}', pid=f'pid_{pid}', start_time=start_time,
+                                            duration=duration, is_io=is_io)
                 return html
             else:
                 return json.dumps({'code': -1, 'message': 'The PID is not existed.'}, ensure_ascii=False)
@@ -117,20 +99,47 @@ def plotMonitor():
             return html
 
         # 画系统资源使用情况
-        if cfg.IS_MONITOR_SYSTEM:
-            if request.args.get('system'):
-                system = int(request.args.get('system'))
+        if request.args.get('system'):
+            system = int(request.args.get('system'))
 
-            html = draw_data_from_mysql(start_time=start_time, duration=duration, system=system)
-            return html
-        else:
-            return json.dumps({'code': -1, 'message': 'The current setting is not to monitor system resources.'}, ensure_ascii=False)
+        html = draw_data_from_mysql(start_time=start_time, duration=duration, system=system)
+        return html
 
     except Exception as err:
         htmls = cfg.ERROR.format(traceback.format_exc())
         logger.error(err)
         logger.error(traceback.format_exc())
         return cfg.HTML.format(htmls)
+
+
+@server.route('/getMonitorList', methods=['get'])
+def getMonitorList():
+    if request.args.get('type') == 1:
+        flag = 1    # 显示所有端口
+    else:
+        flag = 0    # 显示正在监控的端口
+
+    msg = permon.start
+    port = msg['port']
+    pid = msg['pid']
+    is_run = msg['isRun']
+    start_time = msg['startTime']
+
+    lines = []
+    HTML = '<html><meta http-equiv="Content-Type";content="text/html";charset="utf-8"><body>{}</body></html>'
+    p1 = f'<p align="right">The size of thread pool is {cfg.THREAD_NUM}, ' \
+        f'current active thread num is {is_run.count(1)}.</p>'
+    TABLE = '<table width="100%" border="1" cellspacing="0" cellpadding="6" align="center">{}</table>'
+    table_head= f'<tr bgcolor="#99CCFF" align="center"><th width=25%>PORT</th><th width=25%>PID</th>' \
+        f'<th width=25%>isRun</th><th width=25%></th>startTime</tr>'
+    for i in range(len(port)):
+        if flag:
+            lines.append(f'<tr><td>{port[i]}</td><td>{pid[i]}</td><td>{is_run[i]}</td><td>{start_time[i]}</td></tr>')
+        else:
+            if is_run[i]:
+                lines.append(f'<tr><td>{port[i]}</td><td>{pid[i]}</td><td>{is_run[i]}</td><td>{start_time[i]}</td></tr>')
+
+    return HTML.format(p1 + TABLE.format(table_head + ''.join(lines)))
 
 
 server.run(port=cfg.PORT, debug=True, host=cfg.IP)  # 开启服务

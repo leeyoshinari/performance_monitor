@@ -9,21 +9,6 @@ from logger import logger
 import config as cfg
 
 
-def ports_to_pids(ports):
-	"""
-		端口号转进程号
-	"""
-	pids = []
-	for p in ports:
-		pid = port_to_pid(p)
-		if pid:
-			pids.append(pid)
-		else:
-			return str(p)
-
-	return pids
-
-
 def port_to_pid(port):
 	"""
 		使用netstat命令将端口号转进程号.
@@ -45,15 +30,14 @@ def port_to_pid(port):
 
 # 处理日志，从日志中读取出监控结果
 class DealLogs(object):
-	def __init__(self, search):
+	def __init__(self, search, is_io=False):
 		self.search = search    # 带端口号或进程号查询
-		self.is_monitor_system = cfg.IS_MONITOR_SYSTEM  # 是否监控系统资源
+		self.is_io = is_io
 		self.total_time = []
 		self.io_total_time = []
 		self.system = [[], []]      # cpu、内存
 		self.disk_io = [[], [], []]   # 磁盘读、写、使用率
 		self.cpu_and_mem = [[], [], []]     # cpu、内存、jvm
-		self.io = [[], [], [], [], [], []]  # 进程读、写、使用率，磁盘读、写、使用率
 
 	def get_logs(self, logs, startTime=None, endTime=None):
 		"""
@@ -228,175 +212,198 @@ class DealLogs(object):
 
 			if endIndex == -1:      # 从startIndex开始，到日志结束
 				for j in range(startIndex, len(lines)):
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 			else:       # 从startIndex开始到endIndex
 				for j in range(startIndex, endIndex):
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 
 		if len(log_list) == 2:      # 如果有两个监控日志文件
 			with open(logs[log_list[0]][1], 'r') as f:
 				lines = f.readlines()
 
 			for j in range(startIndex, len(lines)):     # 第一个日志，从startIndex开始，到日志结束
-				if 'cpu_and_mem' in lines[j]:
-					self.deal_total_time(lines[j].strip())
-					self.deal_cpu_and_mem(lines[j].strip())
-				if 'CpuAndMem' in lines[j]:
-					self.deal_total_time(lines[j].strip())
-					self.system_cpu_mem(lines[j].strip())
-				if 'disk_util' in lines[j]:
-					self.deal_io_total_time(lines[j].strip())
-					self.system_io(lines[j].strip())
-				if 'r_w_util' in lines[j]:
-					self.deal_io_total_time(lines[j].strip())
-					self.deal_io(lines[j].strip())
+				if self.search == 'system':
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
+						self.system_io(lines[j].strip())
+				else:
+					if 'cpu_and_mem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.deal_cpu_and_mem(lines[j].strip())
+					if self.is_io:
+						if 'disk_util' in lines[j]:
+							self.deal_io_for_pid(lines[j].strip())
+							self.system_io(lines[j].strip())
 
 			with open(logs[log_list[1]][1], 'r') as f:
 				lines = f.readlines()
 
 			if endIndex == -1:      # 遍历整个日志
 				for j in range(len(lines)):
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 			else:
 				for j in range(0, endIndex):    # 从日志第一行开始，直到endIndex
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 
 		if len(log_list) > 2:       # 如果有大于两个监控日志文件
 			with open(logs[log_list[0]][1], 'r') as f:
 				lines = f.readlines()
 
 			for j in range(startIndex, len(lines)):     # 第一个日志，从startIndex开始，到日志结束
-				if 'cpu_and_mem' in lines[j]:
-					self.deal_total_time(lines[j].strip())
-					self.deal_cpu_and_mem(lines[j].strip())
-				if 'CpuAndMem' in lines[j]:
-					self.deal_total_time(lines[j].strip())
-					self.system_cpu_mem(lines[j].strip())
-				if 'disk_util' in lines[j]:
-					self.deal_io_total_time(lines[j].strip())
-					self.system_io(lines[j].strip())
-				if 'r_w_util' in lines[j]:
-					self.deal_io_total_time(lines[j].strip())
-					self.deal_io(lines[j].strip())
+				if self.search == 'system':
+					if 'CpuAndMem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.system_cpu_mem(lines[j].strip())
+					if 'disk_util' in lines[j]:
+						self.deal_io_total_time(lines[j].strip())
+						self.system_io(lines[j].strip())
+				else:
+					if 'cpu_and_mem' in lines[j]:
+						self.deal_total_time(lines[j].strip())
+						self.deal_cpu_and_mem(lines[j].strip())
+					if self.is_io:
+						if 'disk_util' in lines[j]:
+							self.deal_io_for_pid(lines[j].strip())
+							self.system_io(lines[j].strip())
 
 			for m in range(1, len(log_list)-1):         # 遍历中间所有日志
 				with open(logs[log_list[m]][1], 'r') as f:
 					lines = f.readlines()
 
 				for j in range(len(lines)):
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 
 			with open(logs[log_list[-1]][1], 'r') as f:
 				lines = f.readlines()
 
 			if endIndex == -1:          # 遍历最后一个日志
 				for j in range(len(lines)):
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 			else:
 				for j in range(0, endIndex):        # 从日志第一行开始，直到endIndex
-					if 'cpu_and_mem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.deal_cpu_and_mem(lines[j].strip())
-					if 'CpuAndMem' in lines[j]:
-						self.deal_total_time(lines[j].strip())
-						self.system_cpu_mem(lines[j].strip())
-					if 'disk_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.system_io(lines[j].strip())
-					if 'r_w_util' in lines[j]:
-						self.deal_io_total_time(lines[j].strip())
-						self.deal_io(lines[j].strip())
+					if self.search == 'system':
+						if 'CpuAndMem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.system_cpu_mem(lines[j].strip())
+						if 'disk_util' in lines[j]:
+							self.deal_io_total_time(lines[j].strip())
+							self.system_io(lines[j].strip())
+					else:
+						if 'cpu_and_mem' in lines[j]:
+							self.deal_total_time(lines[j].strip())
+							self.deal_cpu_and_mem(lines[j].strip())
+						if self.is_io:
+							if 'disk_util' in lines[j]:
+								self.deal_io_for_pid(lines[j].strip())
+								self.system_io(lines[j].strip())
 
 	def system_cpu_mem(self, line):
 		"""
-			从日志的每一行找出CPU、内存
+			从日志的每一行找出系统CPU、内存
 		"""
-		if self.is_monitor_system:
-			if self.search == 'system':
-				res = line.split(',')
-				self.system[0].append(float(res[-2]))       # CPU
-				self.system[1].append(float(res[-1]))       # 内存
+		res = line.split(',')
+		self.system[0].append(float(res[-2]))       # CPU
+		self.system[1].append(float(res[-1]))       # 内存
 
 	def system_io(self, line):
 		"""
 			从日志的每一行找出磁盘读、写、使用率
 		"""
-		if self.is_monitor_system:
-			if self.search == 'system':
-				res = line.split(',')
-				self.disk_io[0].append(float(res[-3]))  # 磁盘读
-				self.disk_io[1].append(float(res[-2]))  # 磁盘写
-				self.disk_io[2].append(float(res[-1]))  # 磁盘总使用率
+		res = line.split(',')
+		self.disk_io[0].append(float(res[-3]))  # 磁盘读
+		self.disk_io[1].append(float(res[-2]))  # 磁盘写
+		self.disk_io[2].append(float(res[-1]))  # 磁盘总使用率
 
 	def deal_cpu_and_mem(self, line):
 		"""
-			从日志的每一行找出CPU、内存、JVM数据
+			从日志的每一行找出端口的CPU、内存、JVM数据
 		"""
 		if self.search in line:
 			res = line.split(',')
@@ -406,7 +413,7 @@ class DealLogs(object):
 
 	def deal_total_time(self, line):
 		"""
-			找到监控结果的时间
+			找到监控结果的时间-CPU和内存
 		"""
 		if self.search in line:
 			try:
@@ -416,7 +423,7 @@ class DealLogs(object):
 
 	def deal_io_total_time(self, line):
 		"""
-			找到监控结果的时间
+			找到监控结果的时间-io
 		"""
 		if self.search in line:
 			try:
@@ -424,18 +431,14 @@ class DealLogs(object):
 			except Exception as err:
 				logger.error(err)
 
-	def deal_io(self, line):
+	def deal_io_for_pid(self, line):
 		"""
-			从日志的每一行找出IO数据
+			找到监控结果的时间-io for pid
 		"""
-		if self.search in line:
-			res = line.split(',')
-			self.io[0].append(float(res[-6]))  # 进程读
-			self.io[1].append(float(res[-5]))  # 进程写
-			self.io[2].append(float(res[-4]))  # 进程磁盘使用率
-			self.io[3].append(float(res[-3]))  # 磁盘读
-			self.io[4].append(float(res[-2]))  # 磁盘写
-			self.io[5].append(float(res[-1]))  # 磁盘总使用率
+		try:
+			self.io_total_time.append(self.recompile(line).group())
+		except Exception as err:
+			logger.error(err)
 
 	def recompile(self, line):
 		"""
