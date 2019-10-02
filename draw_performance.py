@@ -15,9 +15,9 @@ from logger import logger
 from extern import DealLogs
 
 
-def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, system=None, is_io=False):
+def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, system=None, is_io=True):
     """
-    Read data from MySQL.
+    Read data from logs.
     Return html included plotting, and data.
     """
     search = None
@@ -37,30 +37,30 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
     if system is not None:
         search = 'system'
 
-    logs = glob.glob(cfg.LOG_PATH + '/*.log')  # 获取所有日志
+    logs = glob.glob(cfg.LOG_PATH + '/*.log')  # get all logs
 
     deal_logs = DealLogs(search, is_io)
 
     try:
         if start_time and duration:
-            # 将开始时间和结果时间转换成1970纪元后经过的浮点秒数
+            # Convert `start_time` to floating point seconds after 1970.
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = startTime + duration
-            deal_logs.read_data_from_logs(logs, startTime, endTime)      # 从日志中获取数据
+            deal_logs.read_data_from_logs(logs, startTime, endTime)      # read data from logs
         else:
             deal_logs.read_data_from_logs(logs)
 
-        # 画图
+        # plotting
         image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
                           deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
-        # 计算百分位数
+        # calculate Percentile
         per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search, is_io)
-        # 获取java应用垃圾回收相关数据
+        # get GC, just for java
         if search == 'system':
             gc_html = ''
         else:
             gc_html = get_gc(pid_num)
-        # 将所有数据组装成html
+
         html = cfg.HTML.format(cfg.HEADER.format(pid_num) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
         del deal_logs
 
@@ -74,15 +74,15 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
 
 def draw(types, system, cpu, mem, disk_io, times, io_times):
     """
-        画图
+        plot
     """
     length = len(times)
     io_length = len(io_times)
-    if length < 7 or io_length < 7:
+    if length < 7:
         logger.error('Too less data, please wait a minute.')
         return cfg.ERROR.format('Too less data, please wait a minute.')
 
-    # x坐标及坐标刻度
+    # x-axis and x-ticks
     index = [[], []]
     labels = [[], []]
     delta = length / 6
@@ -181,19 +181,19 @@ def draw(types, system, cpu, mem, disk_io, times, io_times):
         plt.margins(0, 0)
 
     image_byte = BytesIO()
-    fig.savefig(image_byte, format='png', bbox_inches='tight')      # 把图片保存成二进制格式
-    data = base64.encodebytes(image_byte.getvalue()).decode()       # 编码成base64格式
+    fig.savefig(image_byte, format='png', bbox_inches='tight')      # save figure to bytes
+    data = base64.encodebytes(image_byte.getvalue()).decode()       # encode to base64
 
     html = f'<div align="center"><img src="data:image/png;base64,{data}" /></div>'
-    plt.close()     # 关闭绘图窗口
+    plt.close()     # close figure
     return html
 
 
 def get_lines(system_cpu, cpu, dutil, types, is_io):
     """
-        计算百分位数，75%line、90%line、95%line、99%line
+        Calculate Percentile，75%line、90%line、95%line、99%line
     """
-    # 从小到大排序
+    # sort
     system_cpu.sort()
     cpu.sort()
     dutil.sort()
@@ -225,7 +225,7 @@ def get_lines(system_cpu, cpu, dutil, types, is_io):
 
 def get_gc(pid):
     """
-        获取java应用的垃圾回收相关信息，包括ygc, ygct, fgc, fgct, 和ygc频率, fgc频率.
+        Get GC, include ygc, ygct, fgc, fgct, ygc frequency, fgc frequency, just for java.
     """
     try:
         result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
@@ -238,7 +238,7 @@ def get_gc(pid):
         fygc = 0
         ffgc = 0
 
-        result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # 获取服务启动时间
+        result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # get `pid` running time
         runtime = int(result.strip())
 
         if ygc > 0:

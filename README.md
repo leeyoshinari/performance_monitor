@@ -1,8 +1,8 @@
 # performace_monitor
-Continuously monitor the value of CPU, memory, IO of the specified port or PID in the Linux system.
+Continuously monitor the value of CPU, memory, IO of the specified port or PID or system in the Linux system.
 Monitor can be started or stopped at any time. And plotting them.<br>
 
-It can monitor linux system's free memory, when free memory is too low, it can clear cache and email to you.<br>
+It can monitor linux system's free memory, when free memory is too low, it can clear cache or email to you.<br>
 It can monitor gc for java's applications, when the frequency of full gc, it can email to you.<br>
 
 ## Usage
@@ -28,25 +28,33 @@ It can monitor gc for java's applications, when the frequency of full gc, it can
    ```
 
 6. Start monitor<br>
-   Enter `http://ip:port/runMonitor?isRun=1&type=pid&num=123,456&totalTime=3600` in your browser<br>
+   Enter `http://ip:port/startMonitor?isRun=1&type=port&num=9999` in browser<br>
    param:<br>
-   &emsp;&emsp;`isRun=0`: stop monitor; `isRun=1`: start monitor.<br>
-   &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid. The `num` can be specified one or more.<br>
-   &emsp;&emsp;&emsp;&emsp;&emsp;example: `num=1234` or `num=1234,5678`<br>
-   &emsp;&emsp;`totalTime`: the total time of monitoring. It's second. If `totalTime` is null, it will always monitor.
+   &emsp;&emsp;`isRun=0`: stop monitor the `port`; `isRun=1`: start monitor the `port`.<br>
+   &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid. The `num` can be specified only one. If you wait to monitor other `port`, please send http request again.<br>
    
 7. Plotting<br>
-   Enter `http://ip:port/plotMonitor?type=pid&num=1234&system=1&startTime=2019-05-21 08:08:08&duration=3600` in your browser<br>
+   Enter `http://ip:port/plotMonitor?type=port&num=9999&startTime=2019-10-01 10:00:00&duration=3600&showIO=1` in browser<br>
+   or `http://ip:port/plotMonitor?startTime=2019-10-01 10:00:00&duration=3600&system=1`<br>
    param:<br>
    &emsp;&emsp;`type=port` means the `num` is port. `type=pid` means the `num` is pid. If type is port, plotting all results of `port`, if type is pid, plotting all results of `pid`.<br>
-   &emsp;&emsp;`system` means plot system's cpu and free memory.
+   &emsp;&emsp;`system` means plot system's cpu and free memory.<br>
+   &emsp;&emsp;`showIO` means calculate IO(%) when `system` is None. it's not necessary.<br>
    &emsp;&emsp;`startTime` and `duration` are optional parameters, if you plot last monitor, they are not needed, but if you want to plot over a period of time, they are needed. `duration` is second. The range of a period of time is `startTime + duration`. `startTime` must be accurate, if you're not sure it, please see the last line of `startTime.txt` or logs.
 
+8. Get monitoring list<br>
+   Enter `http://ip:port/getMonitorList?type=1` in browser.<br>
+   Param:<br>
+   &emsp;&emsp;`type` is an optional parameter. `type=1` means get monitoring ports and pids list. If not `type`, means get all ports and pids list.
+
 ## Note
-1. Your Linux must support the `jstat`, `top`, `iotop`, `iostat` and `lsof` commands, if not, please install them.
+1. Your Linux must support the `jstat`, `top`, `iostat` and `netstat` commands, if not, please install them.
 
 2. For more information, please [read me](https://blog.csdn.net/leeyoshinari/article/details/98248304).
+
+3. If you don't know how to install Python 3.7+ in Linux, please [read me](https://blog.csdn.net/leeyoshinari/article/details/95805478)
 
 ## Requirements
 1. flask
 2. matplotlib
+3. Python 3.7+
