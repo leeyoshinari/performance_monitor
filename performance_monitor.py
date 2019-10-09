@@ -46,7 +46,7 @@ class PerMon(object):
                 self._msg['pid'][index] = value['pid']
                 if self._msg['isRun'][index] == 0:
                     self._msg['isRun'][index] = value['is_run']
-                    self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                    # self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
                     self.monitor_task.put((self.write_cpu_mem, index))
 
                     self.FGC[str(value['port'])] = 0    # reset FGC
@@ -60,7 +60,7 @@ class PerMon(object):
                 self._msg['pid'].append(value['pid'])   # If this `port` is new, append it.
                 self._msg['port'].append(value['port'])
                 self._msg['isRun'].append(value['is_run'])
-                self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
+                # self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
                 self.monitor_task.put((self.write_cpu_mem, len(self._msg['port'])-1))
 
                 self.FGC.update({str(value['port']): 0})    # initialize FGC
@@ -105,6 +105,8 @@ class PerMon(object):
         """
             Monitor CPU, Momory and JVM of pid.
         """
+        self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+
         run_error = 0      # initialize, run command failure times.
         start_search_time = time.time()
         port = self._msg['port'][index]

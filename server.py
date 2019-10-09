@@ -134,7 +134,6 @@ def getMonitorList():
                 lines.append(f"<tr align='center'><td>{msg['port'][i]}</td><td>{msg['pid'][i]}</td>"
                              f"<td>{status[msg['isRun'][i]]}</td><td>{msg['startTime'][i]}</td></tr>")
 
-    del msg
     return HTML.format(p1 + TABLE.format(table_head + ''.join(lines)))
 
 
