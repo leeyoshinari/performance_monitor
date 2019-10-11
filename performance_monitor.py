@@ -46,7 +46,7 @@ class PerMon(object):
                 self._msg['pid'][index] = value['pid']
                 if self._msg['isRun'][index] == 0:
                     self._msg['isRun'][index] = value['is_run']
-                    # self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                    self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
                     self.monitor_task.put((self.write_cpu_mem, index))
 
                     self.FGC[str(value['port'])] = 0    # reset FGC
@@ -60,7 +60,7 @@ class PerMon(object):
                 self._msg['pid'].append(value['pid'])   # If this `port` is new, append it.
                 self._msg['port'].append(value['port'])
                 self._msg['isRun'].append(value['is_run'])
-                # self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
+                self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
                 self.monitor_task.put((self.write_cpu_mem, len(self._msg['port'])-1))
 
                 self.FGC.update({str(value['port']): 0})    # initialize FGC
@@ -126,6 +126,7 @@ class PerMon(object):
                                 pid = port_to_pid(port)  # `port` to `pid`
                                 if pid:
                                     self._msg['pid'][index] = pid
+                                    self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
                                 time.sleep(cfg.SLEEPTIME)
                                 continue
@@ -158,6 +159,7 @@ class PerMon(object):
         """
             Monitor system's CPU and free memory.
         """
+        flag = True
         while True:
             if self.is_system == 1:
                 disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
@@ -168,9 +170,17 @@ class PerMon(object):
 
                     if mem <= cfg.MIN_MEM:
                         logger.warning(f'Current memory is {mem}, memory is too low.')
-                        if cfg.IS_MEM_ALERT or cfg.ECHO:
+                        if cfg.IS_MEM_ALERT and flag:
+                            flag = False
                             thread = threading.Thread(target=self.mem_alert, args=(mem,))
                             thread.start()
+
+                        if cfg.ECHO:
+                            thread = threading.Thread(target=self.clear_cache, args=())
+                            thread.start()
+
+                    else:
+                        flag = True
 
             else:
                 time.sleep(1)
@@ -309,9 +319,7 @@ class PerMon(object):
             Get the CPU's core number.
         """
         result = os.popen('cat /proc/cpuinfo| grep "processor"| wc -l').readlines()[0]
-
         self.cpu_cores = int(result)
-
         logger.info(f'CPU core number is {self.cpu_cores}')
 
     def get_total_mem(self):
@@ -319,24 +327,25 @@ class PerMon(object):
             Get total memory.
         """
         result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
-
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024 / 100
-
         logger.info(f'Total memory is {self.total_mem * 100}')
 
     @staticmethod
     def mem_alert(mem):
         """
-            When the remaining memory is too low, alerting, or clearing caches.
+            When the remaining memory is too low, alerting.
         """
-        if cfg.IS_MEM_ALERT:    # send email to alert
-            msg = {'msg': f'The current remaining memory is {mem:.2f}G'}
-            sendMsg(msg)
+        msg = {'msg': f'The current remaining memory is {mem:.2f}G'}
+        sendMsg(msg)
 
-        if cfg.ECHO:    # clear caches
-            logger.info(f'Start clearing cache：echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
-            os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
-            logger.info('Clear cache successful.')
+    @staticmethod
+    def clear_cache():
+        """
+            When the remaining memory is too low, clearing caches.
+        """
+        logger.info(f'Start clearing cache：echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
+        os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
+        logger.info('Clear cache successful.')
 
     @staticmethod
     def jvm_alert(frequency, pid, port):

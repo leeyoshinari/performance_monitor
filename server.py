@@ -124,7 +124,7 @@ def getMonitorList():
          'is {}.</h2>'.format(cfg.THREAD_NUM, msg['isRun'].count(1))
     TABLE = '<table width="50%" border="1" cellspacing="0" cellpadding="6" align="center">{}</table>'
     table_head = f'<tr bgcolor="#99CCFF" align="center"><th width=20%>PORT</th><th width=20%>PID</th>' \
-        f'<th width=25%>isRun</th><th width=35%>startTime</th></tr>'
+        f'<th width=25%>Status</th><th width=35%>startTime</th></tr>'
     for i in range(len(msg['port'])):
         if flag:
             lines.append(f"<tr align='center'><td>{msg['port'][i]}</td><td>{msg['pid'][i]}</td>"
