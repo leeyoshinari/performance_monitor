@@ -54,7 +54,7 @@ def startMonitor():
 
     except Exception as err:
         html = cfg.ERROR.format(traceback.format_exc())
-        logger.error(traceback.format_exc())
+        logger.error(err)
         return cfg.HTML.format(html)
 
 
@@ -80,6 +80,9 @@ def plotMonitor():
             port = request.args.get('num')
             pid = port_to_pid(port)
 
+            if start_time is None:
+                start_time = permon.stop['startTime'][permon.stop['port'].index(port)]
+
             if port and pid:
                 html = draw_data_from_mysql(port=f'port_{port}', pid=f'pid_{pid}', start_time=start_time,
                                             duration=duration, is_io=is_io)
@@ -89,6 +92,10 @@ def plotMonitor():
 
         if request.args.get('type') == 'pid':
             pid = request.args.get('num')
+
+            if start_time is None:
+                start_time = permon.stop['startTime'][permon.stop['pid'].index(pid)]
+
             html = draw_data_from_mysql(pid=f'pid_{pid}', start_time=start_time, duration=duration, is_io=is_io)
             return html
 
@@ -102,7 +109,6 @@ def plotMonitor():
     except Exception as err:
         htmls = cfg.ERROR.format(traceback.format_exc())
         logger.error(err)
-        logger.error(traceback.format_exc())
         return cfg.HTML.format(htmls)
 
 

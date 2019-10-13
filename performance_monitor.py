@@ -5,7 +5,6 @@ import os
 import time
 import queue
 import threading
-import traceback
 from concurrent.futures import ThreadPoolExecutor
 
 import config as cfg
@@ -147,7 +146,7 @@ class PerMon(object):
                         run_error = 0      # If run successfully, set to 0, initialize.
 
                     except Exception as err:
-                        logger.error(traceback.format_exc())
+                        logger.error(err)
                         time.sleep(cfg.SLEEPTIME)
                         continue
 
@@ -160,6 +159,7 @@ class PerMon(object):
             Monitor system's CPU and free memory.
         """
         flag = True
+        echo = True
         while True:
             if self.is_system == 1:
                 disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
@@ -175,12 +175,14 @@ class PerMon(object):
                             thread = threading.Thread(target=self.mem_alert, args=(mem,))
                             thread.start()
 
-                        if cfg.ECHO:
+                        if cfg.ECHO and echo:
+                            echo = False
                             thread = threading.Thread(target=self.clear_cache, args=())
                             thread.start()
 
                     else:
                         flag = True
+                        echo = True
 
             else:
                 time.sleep(1)

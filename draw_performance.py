@@ -5,7 +5,6 @@ import os
 import base64
 import time
 import glob
-import traceback
 import datetime
 import matplotlib.pyplot as plt
 from io import BytesIO
@@ -46,9 +45,14 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
             # Convert `start_time` to floating point seconds after 1970.
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = startTime + duration
-            deal_logs.read_data_from_logs(logs, startTime, endTime)      # read data from logs
+        elif start_time is None and duration is None:
+            startTime = time.mktime(datetime.datetime.strptime('2019-10-01 08:08:08', '%Y-%m-%d %H:%M:%S').timetuple())
+            endTime = time.time()
         else:
-            deal_logs.read_data_from_logs(logs)
+            startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
+            endTime = time.time()
+
+        deal_logs.read_data_from_logs(logs, startTime, endTime)  # read data from logs
 
         # plotting
         image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
@@ -68,7 +72,6 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
     except Exception as err:
         del deal_logs
         logger.error(err)
-        logger.error(traceback.format_exc())
         raise Exception(err)
 
 

@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 
-import traceback
 from email.mime.text import MIMEText
 from email.header import Header
 
@@ -35,5 +34,5 @@ def sendMsg(msg):
 		server.quit()
 		logger.info('Send email successfully.')
 	except Exception as err:
-		logger.error(traceback.format_exc())
+		logger.error(err)
 		sendMsg(msg)
