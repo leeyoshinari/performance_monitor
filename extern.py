@@ -15,12 +15,13 @@ def port_to_pid(port):
 	pid = None
 	try:
 		result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()
-		res = [line.strip() for line in result if str(port) in line]
+		flag = f':{port}'
+		res = [line.strip() for line in result if flag in line]
 		logger.debug(res[0])
 		p = res[0].split(' ')
 		pp = p[3].split(':')[-1]
 		if str(port) == pp:
-			pid = p[-1].split('/')[0]
+			pid = p[p.index('LISTEN') + 1].split('/')[0]
 	except Exception as err:
 		logger.error(err)
 
