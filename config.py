@@ -34,9 +34,3 @@ SENDER_EMAIL = 'zhangsan@qq.com'        # sender's email
 PASSWORD = 'UjBWYVJFZE9RbFpIV1QwOVBUMDlQUT09'       # email password, base64 encode.
 RECEIVER_NAME = 'baidu_all'     # receiver name
 RECEIVER_EMAIL = ['zhangsan@qq.com', 'zhangsi@qq.com']    # receiver's email
-
-# html
-HTML = '<html><body>{}</body><html>'
-ERROR = '<p style="color:red">{}</p>'
-HEADER = '<div id="header"><h2 align="center">Performance Monitor (pid={})</h2></div>'
-ANALYSIS = '<div id="container" style="width:730px; margin:0 auto">{}</div>'

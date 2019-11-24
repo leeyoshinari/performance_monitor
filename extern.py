@@ -29,7 +29,7 @@ def port_to_pid(port):
 
 
 class DealLogs(object):
-	def __init__(self, search, is_io=True):
+	def __init__(self, search, is_io=1):
 		self.search = search    # a flag using to find lines in logs
 		self.is_io = is_io      # get IO(%) from logs when `search` is not `system`.
 		self.total_time = []

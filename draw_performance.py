@@ -14,12 +14,13 @@ from logger import logger
 from extern import DealLogs
 
 
-def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, system=None, is_io=True):
+def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, system=0, is_io=1):
     """
     Read data from logs.
     Return html included plotting, and data.
     """
     search = None
+    result = {}
 
     if port:
         search = port
@@ -33,7 +34,7 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
     else:
         pid_num = None
 
-    if system is not None:
+    if system == 1:
         search = 'system'
 
     logs = glob.glob(cfg.LOG_PATH + '/*.log')  # get all logs
@@ -41,11 +42,11 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
     deal_logs = DealLogs(search, is_io)
 
     try:
-        if start_time and duration:
+        if start_time and end_time:
             # Convert `start_time` to floating point seconds after 1970.
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
-            endTime = startTime + duration
-        elif start_time is None and duration is None:
+            endTime = time.mktime(datetime.datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S').timetuple())
+        elif start_time is None and end_time is None:
             startTime = time.mktime(datetime.datetime.strptime('2019-10-01 08:08:08', '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = time.time()
         else:
@@ -55,20 +56,22 @@ def draw_data_from_mysql(port=None, pid=None, start_time=None, duration=None, sy
         deal_logs.read_data_from_logs(logs, startTime, endTime)  # read data from logs
 
         # plotting
-        image_html = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
-                          deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
+        image = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
+                     deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
         # calculate Percentile
-        per_html = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search, is_io)
-        # get GC, just for java
-        if search == 'system':
-            gc_html = ''
-        else:
-            gc_html = get_gc(pid_num)
+        per = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search, is_io)
 
-        html = cfg.HTML.format(cfg.HEADER.format(pid_num) + image_html + cfg.ANALYSIS.format(per_html + gc_html))
+        result.update({'data': image})
+        result.update(per)
+
+        # get GC, just for java
+        if search != 'system':
+            gc = get_gc(pid_num)
+            result.update(gc)
+
         del deal_logs
 
-        return html
+        return result
     except Exception as err:
         del deal_logs
         logger.error(err)
@@ -187,9 +190,8 @@ def draw(types, system, cpu, mem, disk_io, times, io_times):
     fig.savefig(image_byte, format='png', bbox_inches='tight')      # save figure to bytes
     data = base64.encodebytes(image_byte.getvalue()).decode()       # encode to base64
 
-    html = f'<div align="center"><img src="data:image/png;base64,{data}" /></div>'
     plt.close()     # close figure
-    return html
+    return data
 
 
 def get_lines(system_cpu, cpu, dutil, types, is_io):
@@ -218,12 +220,7 @@ def get_lines(system_cpu, cpu, dutil, types, is_io):
             line95 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)])
             line99 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)])
 
-    htmls = f'<div id="Percentile" style="float:left; background-color:#FF9933; height:200px; width:300px; ' \
-        f'margin-right:10px"><h3 align="center">Percentile</h3><p align="center">75%:' \
-        f'&nbsp&nbsp&nbsp&nbsp{line75}<br>90%:&nbsp&nbsp&nbsp&nbsp{line90}<br>95%:' \
-        f'&nbsp&nbsp&nbsp&nbsp{line95}<br>99%:&nbsp&nbsp&nbsp&nbsp{line99}</p></div>'
-
-    return htmls
+    return {'line75': line75, 'line90': line90, 'line95': line95, 'line99': line99}
 
 
 def get_gc(pid):
@@ -253,9 +250,4 @@ def get_gc(pid):
         logger.error(err)
         ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 
-    htmls = f'<div id="GC" style="float:left; background-color:#CC6633; height:200px; width:300px">' \
-        f'<h3 align="center">GC</h3><p align="center">YGC:&nbsp{ygc}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspYGCT:' \
-        f'&nbsp{ygct}s<br>FGC:&nbsp{fgc}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspFGCT:&nbsp{fgct}s<br>' \
-        f'Frequence of YGC:&nbsp{fygc:.2f}s<br>Frequence of FGC:&nbsp{ffgc:.2f}s</p></div>'
-
-    return htmls
+    return {'ygc': ygc, 'ygct': ygct, 'fgc': fgc, 'fgct': fgct, 'fygc': f'{fygc:.2f}', 'ffgc': f'{ffgc:.2f}'}
