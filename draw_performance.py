@@ -60,14 +60,12 @@ def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, syst
                      deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
         # calculate Percentile
         per = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search, is_io)
+        # gc
+        gc = get_gc(pid_num, search)
 
         result.update({'data': image})
         result.update(per)
-
-        # get GC, just for java
-        if search != 'system':
-            gc = get_gc(pid_num)
-            result.update(gc)
+        result.update(gc)
 
         del deal_logs
 
@@ -86,7 +84,7 @@ def draw(types, system, cpu, mem, disk_io, times, io_times):
     io_length = len(io_times)
     if length < 7:
         logger.error('Too less data, please wait a minute.')
-        return cfg.ERROR.format('Too less data, please wait a minute.')
+        raise Exception('Too less data, please wait a minute.')
 
     # x-axis and x-ticks
     index = [[], []]
@@ -95,21 +93,22 @@ def draw(types, system, cpu, mem, disk_io, times, io_times):
     io_delta = io_length / 6
     for i in range(6):
         index[0].append(int(i * delta))
-        index[1].append(int(i * io_delta))
         labels[0].append(times[int(i * delta)])
-        labels[1].append(io_times[int(i * io_delta)])
+        if types == 'system':
+            index[1].append(int(i * io_delta))
+            labels[1].append(io_times[int(i * io_delta)])
 
     index[0].append(length - 1)
-    index[1].append(io_length - 1)
     labels[0].append(times[length - 1])
-    labels[1].append(io_times[io_length - 1])
-
     cpu_start_time = time.mktime(datetime.datetime.strptime(str(times[0]), '%Y-%m-%d %H:%M:%S').timetuple())
     cpu_end_time = time.mktime(datetime.datetime.strptime(str(times[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
-    io_start_time = time.mktime(datetime.datetime.strptime(str(io_times[0]), '%Y-%m-%d %H:%M:%S').timetuple())
-    io_end_time = time.mktime(datetime.datetime.strptime(str(io_times[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
 
     if types == 'system':
+        index[1].append(io_length - 1)
+        labels[1].append(io_times[io_length - 1])
+        io_start_time = time.mktime(datetime.datetime.strptime(str(io_times[0]), '%Y-%m-%d %H:%M:%S').timetuple())
+        io_end_time = time.mktime(datetime.datetime.strptime(str(io_times[-1]), '%Y-%m-%d %H:%M:%S').timetuple())
+
         fig = plt.figure('figure', figsize=(20, 15))
         ax1 = plt.subplot(3, 1, 1)
         ax2 = plt.subplot(3, 1, 2)
@@ -223,31 +222,34 @@ def get_lines(system_cpu, cpu, dutil, types, is_io):
     return {'line75': line75, 'line90': line90, 'line95': line95, 'line99': line99}
 
 
-def get_gc(pid):
+def get_gc(pid, types):
     """
         Get GC, include ygc, ygct, fgc, fgct, ygc frequency, fgc frequency, just for java.
     """
-    try:
-        result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
-        res = result.strip().split(' ')
-
-        ygc = int(res[12])
-        ygct = float(res[13])
-        fgc = int(res[14])
-        fgct = float(res[15])
-        fygc = 0
-        ffgc = 0
-
-        result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # get `pid` running time
-        runtime = int(result.strip())
-
-        if ygc > 0:
-            fygc = runtime / ygc
-        if fgc > 0:
-            ffgc = runtime / fgc
-
-    except Exception as err:
-        logger.error(err)
+    if types == 'system':
         ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
+    else:
+        try:
+            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
+            res = result.strip().split(' ')
+
+            ygc = int(res[12])
+            ygct = float(res[13])
+            fgc = int(res[14])
+            fgct = float(res[15])
+            fygc = 0
+            ffgc = 0
+
+            result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # get `pid` running time
+            runtime = int(result.strip())
+
+            if ygc > 0:
+                fygc = runtime / ygc
+            if fgc > 0:
+                ffgc = runtime / fgc
+
+        except Exception as err:
+            logger.error(err)
+            ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 
     return {'ygc': ygc, 'ygct': ygct, 'fgc': fgc, 'fgct': fgct, 'fygc': f'{fygc:.2f}', 'ffgc': f'{ffgc:.2f}'}

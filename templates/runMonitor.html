@@ -40,31 +40,10 @@
                         data: startMonitor,
                         dataType: "json",
                         success: function (data) {
-                            console.log(data)
-                        }
-                    });
-                    $.ajax({
-                        type: 'get',
-                        url: 'getMonitor',
-                        success: function (data) {
+                            console.log(data);
                             data = JSON.parse(data);
-                            document.getElementById('thread').innerText="The size of thread pool is " +
-                                data['threadpool'] + ", current active thread number is " + data['currentthread'];
-                            let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
-                                "<th width=20% >PORT</th>\n" +
-                                "<th width=20%>PID</th>\n" +
-                                "<th width=25%>Status</th>\n" +
-                                "<th width=35%>startTime</th>\n" +
-                                "</tr>";
-                            let run_status = ['Stopped', 'Monitoring', 'Queuing'];
-                            for (let i=0; i<data['port'].length; i++){
-                                text_row += "<tr align='center'>";
-                                text_row += "<td>" + data['port'][i] + "</td>";
-                                text_row += "<td>" + data['pid'][i] + "</td>";
-                                text_row += "<td>" + run_status[data['isRun'][i]] + "</td>";
-                                text_row += "<td>" + data['startTime'][i] + "</td>";
-                                text_row += "</tr>";
-                                document.getElementById('monitor').innerHTML=text_row;
+                            if (data['code'] == 0) {
+                                alert(data['msg']);
                             }
                         }
                     });
@@ -96,31 +75,10 @@
                         data: startMonitor,
                         dataType: "json",
                         success: function (data) {
-                            console.log(data)
-                        }
-                    });
-                    $.ajax({
-                        type: 'get',
-                        url: 'getMonitor',
-                        success: function (data) {
+                            console.log(data);
                             data = JSON.parse(data);
-                            document.getElementById('thread').innerText="The size of thread pool is " +
-                                data['threadpool'] + ", current active thread number is " + data['currentthread'];
-                            let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
-                                "<th width=20% >PORT</th>\n" +
-                                "<th width=20%>PID</th>\n" +
-                                "<th width=25%>Status</th>\n" +
-                                "<th width=35%>startTime</th>\n" +
-                                "</tr>";
-                            let run_status = ['Stopped', 'Monitoring', 'Queuing'];
-                            for (let i=0; i<data['port'].length; i++){
-                                text_row += "<tr align='center'>";
-                                text_row += "<td>" + data['port'][i] + "</td>";
-                                text_row += "<td>" + data['pid'][i] + "</td>";
-                                text_row += "<td>" + run_status[data['isRun'][i]] + "</td>";
-                                text_row += "<td>" + data['startTime'][i] + "</td>";
-                                text_row += "</tr>";
-                                document.getElementById('monitor').innerHTML=text_row;
+                            if (data['code'] == 0){
+                                alert(data['msg']);
                             }
                         }
                     });
@@ -137,10 +95,10 @@
                             document.getElementById('thread').innerText="The size of thread pool is " +
                                 data['threadpool'] + ", current active thread number is " + data['currentthread'];
                             let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
-                                "<th width=20% >PORT</th>\n" +
-                                "<th width=20%>PID</th>\n" +
-                                "<th width=25%>Status</th>\n" +
-                                "<th width=35%>startTime</th>\n" +
+                                "<th width=20% style=\"text-align: center;\">PORT</th>\n" +
+                                "<th width=20% style=\"text-align: center;\">PID</th>\n" +
+                                "<th width=25% style=\"text-align: center;\">Status</th>\n" +
+                                "<th width=35% style=\"text-align: center;\">startTime</th>\n" +
                                 "</tr>";
                             let run_status = ['Stopped', 'Monitoring', 'Queuing'];
                             for (let i=0; i<data['port'].length; i++){

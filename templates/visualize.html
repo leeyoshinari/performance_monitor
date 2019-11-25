@@ -61,10 +61,6 @@
                     data: post_data,
                     dataType: "html",
                     success: function (data) {
-                        // console.log(toString(data));
-                        // data = JSON.parse(data);
-                        // document.getElementById('figure').innerHTML = data;
-                        // document.getElementById('detail').innerHTML = data['detail'];
                         $("#figure").html(data);
                     }
                 });
