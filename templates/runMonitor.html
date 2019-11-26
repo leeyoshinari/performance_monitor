@@ -41,7 +41,6 @@
                         dataType: "json",
                         success: function (data) {
                             console.log(data);
-                            data = JSON.parse(data);
                             if (data['code'] == 0) {
                                 alert(data['msg']);
                             }
@@ -76,7 +75,6 @@
                         dataType: "json",
                         success: function (data) {
                             console.log(data);
-                            data = JSON.parse(data);
                             if (data['code'] == 0){
                                 alert(data['msg']);
                             }
