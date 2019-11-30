@@ -30,17 +30,17 @@ It can monitor gc for java's applications, when the frequency of full gc, it can
 6. using<br>
    Enter `http://ip:port` in browser<br>
    (1) `http://ip:port/startMonitor`<br>
-   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/templates/startMonitor.jpg)
+   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/templates/Visualize.jpg)
    
    (2) `http://ip:port/Visualize`<br>
-   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/templates/Visualize.jpg)
+   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/templates/startMonitor.jpg)
    
 ## Note
 1. Your Linux must support the `jstat`, `top`, `iostat` and `netstat` commands, if not, please install them.
 
-2. For more information, please [read me](https://blog.csdn.net/leeyoshinari/article/details/98248304).
+2. For more information, please [read me](https://github.com/leeyoshinari/performance_monitor/wiki/Linux%E7%B3%BB%E7%BB%9F%E7%9B%91%E6%8E%A7).
 
-3. If you don't know how to install Python 3.7+ in Linux, please [read me](https://blog.csdn.net/leeyoshinari/article/details/95805478)
+3. If you don't know how to install Python 3.7+ in Linux, please [read me](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)
 
 ## Requirements
 1. flask
