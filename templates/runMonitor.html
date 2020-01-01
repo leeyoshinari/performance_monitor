@@ -14,108 +14,111 @@
         <button type="button" id="MonitorList">
             Get Monitor List
         </button>
-        <script type="text/javascript">
-            $("#runMonitor").click(function () {
-                let port = 0;
-                let input_port = document.getElementById("port").value;
-                try{
-                    port = parseInt(input_port, 10);
-                    if (isNaN(port) || port < 1) {
-                        alert("Please Input Integer!");
-                        return;
-                    }
-                }
-                catch (err) {
-                    alert(err);
-                }
-                let startMonitor = {
-                    type: "port",
-                    num: port,
-                    isRun: 1
-                };
-                $(function runMonitor () {
-                    $.ajax({
-                        type: 'post',
-                        url: 'runMonitor',
-                        data: startMonitor,
-                        dataType: "json",
-                        success: function (data) {
-                            console.log(data);
-                            if (data['code'] == 0) {
-                                alert(data['msg']);
-                            }
-                        }
-                    });
-                });
-            });
-
-            $("#stopMonitor").click(function () {
-                let port = 0;
-                let input_port = document.getElementById("port").value;
-                try{
-                    port = parseInt(input_port, 10);
-                    if (isNaN(port) || port < 1) {
-                        alert("Please Input Integer!");
-                        return;
-                    }
-                }
-                catch (err) {
-                    alert(err);
-                }
-                let startMonitor = {
-                    type: "port",
-                    num: port,
-                    isRun: 0
-                };
-                $(function runMonitor () {
-                    $.ajax({
-                        type: 'post',
-                        url: 'runMonitor',
-                        data: startMonitor,
-                        dataType: "json",
-                        success: function (data) {
-                            console.log(data);
-                            if (data['code'] == 0){
-                                alert(data['msg']);
-                            }
-                        }
-                    });
-                });
-            });
-
-            $("#MonitorList").click(function () {
-                $(function getMonitor () {
-                    $.ajax({
-                        type: 'get',
-                        url: 'getMonitor',
-                        success: function (data) {
-                            data = JSON.parse(data);
-                            document.getElementById('thread').innerText="The size of thread pool is " +
-                                data['threadpool'] + ", current active thread number is " + data['currentthread'];
-                            let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
-                                "<th width=20% style=\"text-align: center;\">PORT</th>\n" +
-                                "<th width=20% style=\"text-align: center;\">PID</th>\n" +
-                                "<th width=25% style=\"text-align: center;\">Status</th>\n" +
-                                "<th width=35% style=\"text-align: center;\">startTime</th>\n" +
-                                "</tr>";
-                            let run_status = ['Stopped', 'Monitoring', 'Queuing'];
-                            for (let i=0; i<data['port'].length; i++){
-                                text_row += "<tr align='center'>";
-                                text_row += "<td>" + data['port'][i] + "</td>";
-                                text_row += "<td>" + data['pid'][i] + "</td>";
-                                text_row += "<td>" + run_status[data['isRun'][i]] + "</td>";
-                                text_row += "<td>" + data['startTime'][i] + "</td>";
-                                text_row += "</tr>";
-                                document.getElementById('monitor').innerHTML=text_row;
-                            }
-                        }
-                    });
-                });
-            });
-        </script>
     </form>
     <br><br><br>
     <h4 align="center" id="thread"></h4>
     <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor"></table>
 </div>
+{% endblock %}
+
+{% block myjs %}
+<script type="text/javascript">
+    $("#runMonitor").click(function () {
+        let port = 0;
+        let input_port = document.getElementById("port").value;
+        try{
+            port = parseInt(input_port, 10);
+            if (isNaN(port) || port < 1) {
+                alert("Please Input Integer!");
+                return;
+            }
+        }
+        catch (err) {
+            alert(err);
+        }
+        let startMonitor = {
+            type: "port",
+            num: port,
+            isRun: 1
+        };
+        $(function runMonitor () {
+            $.ajax({
+                type: 'post',
+                url: 'runMonitor',
+                data: startMonitor,
+                dataType: "json",
+                success: function (data) {
+                    console.log(data);
+                    if (data['code'] == 0) {
+                        alert(data['msg']);
+                    }
+                }
+            });
+        });
+    });
+
+    $("#stopMonitor").click(function () {
+        let port = 0;
+        let input_port = document.getElementById("port").value;
+        try{
+            port = parseInt(input_port, 10);
+            if (isNaN(port) || port < 1) {
+                alert("Please Input Integer!");
+                return;
+            }
+        }
+        catch (err) {
+            alert(err);
+        }
+        let startMonitor = {
+            type: "port",
+            num: port,
+            isRun: 0
+        };
+        $(function runMonitor () {
+            $.ajax({
+                type: 'post',
+                url: 'runMonitor',
+                data: startMonitor,
+                dataType: "json",
+                success: function (data) {
+                    console.log(data);
+                    if (data['code'] == 0){
+                        alert(data['msg']);
+                    }
+                }
+            });
+        });
+    });
+
+    $("#MonitorList").click(function () {
+        $(function getMonitor () {
+            $.ajax({
+                type: 'get',
+                url: 'getMonitor',
+                success: function (data) {
+                    data = JSON.parse(data);
+                    document.getElementById('thread').innerText="The size of thread pool is " +
+                        data['threadpool'] + ", current active thread number is " + data['currentthread'];
+                    let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
+                        "<th width=20% style=\"text-align: center;\">PORT</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">PID</th>\n" +
+                        "<th width=25% style=\"text-align: center;\">Status</th>\n" +
+                        "<th width=35% style=\"text-align: center;\">startTime</th>\n" +
+                        "</tr>";
+                    let run_status = ['Stopped', 'Monitoring', 'Queuing'];
+                    for (let i=0; i<data['port'].length; i++){
+                        text_row += "<tr align='center'>";
+                        text_row += "<td>" + data['port'][i] + "</td>";
+                        text_row += "<td>" + data['pid'][i] + "</td>";
+                        text_row += "<td>" + run_status[data['isRun'][i]] + "</td>";
+                        text_row += "<td>" + data['startTime'][i] + "</td>";
+                        text_row += "</tr>";
+                        document.getElementById('monitor').innerHTML=text_row;
+                    }
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

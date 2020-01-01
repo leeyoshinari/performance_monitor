@@ -17,57 +17,59 @@
 </select>
     <button type="button" id="MonitorList">
             Visualize
-        </button>
-
-    <script type="text/javascript">
-        let current_time = new Date();
-        function toLocaleString (t) {
-          return t.getFullYear() + "-" + (t.getMonth() + 1) + "-" + t.getDate() + " " + t.getHours() + ":" + t.getMinutes() + ":" + t.getSeconds();
-        }
-        document.getElementById('endtime').value = toLocaleString(current_time);
-        current_time.setHours(current_time.getHours() - 1);
-        document.getElementById('starttime').value = toLocaleString(current_time);
-
-        $("#MonitorList").click(function () {
-            let type = document.getElementById('type').value;
-            let num = document.getElementById('port').value;
-            let starttime = document.getElementById('starttime').value;
-            let endtime = document.getElementById('endtime').value;
-            let showio = document.getElementById('showio').value;
-            try{
-                    port = parseInt(num, 10);
-                    if (type == 'port' || type == 'pid') {
-                        if (isNaN(port) || port < 1) {
-                            alert("Please Input Integer!");
-                            return;
-                        }
-                    }
-            }
-            catch (err) {
-                alert(err);
-            }
-            let post_data = {
-                type: type,
-                num: num,
-                startTime: starttime,
-                endTime: endtime,
-                showIO: showio
-            };
-            console.log(post_data);
-            $(function visualize() {
-                $.ajax({
-                    type: 'post',
-                    url: 'plotMonitor',
-                    data: post_data,
-                    dataType: "html",
-                    success: function (data) {
-                        $("#figure").html(data);
-                    }
-                });
-            })
-        });
-    </script>
+    </button>
 </form>
 <div id="figure"></div>
 <!--<div id="detail" style="width:730px; margin:0 auto"></div>-->
+{% endblock %}
+
+{% block myjs %}
+<script type="text/javascript">
+    let current_time = new Date();
+    function toLocaleString (t) {
+      return t.getFullYear() + "-" + (t.getMonth() + 1) + "-" + t.getDate() + " " + t.getHours() + ":" + t.getMinutes() + ":" + t.getSeconds();
+    }
+    document.getElementById('endtime').value = toLocaleString(current_time);
+    current_time.setHours(current_time.getHours() - 1);
+    document.getElementById('starttime').value = toLocaleString(current_time);
+
+    $("#MonitorList").click(function () {
+        let type = document.getElementById('type').value;
+        let num = document.getElementById('port').value;
+        let starttime = document.getElementById('starttime').value;
+        let endtime = document.getElementById('endtime').value;
+        let showio = document.getElementById('showio').value;
+        try{
+                port = parseInt(num, 10);
+                if (type == 'port' || type == 'pid') {
+                    if (isNaN(port) || port < 1) {
+                        alert("Please Input Integer!");
+                        return;
+                    }
+                }
+        }
+        catch (err) {
+            alert(err);
+        }
+        let post_data = {
+            type: type,
+            num: num,
+            startTime: starttime,
+            endTime: endtime,
+            showIO: showio
+        };
+        console.log(post_data);
+        $(function visualize() {
+            $.ajax({
+                type: 'post',
+                url: 'plotMonitor',
+                data: post_data,
+                dataType: "html",
+                success: function (data) {
+                    $("#figure").html(data);
+                }
+            });
+        })
+    });
+</script>
 {% endblock %}
