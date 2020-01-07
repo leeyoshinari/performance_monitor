@@ -4,7 +4,7 @@
 
 # server
 IP = '127.0.0.1'
-PORT = '5555'
+PORT = '8000'
 
 # monitor thread number
 THREAD_NUM = 5

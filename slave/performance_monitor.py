@@ -258,31 +258,6 @@ class PerMon(object):
 
         return mem / 1024 / 1024
 
-    '''def get_io(self, pid):
-        """
-            Use `iotop` to get pid's read, write and IO(%)
-        """
-        result = os.popen(f'iotop -n 2 -d 1 -b -qqq -p {pid} -k |tr -s " "').readlines()[-1]
-        res = result.strip().split(' ')
-        logger.debug(res)
-
-        disk_r, disk_w, disk_util, _, _ = self.get_system_cpu_io()
-
-        writer = 0
-        reader = 0
-        if str(pid) in res:
-            ind = res.index(str(pid))
-            writer = float(res[ind + 3])    # read(kB/s)
-            reader = float(res[ind + 5])    # write(kB/s)
-
-        try:
-            util = (writer + reader) / (disk_w + disk_r) * disk_util
-        except Exception as err:
-            logger.warning(err)
-            util = 0
-
-        return [reader, writer, disk_r, disk_w, disk_util, util]'''
-
     def get_system_cpu_io(self, types=None):
         """
             Use `iostat` to get disk read, write and IO(%)
@@ -350,7 +325,7 @@ class PerMon(object):
             When the remaining memory is too low, alerting.
         """
         msg = {'msg': f'The current remaining memory is {mem:.2f}G'}
-        sendMsg(msg)
+        # sendMsg(msg)
 
     @staticmethod
     def clear_cache():
@@ -367,7 +342,7 @@ class PerMon(object):
             When the frequency of `Full GC` is too high, alerting.
         """
         msg = {'msg': f'port--{port}, pid--{pid} the frequency of `Full GC` is {frequency}'}
-        sendMsg(msg)
+        # sendMsg(msg)
 
     def __del__(self):
         pass

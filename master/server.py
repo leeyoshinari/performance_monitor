@@ -149,6 +149,15 @@ async def plot_monitor(request):
 		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': traceback.format_exc()})
 
 
+async def notice(request):
+	data = await request.json()
+	host = data.get('host')
+	port = data.get('port')
+	msg = data.get('msg')
+	# sendmsg()
+	return web.json_response({'code': 0, 'msg': '操作成功', 'data': None})
+
+
 async def main():
 	app = web.Application()
 	aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))
@@ -162,10 +171,11 @@ async def main():
 	app.router.add_route('POST', '/Register', registers)
 	app.router.add_route('POST', '/runMonitor', run_monitor)
 	app.router.add_route('POST', '/plotMonitor', plot_monitor)
+	app.router.add_route('POST', '/Notification', notice)
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	site = web.TCPSite(runner, '127.0.0.1', 8000)
+	site = web.TCPSite(runner, cfg.IP, cfg.PORT)
 	await site.start()
 
 

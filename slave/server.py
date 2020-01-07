@@ -3,7 +3,6 @@
 # @Author: leeyoshinari
 
 import os
-import json
 import asyncio
 from aiohttp import web
 
@@ -32,51 +31,39 @@ async def run_monitor(request):
 				pid = port_to_pid(port)
 				if pid is None:
 					logger.warning(f"端口 {port} 未启动！")
-					return web.Response(body=json.dumps({
-						'code': 1,
-						'msg': f"端口 {port} 未启动！",
-						'data': {'host': host, 'port': port, 'pid': None}}, ensure_ascii=False))
+					return web.json_response({
+						'code': 1, 'msg': f"端口 {port} 未启动！", 'data': {'host': host, 'port': port, 'pid': None}})
 
 				if is_run == 0:
 					if port in permon.stop['port']:
 						permon.stop = {'port': port, 'pid': pid, 'is_run': 0}  # stop monitor
 						logger.info('停止监控成功！')
-						return web.Response(body=json.dumps({
-							'code': 0,
-							'msg': '停止监控成功！',
-							'data': {'host': host, 'port': port, 'pid': pid}}, ensure_ascii=False))
+						return web.json_response({
+							'code': 0, 'msg': '停止监控成功！', 'data': {'host': host, 'port': port, 'pid': pid}})
 					else:
 						logger.warning(f"端口 {port} 未监控，请先监控！")
-						return web.Response(body=json.dumps({
-							'code': 1,
-							'msg': f"端口 {port} 未监控，请先监控！",
-							'data': {'host': host, 'port': port, 'pid': pid}}, ensure_ascii=False))
+						return web.json_response({
+							'code': 1, 'msg': f"端口 {port} 未监控，请先监控！", 'data': {'host': host, 'port': port, 'pid': pid}})
 
 				if is_run == 1:
 					permon.start = {'port': port, 'pid': pid, 'is_run': 1}  # start monitor
 					logger.info('开始监控成功！')
-					return web.Response(body=json.dumps({
-						'code': 0,
-						'msg': '开始监控成功！',
-						'data': {'host': host, 'port': port, 'pid': pid}}, ensure_ascii=False))
+					return web.json_response({
+						'code': 0, 'msg': '开始监控成功！', 'data': {'host': host, 'port': port, 'pid': pid}})
 
 			else:
 				logger.error('请求参数异常')
-				return web.Response(body=json.dumps({
-					'code': 2,
-					'msg': '请求参数异常',
-					'data': {'host': host, 'port': port, 'pid': None}}, ensure_ascii=False))
+				return web.json_response({
+					'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': port, 'pid': None}})
 		else:
 			logger.error('请求参数异常')
-			return web.Response(body=json.dumps({
-				'code': 2,
-				'msg': '请求参数异常',
-				'data': {'host': host, 'port': port, 'pid': None}}, ensure_ascii=False))
+			return web.json_response({
+				'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': port, 'pid': None}})
 
 	except Exception as err:
 		logger.error(err)
-		return web.Response(body=json.dumps({
-			'code': 2, 'msg': err, 'data': {'host': cfg.IP, 'port': None, 'pid': None}}, ensure_ascii=False))
+		return web.json_response({
+			'code': 2, 'msg': err, 'data': {'host': cfg.IP, 'port': None, 'pid': None}})
 
 
 async def get_monitor(request):
@@ -86,15 +73,11 @@ async def get_monitor(request):
 		msg = permon.start
 		# msg.update({'threadpool': cfg.THREAD_NUM, 'currentthread': msg['isRun'].count(1)})
 		return web.json_response({
-			'code': 0,
-			'msg': '操作成功',
-			'data': {'host': [host]*len(msg['port'])}.update(msg)})
+			'code': 0, 'msg': '操作成功', 'data': {'host': [host]*len(msg['port'])}.update(msg)})
 	else:
 		logger.error('请求参数异常')
 		return web.json_response({
-			'code': 2,
-			'msg': '请求参数异常',
-			'data': {'host': host, 'port': None, 'pid': None}})
+			'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': None, 'pid': None}})
 
 
 async def get_gc(request):
@@ -111,9 +94,7 @@ async def get_gc(request):
 				if pid is None:
 					logger.warning(f"端口 {port} 未启动！")
 					return web.json_response({
-						'code': 1,
-						'msg': f"端口 {port} 未启动！",
-						'data': {'host': host, 'port': port, 'pid': None}})
+						'code': 1, 'msg': f"端口 {port} 未启动！", 'data': {'host': host, 'port': port, 'pid': None}})
 
 				result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
 				res = result.strip().split(' ')
@@ -138,9 +119,7 @@ async def get_gc(request):
 				ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 
 		return web.json_response({
-			'code': 0,
-			'msg': '操作成功',
-			'data': {
+			'code': 0, 'msg': '操作成功', 'data': {
 				'ygc': ygc, 'ygct': ygct, 'fgc': fgc, 'fgct': fgct,
 				'fygc': f'{fygc:.2f}', 'ffgc': f'{ffgc:.2f}'}})
 
