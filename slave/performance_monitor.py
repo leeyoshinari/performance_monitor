@@ -7,10 +7,10 @@ import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
+import happybase
 import config as cfg
 from logger import logger
-from Email import sendMsg
-from extern import port_to_pid
+from extern import port_to_pid, register
 
 
 class PerMon(object):
@@ -28,7 +28,10 @@ class PerMon(object):
         self.get_total_mem()
 
         self.monitor_task = queue.Queue()   # create queue, FIFO
-        self.executor = ThreadPoolExecutor(cfg.THREAD_NUM + 1)  # create thread pool
+        self.executor = ThreadPoolExecutor(cfg.THREAD_NUM)  # create thread pool
+
+        POOL = happybase.ConnectionPool(size=3, host=cfg.HBASE_IP, port=cfg.HBASE_PORT, table_prefix=cfg.PREFIX)
+        self.hbase = POOL.connection()
 
         self.FGC = {}           # initialize
         self.FGC_time = {}      # initialize
@@ -95,7 +98,10 @@ class PerMon(object):
         """
             Start Monitor.
         """
-        for i in range(cfg.THREAD_NUM + 1):
+        thread = threading.Thread(target=register, args=())
+        thread.start()
+
+        for i in range(cfg.THREAD_NUM):
             self.executor.submit(self.worker)   # put queue to thread pool.
 
         self.monitor_task.put((self.write_system_cpu_mem, 1))   # monitor system's CPU and Memory
@@ -107,6 +113,7 @@ class PerMon(object):
         self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
         run_error = 0      # initialize, run command failure times.
+        run_error_time = time.time()    # initialize, run command failure time.
         start_search_time = time.time()
         port = self._msg['port'][index]
         pid = self._msg['pid'][index]
@@ -127,6 +134,10 @@ class PerMon(object):
                                     self._msg['pid'][index] = pid
                                     self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
+                                # If the time of running error is more than 1800s, stop monitor.
+                                if time.time() - run_error_time > 1800:
+                                    break
+
                                 time.sleep(cfg.SLEEPTIME)
                                 continue
                             else:
@@ -143,6 +154,7 @@ class PerMon(object):
                         jvm = self.get_mem(port, pid)     # get JVM
 
                         logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
+                        run_error_time = time.time()    # If run successfully, reset time.
                         run_error = 0      # If run successfully, set to 0, initialize.
 
                     except Exception as err:

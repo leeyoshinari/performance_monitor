@@ -1,0 +1,21 @@
+{% extends "template.html" %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Hello, thanks for using the application!</h1>
+    <h4>You can start/stop monitor by <a href="/startMonitor">here</a> , or visualize by <a href="/Visualize">here</a> .</h4>
+    <h3 align="center">服务器监控列表</h3>
+    <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
+        <tr style="align: center; margin: auto; background-color: #99CCFF">
+            <th style="text-align: center;">服务器</th>
+            <th style="text-align: center;">注册时间</th>
+        </tr>
+        {% for foo in hosts %}
+            <tr align="center">
+                <td>{{ foo[0] }}</td>
+                <td>{{ foo[1] }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endblock %}

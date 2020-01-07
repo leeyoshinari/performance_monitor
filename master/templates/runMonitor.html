@@ -2,21 +2,25 @@
 
 {% block page_content %}
 <div style="height:100%;width:100%;float:left;">
-    <form align="center" method="post">
-        Port: <input type="text" name="port" id="port" value="Please input port number"
-                     onfocus="this.value=''" style="margin-right: 20px;">
+    <div align="center">
+        主机：<select id="host" style="width: 180px; height: 26px; margin-right: 20px;">
+            {% for foo in hosts %}
+                <option value="{{ foo[0].split(':')[0] }}">{{ foo[0].split(':')[0] }}</option>
+            {% endfor %}
+    </select>
+        端口：<input type="text" name="port" id="port" placeholder="请输入端口号或进程号" style="margin-right: 20px;">
         <button type="button" id="runMonitor" style="margin-right: 20px;">
-            Start Monitor
+            开始监控
         </button>
         <button type="button" id="stopMonitor" style="margin-right: 20px;">
-            Stop Monitor
+            停止监控
         </button>
         <button type="button" id="MonitorList">
-            Get Monitor List
+            获取监控列表
         </button>
-    </form>
+    </div>
     <br><br><br>
-    <h4 align="center" id="thread"></h4>
+    <h3 align="center">端口监控列表</h3>
     <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor"></table>
 </div>
 {% endblock %}
@@ -25,20 +29,23 @@
 <script type="text/javascript">
     $("#runMonitor").click(function () {
         let port = 0;
+        let host = $("#host").find("option:selected").text();
         let input_port = document.getElementById("port").value;
         try{
             port = parseInt(input_port, 10);
             if (isNaN(port) || port < 1) {
-                alert("Please Input Integer!");
+                $.Toast('请输入端口号！', 'error');
                 return;
             }
         }
         catch (err) {
-            alert(err);
+            $.Toast(err, 'error');
+            return;
         }
         let startMonitor = {
+            host: host,
             type: "port",
-            num: port,
+            port: port,
             isRun: 1
         };
         $(function runMonitor () {
@@ -48,9 +55,14 @@
                 data: startMonitor,
                 dataType: "json",
                 success: function (data) {
-                    console.log(data);
-                    if (data['code'] == 0) {
-                        alert(data['msg']);
+                    if (data['code'] === 0) {
+                        $.Toast(data['msg'], 'success');
+                    }
+                    else if (data['code'] === 1) {
+                        $.Toast(data['msg'], 'warning');
+                    }
+                    else {
+                        $.Toast(data['msg'], 'error');
                     }
                 }
             });
@@ -59,20 +71,23 @@
 
     $("#stopMonitor").click(function () {
         let port = 0;
+        let host = $("#host").find("option:selected").text();
         let input_port = document.getElementById("port").value;
         try{
             port = parseInt(input_port, 10);
             if (isNaN(port) || port < 1) {
-                alert("Please Input Integer!");
+                $.Toast('请输入端口号！', 'error');
                 return;
             }
         }
         catch (err) {
-            alert(err);
+            $.Toast(err, 'error');
+            return;
         }
         let startMonitor = {
+            host: host,
             type: "port",
-            num: port,
+            port: port,
             isRun: 0
         };
         $(function runMonitor () {
@@ -82,9 +97,14 @@
                 data: startMonitor,
                 dataType: "json",
                 success: function (data) {
-                    console.log(data);
-                    if (data['code'] == 0){
-                        alert(data['msg']);
+                    if (data['code'] === 0) {
+                        $.Toast(data['msg'], 'success');
+                    }
+                    else if (data['code'] === 1) {
+                        $.Toast(data['msg'], 'warning');
+                    }
+                    else {
+                        $.Toast(data['msg'], 'error');
                     }
                 }
             });
@@ -97,16 +117,21 @@
                 type: 'get',
                 url: 'getMonitor',
                 success: function (data) {
+                    if (data['code'] === 0) {
+                        $.Toast(data['msg'], 'success');
+                    }
+                    else {
+                        $.Toast(data['msg'], 'error');
+                    }
                     data = JSON.parse(data);
-                    document.getElementById('thread').innerText="The size of thread pool is " +
-                        data['threadpool'] + ", current active thread number is " + data['currentthread'];
                     let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
-                        "<th width=20% style=\"text-align: center;\">PORT</th>\n" +
-                        "<th width=20% style=\"text-align: center;\">PID</th>\n" +
-                        "<th width=25% style=\"text-align: center;\">Status</th>\n" +
-                        "<th width=35% style=\"text-align: center;\">startTime</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">服务器</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">端口号</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">进程号</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">状态</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">开始监控时间</th>\n" +
                         "</tr>";
-                    let run_status = ['Stopped', 'Monitoring', 'Queuing'];
+                    let run_status = ['已停止', '监控中', '排队中'];
                     for (let i=0; i<data['port'].length; i++){
                         text_row += "<tr align='center'>";
                         text_row += "<td>" + data['port'][i] + "</td>";

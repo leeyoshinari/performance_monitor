@@ -14,7 +14,7 @@ from logger import logger
 from extern import DealLogs
 
 
-def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, system=0, is_io=1):
+def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, system=0):
     """
     Read data from logs.
     Return html included plotting, and data.
@@ -39,7 +39,7 @@ def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, syst
 
     logs = glob.glob(cfg.LOG_PATH + '/*.log')  # get all logs
 
-    deal_logs = DealLogs(search, is_io)
+    deal_logs = DealLogs(search, 1)
 
     try:
         if start_time and end_time:
@@ -47,7 +47,7 @@ def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, syst
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = time.mktime(datetime.datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S').timetuple())
         elif start_time is None and end_time is None:
-            startTime = time.mktime(datetime.datetime.strptime('2019-10-01 08:08:08', '%Y-%m-%d %H:%M:%S').timetuple())
+            startTime = time.mktime(datetime.datetime.strptime('2020-01-01 08:08:08', '%Y-%m-%d %H:%M:%S').timetuple())
             endTime = time.time()
         else:
             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
@@ -59,7 +59,7 @@ def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, syst
         image = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
                      deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
         # calculate Percentile
-        per = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search, is_io)
+        per = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search)
         # gc
         gc = get_gc(pid_num, search)
 
@@ -193,7 +193,7 @@ def draw(types, system, cpu, mem, disk_io, times, io_times):
     return data
 
 
-def get_lines(system_cpu, cpu, dutil, types, is_io):
+def get_lines(system_cpu, cpu, dutil, types):
     """
         Calculate Percentile，75%line、90%line、95%line、99%line
     """
@@ -208,16 +208,10 @@ def get_lines(system_cpu, cpu, dutil, types, is_io):
         line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
         line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(system_cpu[int(len(system_cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
     else:
-        if is_io:
-            line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
-            line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
-            line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
-            line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
-        else:
-            line75 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)])
-            line90 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)])
-            line95 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)])
-            line99 = 'CPU: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)])
+        line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
+        line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
+        line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
+        line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
 
     return {'line75': line75, 'line90': line90, 'line95': line95, 'line99': line99}
 
@@ -230,24 +224,7 @@ def get_gc(pid, types):
         ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
     else:
         try:
-            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
-            res = result.strip().split(' ')
-
-            ygc = int(res[12])
-            ygct = float(res[13])
-            fgc = int(res[14])
-            fgct = float(res[15])
-            fygc = 0
-            ffgc = 0
-
-            result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # get `pid` running time
-            runtime = int(result.strip())
-
-            if ygc > 0:
-                fygc = runtime / ygc
-            if fgc > 0:
-                ffgc = runtime / fgc
-
+            ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
         except Exception as err:
             logger.error(err)
             ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1

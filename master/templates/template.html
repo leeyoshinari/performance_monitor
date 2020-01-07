@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Performance Monitor</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <link href="../static/css/bootstrap.css" rel="stylesheet">
+        <link href="../static/css/toast.style.css" rel="stylesheet">
+
+        {% block scripts %}
+        <script src="../static/js/jquery.js"></script>
+        <script src="../static/js/bootstrap.js"></script>
+        <script src="../static/js/toast.script.js"></script>
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block body %}
+            {% block navbar %}
+                <div class="navbar navbar-inverse" role="navigation">
+                    <div class="container">
+                        <div class="navbar-header">
+                            <a class="navbar-brand" href="/">
+                                主页
+                            </a>
+                        </div>
+                        <div class="navbar-left">
+                            <a class="navbar-brand" href="/startMonitor">
+                                开始监控
+                            </a>
+                        </div>
+                        <div class="navbar-left">
+                            <a class="navbar-brand" href="/Visualize">
+                                结果可视化
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endblock %}
+            {% block content %}
+                <div class="container">
+                    {% block page_content %}
+                    {% endblock %}
+                </div>
+            {% endblock %}
+
+            {% block myjs %}
+            {% endblock %}
+        {% endblock %}
+    </body>
+</html>
