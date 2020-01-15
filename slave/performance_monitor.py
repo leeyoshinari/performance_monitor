@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 import happybase
 import config as cfg
 from logger import logger
-from extern import port_to_pid, register
+from extern import port_to_pid, register, notification
 
 
 class PerMon(object):
@@ -30,8 +30,7 @@ class PerMon(object):
         self.monitor_task = queue.Queue()   # create queue, FIFO
         self.executor = ThreadPoolExecutor(cfg.THREAD_NUM)  # create thread pool
 
-        POOL = happybase.ConnectionPool(size=3, host=cfg.HBASE_IP, port=cfg.HBASE_PORT, table_prefix=cfg.PREFIX)
-        self.hbase = POOL.connection()
+        self.pool = happybase.ConnectionPool(size=cfg.THREAD_NUM, host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
 
         self.FGC = {}           # initialize
         self.FGC_time = {}      # initialize
@@ -117,54 +116,62 @@ class PerMon(object):
         start_search_time = time.time()
         port = self._msg['port'][index]
         pid = self._msg['pid'][index]
-        while True:
-            if self._msg['isRun'][index] > 0:   # start monitor
-                self._msg['isRun'][index] = 1   # reset to 1, means monitoring, if it's queuing.
-                get_data_time = time.time()
-                if get_data_time - start_search_time > self.interval:
-                    start_search_time = get_data_time
-                    try:
-                        cpu, mem = self.get_cpu(pid)    # get CPU and memory
 
-                        if cpu is None:
-                            if port:
-                                # If get `None`, it maybe wrong, need to get pid again.
-                                pid = port_to_pid(port)  # `port` to `pid`
-                                if pid:
-                                    self._msg['pid'][index] = pid
-                                    self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+        c_ = f'cpu:{port}'
+        m_ = f'mem:{port}'
+        j_ = f'jvm:{port}'
 
-                                # If the time of running error is more than 1800s, stop monitor.
-                                if time.time() - run_error_time > 1800:
-                                    break
+        with self.pool.connection() as connection:
+            table = connection.table(cfg.IP.replace('.', ''))
+            while True:
+                if self._msg['isRun'][index] > 0:   # start monitor
+                    self._msg['isRun'][index] = 1   # reset to 1, means monitoring, if it's queuing.
+                    get_data_time = time.time()
+                    if get_data_time - start_search_time > self.interval:
+                        start_search_time = get_data_time
+                        try:
+                            cpu, mem = self.get_cpu(pid)    # get CPU and memory
 
-                                time.sleep(cfg.SLEEPTIME)
-                                continue
-                            else:
-                                # If times of run failure is larger than default, stop monitor.
-                                if run_error > self.error_times:
-                                    logger.error(f'{pid} has been stopped monitor, some errors may be occurred.')
-                                    break
+                            if cpu is None:
+                                if port:
+                                    # If get `None`, it maybe wrong, need to get pid again.
+                                    pid = port_to_pid(port)  # `port` to `pid`
+                                    if pid:
+                                        self._msg['pid'][index] = pid
+                                        self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                run_error += 1
-                                logger.error(f'The number of running command failed is {run_error}.')
-                                time.sleep(cfg.SLEEPTIME)
-                                continue
+                                    # If the time of running error is more than 1800s, stop monitor.
+                                    if time.time() - run_error_time > 1800:
+                                        break
 
-                        jvm = self.get_mem(port, pid)     # get JVM
+                                    time.sleep(cfg.SLEEPTIME)
+                                    continue
+                                else:
+                                    # If times of run failure is larger than default, stop monitor.
+                                    if run_error > self.error_times:
+                                        logger.error(f'{pid} has been stopped monitor, some errors may be occurred.')
+                                        break
 
-                        logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
-                        run_error_time = time.time()    # If run successfully, reset time.
-                        run_error = 0      # If run successfully, set to 0, initialize.
+                                    run_error += 1
+                                    logger.error(f'The number of running command failed is {run_error}.')
+                                    time.sleep(cfg.SLEEPTIME)
+                                    continue
 
-                    except Exception as err:
-                        logger.error(err)
-                        time.sleep(cfg.SLEEPTIME)
-                        continue
+                            jvm = self.get_mem(port, pid)     # get JVM
 
-            if self._msg['isRun'][index] == 0:   # stop monitor.
-                logger.info(f'{port} has been stopped monitor')
-                break
+                            table.put(str(time.time()), {c_: cpu, m_: mem, j_: jvm})
+                            logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
+                            run_error_time = time.time()    # If run successfully, reset time.
+                            run_error = 0      # If run successfully, set to 0, initialize.
+
+                        except Exception as err:
+                            logger.error(err)
+                            time.sleep(cfg.SLEEPTIME)
+                            continue
+
+                if self._msg['isRun'][index] == 0:   # stop monitor.
+                    logger.info(f'{port} has been stopped monitor')
+                    break
 
     def write_system_cpu_mem(self, is_system):
         """
@@ -172,32 +179,35 @@ class PerMon(object):
         """
         flag = True
         echo = True
-        while True:
-            if self.is_system == 1:
-                disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
-                if disk_util is not None:
-                    logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
-                if cpu is not None and mem is not None:
-                    logger.info(f'system: CpuAndMem,{cpu},{mem}')
+        with self.pool.connection() as connection:
+            table = connection.table(cfg.IP.replace('.', ''))
+            while True:
+                if self.is_system == 1:
+                    disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
+                    if disk_util is not None:
+                        # table.put(str(time.time()), {'io:sdba': disk_util})
+                        logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
+                    if cpu is not None and mem is not None:
+                        table.put(str(time.time()), {'cpu:system': cpu, 'mem:system': mem})
+                        logger.info(f'system: CpuAndMem,{cpu},{mem}')
 
-                    if mem <= cfg.MIN_MEM:
-                        logger.warning(f'Current memory is {mem}, memory is too low.')
-                        if cfg.IS_MEM_ALERT and flag:
-                            flag = False
-                            thread = threading.Thread(target=self.mem_alert, args=(mem,))
-                            thread.start()
+                        if mem <= cfg.MIN_MEM:
+                            logger.warning(f'Current memory is {mem}, memory is too low.')
+                            if cfg.IS_MEM_ALERT and flag:
+                                flag = False
+                                notification(msg=f'Current memory is {mem}, memory is too low.')
 
-                        if cfg.ECHO and echo:
-                            echo = False
-                            thread = threading.Thread(target=self.clear_cache, args=())
-                            thread.start()
+                            if cfg.ECHO and echo:
+                                echo = False
+                                thread = threading.Thread(target=self.clear_cache, args=())
+                                thread.start()
 
-                    else:
-                        flag = True
-                        echo = True
+                        else:
+                            flag = True
+                            echo = True
 
-            else:
-                time.sleep(1)
+                else:
+                    time.sleep(1)
 
     def get_cpu(self, pid):
         """
@@ -243,8 +253,7 @@ class PerMon(object):
                     if frequency < 3600:
                         logger.warning(f'pid--{pid} The current frequency of `Full GC` is {frequency}.')
                         if cfg.IS_JVM_ALERT:  # send email to alert
-                            thread = threading.Thread(target=self.jvm_alert, args=(frequency, pid, port,))
-                            thread.start()
+                            notification(port=port, msg=f'The frequency of `Full GC` is {frequency}')
 
                 with open(cfg.FGC_TIMES, 'a') as f:
                     f.write(f"{port}--{self.FGC[str(port)]}--{time.strftime('%Y-%m-%d %H:%M:%S')}" + "\n")

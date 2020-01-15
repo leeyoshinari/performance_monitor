@@ -49,3 +49,23 @@ def register():
 		logger.error(err)
 		time.sleep(5)
 		return register()
+
+
+def notification(port=None, msg=None):
+	url = f'http://{cfg.SERVER_IP}:{cfg.SERVER_PORT}/Notification'
+
+	header = {
+		"Accept": "application/json, text/plain, */*",
+		"Accept-Encoding": "gzip, deflate",
+		"Content-Type": "application/json; charset=UTF-8"}
+
+	post_data = {
+		'host': cfg.IP,
+		'port': port,
+		'msg': msg
+	}
+
+	try:
+		res = requests.post(url=url, data=post_data, headers=header)
+	except Exception as err:
+		logger.error(err)

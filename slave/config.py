@@ -10,10 +10,9 @@ PORT = '5555'
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = '5556'
 
-# redis
+# hbase
 HBASE_IP = '127.0.0.1'
 HBASE_PORT = '6379'
-PERFIX = 'monitor'
 
 # monitor thread number
 THREAD_NUM = 5

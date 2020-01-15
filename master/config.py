@@ -6,6 +6,10 @@
 IP = '127.0.0.1'
 PORT = '8000'
 
+# hbase
+HBASE_IP = '127.0.0.1'
+HBASE_PORT = '6379'
+
 # monitor thread number
 THREAD_NUM = 5
 
