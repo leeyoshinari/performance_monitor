@@ -15,7 +15,7 @@ families = {"cpu": dict(), "mem": dict(), "jvm": dict(), "io": dict()}
 class Master(object):
 	def __init__(self):
 		self.request = Request()
-		self._slaves = [['127.0.0.1:5556', '2020-01-01 08:08:08']]
+		self._slaves = []
 
 		self.pool = happybase.ConnectionPool(size=1, host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
 

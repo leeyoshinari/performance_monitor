@@ -34,7 +34,7 @@ async def run_monitor(request):
 					return web.json_response({
 						'code': 1, 'msg': f"端口 {port} 未启动！", 'data': {'host': host, 'port': port, 'pid': None}})
 
-				if is_run == 0:
+				if is_run == '0':
 					if port in permon.stop['port']:
 						permon.stop = {'port': port, 'pid': pid, 'is_run': 0}  # stop monitor
 						logger.info('停止监控成功！')
@@ -45,7 +45,7 @@ async def run_monitor(request):
 						return web.json_response({
 							'code': 1, 'msg': f"端口 {port} 未监控，请先监控！", 'data': {'host': host, 'port': port, 'pid': pid}})
 
-				if is_run == 1:
+				if is_run == '1':
 					permon.start = {'port': port, 'pid': pid, 'is_run': 1}  # start monitor
 					logger.info('开始监控成功！')
 					return web.json_response({
@@ -71,9 +71,13 @@ async def get_monitor(request):
 	host = data.get('host')
 	if host == cfg.IP:
 		msg = permon.start
-		# msg.update({'threadpool': cfg.THREAD_NUM, 'currentthread': msg['isRun'].count(1)})
-		return web.json_response({
-			'code': 0, 'msg': '操作成功', 'data': {'host': [host]*len(msg['port'])}.update(msg)})
+		if len(msg['port']) == 0:
+			return web.json_response({
+				'code': 0, 'msg': '操作成功', 'data': {'host': [host]*len(msg['port'])}.update(msg)})
+		else:
+			logger.error('暂未监控任何端口')
+			return web.json_response({
+				'code': 1, 'msg': '暂未监控任何端口', 'data': {'host': host, 'port': None, 'pid': None}})
 	else:
 		logger.error('请求参数异常')
 		return web.json_response({

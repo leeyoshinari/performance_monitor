@@ -47,18 +47,18 @@ async def registers(request):
 
 async def run_monitor(request):
 	try:
-		data = await request.json()
+		data = await request.post()
 		host = data.get('host')
 		port = data.get('port')
 		is_run = data.get('isRun')
-		slaves = master.slaves
+		slaves = [s[0].split(':')[0] for s in master.slaves]
 		if host in slaves:
 			post_data = {
-				'host': host.split(':')[0],
+				'host': host,
 				'port': port,
 				'isRun': is_run
 			}
-			res = http.request('post', host, 'runMonitor', data=post_data)
+			res = http.request('post', master.slaves[slaves.index(host)][0], 'runMonitor', json=post_data)
 
 			if res.status_code == 200:
 				return web.Response(body=res.content.decode())
@@ -82,7 +82,7 @@ async def get_monitor(request):
 			post_data = {
 				'host': ip,
 			}
-			res = http.request('post', host[0], 'getMonitor', data=post_data)
+			res = http.request('post', host[0], 'getMonitor', json=post_data)
 			if res.status_code == 200:
 				response = json.loads(res.content.decode())
 				if response['code'] == 0:

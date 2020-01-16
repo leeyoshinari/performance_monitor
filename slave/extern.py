@@ -43,7 +43,7 @@ def register():
 	}
 
 	try:
-		res = requests.post(url=url, data=post_data, headers=header)
+		res = requests.post(url=url, json=post_data, headers=header)
 		return res.status_code
 	except Exception as err:
 		logger.error(err)
@@ -66,6 +66,6 @@ def notification(port=None, msg=None):
 	}
 
 	try:
-		res = requests.post(url=url, data=post_data, headers=header)
+		res = requests.post(url=url, json=post_data, headers=header)
 	except Exception as err:
 		logger.error(err)

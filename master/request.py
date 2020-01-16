@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 
-import json
 import requests
 import config as cfg
 from logger import logger
@@ -14,11 +13,11 @@ class Request(object):
 
 	def get(self, host, interface, timeout):
 		"""get请求"""
-		url = 'http://{}:/{}'.format(host, interface)
+		url = 'http://{}/{}'.format(host, interface)
 		res = requests.get(url=url, timeout=timeout)
 		return res
 
-	def post(self, host, interface, data, headers, timeout):
+	def post(self, host, interface, json, headers, timeout):
 		"""post请求"""
 		if headers is None:
 			headers = {
@@ -26,11 +25,11 @@ class Request(object):
 				"Accept-Encoding": "gzip, deflate",
 				"Content-Type": "application/json; charset=UTF-8"}
 
-		url = 'http://{}:/{}'.format(host, interface)
-		res = requests.post(url=url, data=data, headers=headers, timeout=timeout)
+		url = 'http://{}/{}'.format(host, interface)
+		res = requests.post(url=url, json=json, headers=headers, timeout=timeout)
 		return res
 
-	def request(self, method, host, interface, data=None, headers=None, timeout=None):
+	def request(self, method, host, interface, json=None, headers=None, timeout=None):
 		"""请求入口，目前仅支持get和post请求，其他请求可自行添加"""
 		if timeout is None:
 			timeout = 3
@@ -39,7 +38,7 @@ class Request(object):
 			if method == 'get':
 				res = self.get(host, interface, timeout)
 			elif method == 'post':
-				res = self.post(host, interface, data, headers, timeout)
+				res = self.post(host, interface, json, headers, timeout)
 			else:
 				logger.error('暂不支持其他请求方式')
 				raise Exception('暂不支持其他请求方式')

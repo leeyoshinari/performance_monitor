@@ -19,7 +19,6 @@ class PerMon(object):
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # initialize `port`, `pid`, etc.
         self.interval = int(cfg.INTERVAL)   # interval of every monitor
         self.error_times = cfg.ERROR_TIMES  # times of run command failure, default value.
-        self.disk = cfg.DISK        # disk of monitored
 
         self.cpu_cores = 0  # CPU core
         self.total_mem = 0  # total memory
@@ -183,12 +182,12 @@ class PerMon(object):
             table = connection.table(cfg.IP.replace('.', ''))
             while True:
                 if self.is_system == 1:
-                    disk_r, disk_w, disk_util, cpu, mem = self.get_system_cpu_io(types=True)
-                    if disk_util is not None:
-                        # table.put(str(time.time()), {'io:sdba': disk_util})
-                        logger.info(f'system: disk_util,{disk_r},{disk_w},{disk_util}')
+                    disk, cpu, mem = self.get_system_cpu_io()
+                    if disk:
+                        for k, v in disk.items():
+                            table.put(str(time.time()), {f'io:{k}': v})
                     if cpu is not None and mem is not None:
-                        table.put(str(time.time()), {'cpu:system': cpu, 'mem:system': mem})
+                        table.put(str(time.time()), {'cpu:system': str(cpu), 'mem:system': str(mem)})
                         logger.info(f'system: CpuAndMem,{cpu},{mem}')
 
                         if mem <= cfg.MIN_MEM:
@@ -230,7 +229,7 @@ class PerMon(object):
         except Exception as err:
             logger.error(err)
 
-        return cpu, mem
+        return str(cpu), str(mem)
 
     def get_mem(self, port, pid):
         """
@@ -265,39 +264,38 @@ class PerMon(object):
         except Exception as err:
             logger.info(err)
 
-        return mem / 1024 / 1024
+        return str(mem / 1024 / 1024)
 
-    def get_system_cpu_io(self, types=None):
+    def get_system_cpu_io(self):
         """
             Use `iostat` to get disk read, write and IO(%)
         """
-        disk_r = None
-        disk_w = None
-        disk_util = None
+        disk = {}
         cpu = None
         mem = None
         try:
-            result = os.popen(f'iostat -x -k {self.disk} 1 2 |tr -s " "').readlines()
-            disk_res = result[-2].strip().split(' ')
+            result = os.popen(f'iostat -x -k 1 2 |tr -s " "').readlines()
+            disk_res = result.pop(0)[int(len(result)/2)-1:]
             logger.debug(disk_res)
 
-            if self.disk in disk_res:
-                disk_r = float(disk_res[5])         # read(kB/s)
-                disk_w = float(disk_res[6])         # write(kB/s)
-                disk_util = float(disk_res[-1])     # disk IO(%)
+            for i in range(len(disk_res)):
+                if 'avg-cpu' in disk_res[i]:
+                    cpu_res = disk_res[i+1].strip().split(' ')
+                    if len(cpu_res) > 3:
+                        cpu = 100 - float(cpu_res[-1])      # calculate CPU
 
-            if types:
-                cpu_res = result[-5].strip().split(' ')
-                if len(cpu_res) > 3:
-                    cpu = 100 - float(cpu_res[-1])      # calculate CPU
+                if 'Device' in disk_res[i]:
+                    for j in range(i, len(disk_res)):
+                        disk_line = disk_res[i].strip().split(' ')
+                        disk.update({disk_line[0], disk_line[-1]})
 
-                result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
-                mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024      # free memory
+            result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
+            mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024      # free memory
 
         except Exception as err:
             logger.error(err)
 
-        return disk_r, disk_w, disk_util, cpu, mem
+        return disk, cpu, mem
 
     '''def get_handle(pid):
         """

@@ -33,5 +33,4 @@ MIN_MEM = 2             # Minxium memory, uint: G
 # echo 1 >/proc/sys/vm/drop_caches
 ECHO = 0
 
-DISK = 'device1'   # Which disk your application runs
 FGC_TIMES = 'FullGC.txt'    # Store the time of every FullGC time.
