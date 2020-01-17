@@ -6,6 +6,7 @@ import base64
 import time
 import glob
 import datetime
+import happybase
 import matplotlib.pyplot as plt
 from io import BytesIO
 
@@ -14,7 +15,30 @@ from logger import logger
 from extern import DealLogs
 
 
-def draw_data_from_log(port=None, pid=None, start_time=None, end_time=None, system=0):
+def draw_data_from_log(host, port=None, pid=None, start_time=None, end_time=None, system=0):
+    try:
+        connection = happybase.Connection(host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
+        connection.open()
+        table = connection.table(host.replace('.', ''))
+        if start_time and end_time:
+            # Convert `start_time` to floating point seconds after 1970.
+            startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
+            endTime = time.mktime(datetime.datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S').timetuple())
+        elif start_time is None and end_time is None:
+            startTime = time.mktime(datetime.datetime.strptime('2020-01-01 08:08:08', '%Y-%m-%d %H:%M:%S').timetuple())
+            endTime = time.time()
+        else:
+            startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
+            endTime = time.time()
+
+        datas = table.scan(columns=[f'cpu:{port}', f'mem:{port}', f'jvm:{port}'], row_start=str(startTime), row_stop=str(endTime))
+        for data in datas:
+            cpu_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(float(data[0][0].decode())))
+            cpu = float(data[0][1].get(f'cpu:{port}'.encode()).decode())
+    except Exception as err:
+        logger.error(err)
+
+def draw_data_from_log1(port=None, pid=None, start_time=None, end_time=None, system=0):
     """
     Read data from logs.
     Return html included plotting, and data.

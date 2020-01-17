@@ -8,7 +8,7 @@
             fullscreen:false,
             width: 250,
             spacing:20,
-            timeout: 3000,
+            timeout: 1000,
             has_close_btn:false,
             has_icon:true,
             sticky:false,

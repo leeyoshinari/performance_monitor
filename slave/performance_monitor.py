@@ -275,7 +275,9 @@ class PerMon(object):
         mem = None
         try:
             result = os.popen(f'iostat -x -k 1 2 |tr -s " "').readlines()
-            disk_res = result.pop(0)[int(len(result)/2)-1:]
+            result.pop(0)
+            disk_res = [l.strip() for l in result if len(l) > 5]
+            disk_res = disk_res[int(len(disk_res)/2)-1:]
             logger.debug(disk_res)
 
             for i in range(len(disk_res)):
@@ -283,11 +285,14 @@ class PerMon(object):
                     cpu_res = disk_res[i+1].strip().split(' ')
                     if len(cpu_res) > 3:
                         cpu = 100 - float(cpu_res[-1])      # calculate CPU
+                        continue
 
                 if 'Device' in disk_res[i]:
-                    for j in range(i, len(disk_res)):
-                        disk_line = disk_res[i].strip().split(' ')
-                        disk.update({disk_line[0], disk_line[-1]})
+                    for j in range(i+1, len(disk_res)):
+                        disk_line = disk_res[j].strip().split(' ')
+                        disk.update({disk_line[0]: disk_line[-1]})
+
+                    continue
 
             result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]
             mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024      # free memory

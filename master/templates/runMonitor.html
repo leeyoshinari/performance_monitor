@@ -122,25 +122,27 @@
                     }
                     else {
                         $.Toast(data['msg'], 'error');
+                        return;
                     }
-                    data = JSON.parse(data);
+                    data = data['data'];
                     let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
                         "<th width=20% style=\"text-align: center;\">服务器</th>\n" +
-                        "<th width=20% style=\"text-align: center;\">端口号</th>\n" +
-                        "<th width=20% style=\"text-align: center;\">进程号</th>\n" +
-                        "<th width=20% style=\"text-align: center;\">状态</th>\n" +
-                        "<th width=20% style=\"text-align: center;\">开始监控时间</th>\n" +
+                        "<th width=17% style=\"text-align: center;\">端口号</th>\n" +
+                        "<th width=18% style=\"text-align: center;\">进程号</th>\n" +
+                        "<th width=18% style=\"text-align: center;\">状态</th>\n" +
+                        "<th width=27% style=\"text-align: center;\">开始监控时间</th>\n" +
                         "</tr>";
                     let run_status = ['已停止', '监控中', '排队中'];
                     for (let i=0; i<data['port'].length; i++){
                         text_row += "<tr align='center'>";
+                        text_row += "<td>" + data['host'][i] + "</td>";
                         text_row += "<td>" + data['port'][i] + "</td>";
                         text_row += "<td>" + data['pid'][i] + "</td>";
                         text_row += "<td>" + run_status[data['isRun'][i]] + "</td>";
                         text_row += "<td>" + data['startTime'][i] + "</td>";
                         text_row += "</tr>";
-                        document.getElementById('monitor').innerHTML=text_row;
                     }
+                    document.getElementById('monitor').innerHTML=text_row;
                 }
             });
         });

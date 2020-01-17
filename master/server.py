@@ -86,16 +86,21 @@ async def get_monitor(request):
 			if res.status_code == 200:
 				response = json.loads(res.content.decode())
 				if response['code'] == 0:
-					monitor_list['host'].append(response['data']['host'])
-					monitor_list['port'].append(response['data']['port'])
-					monitor_list['pid'].append(response['data']['pid'])
-					monitor_list['isRun'].append(response['data']['isRun'])
-					monitor_list['startTime'].append(response['data']['startTime'])
+					monitor_list['host'] += response['data']['host']
+					monitor_list['port'] += response['data']['port']
+					monitor_list['pid'] += response['data']['pid']
+					monitor_list['isRun'] += response['data']['isRun']
+					monitor_list['startTime'] += response['data']['startTime']
 
 				else:
-					return web.json_response({'code': 2, 'msg': f"系统异常，消息来自{ip}", 'data': None})
+					continue
+					# return web.json_response({'code': 2, 'msg': f"系统异常，消息来自{ip}", 'data': None})
 			else:
-				return web.json_response({'code': 2, 'msg': f"系统异常，消息来自{ip}", 'data': None})
+				continue
+				# return web.json_response({'code': 2, 'msg': f"系统异常，消息来自{ip}", 'data': None})
+
+		if monitor_list['host']:
+			return web.json_response({'code': 1, 'msg': '暂未监控端口', 'data': None})
 
 		return web.json_response({'code': 0, 'msg': '操作成功', 'data': monitor_list})
 
@@ -119,7 +124,7 @@ async def plot_monitor(request):
 			pid = port_to_pid(port_pid)
 
 			if port_pid and pid:
-				res = draw_data_from_log(port=f'port_{port_pid}', pid=f'pid_{pid}', start_time=start_time, end_time=end_time)
+				res = draw_data_from_log(host=host, port=f'port_{port_pid}', pid=f'pid_{pid}', start_time=start_time, end_time=end_time)
 				return aiohttp_jinja2.render_template('figure.html', request, context={
 					'data': res['data'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
 					'line99': res['line99'], 'ygc': res['ygc'], 'ygct': res['ygct'],

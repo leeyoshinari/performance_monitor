@@ -71,9 +71,10 @@ async def get_monitor(request):
 	host = data.get('host')
 	if host == cfg.IP:
 		msg = permon.start
-		if len(msg['port']) == 0:
-			return web.json_response({
-				'code': 0, 'msg': '操作成功', 'data': {'host': [host]*len(msg['port'])}.update(msg)})
+		if len(msg['port']) > 0:
+			data = {'host': [host]*len(msg['port'])}
+			data.update(msg)
+			return web.json_response({'code': 0, 'msg': '操作成功', 'data': data})
 		else:
 			logger.error('暂未监控任何端口')
 			return web.json_response({

@@ -17,7 +17,7 @@ class Master(object):
 		self.request = Request()
 		self._slaves = []
 
-		self.pool = happybase.ConnectionPool(size=1, host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
+		# self.pool = happybase.ConnectionPool(size=1, host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
 
 	@property
 	def slaves(self):
@@ -28,17 +28,21 @@ class Master(object):
 		host = value.split('+')[0]
 		starttime = value.split('+')[1]
 		ip = host.split(':')[0]
-		with self.pool.connection() as connection:
-			try:
-				connection.create_table(ip.replace('.', ''), families=families)
-			except Exception as err:
-				logger.error(err)
-		self._slaves.append([host, starttime])
+		connection = happybase.Connection(host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
+		try:
+			connection.open()
+			connection.create_table(ip.replace('.', ''), families=families)
+			self._slaves.append([host, starttime])
+			connection.close()
+		except Exception as err:
+			logger.error(err)
+			connection.close()
 
 	def check_status(self):
-		for i in range(len(self._slaves)):
-			times = 0
-			while True:
+		while True:
+			time.sleep(3)
+			for i in range(len(self._slaves)):
+				times = 0
 				try:
 					res = self.request.request('get', self._slaves[i], 'checkStatus')
 					if res.status_code == 200:
@@ -51,6 +55,6 @@ class Master(object):
 					times += 1
 					time.sleep(1)
 
-				if times > 5:
+				if times > 2:
 					self._slaves.pop(i)
 					break
