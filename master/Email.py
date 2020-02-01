@@ -1,38 +1,50 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
-
 import smtplib
-from email.mime.text import MIMEText
+import socket
 from email.header import Header
-
-from logger import logger
+from email.mime.text import MIMEText
 import config as cfg
+from logger import logger
 
 
-def sendMsg(msg):
-	SMTP_SERVER = cfg.SMTP_SERVER
-	SENDER_NAME = cfg.SENDER_NAME
-	SENDER_EMAIL = cfg.SENDER_EMAIL
-	PASSWORD = cfg.PASSWORD
-	RECEIVER_NAME = cfg.RECEIVER_NAME
-	RECEIVER_EMAIL = cfg.RECEIVER_EMAIL
-	text = f"{cfg.IP} \n {msg['msg']}，attention！"
-	message = MIMEText(text, 'plain', 'utf-8')
-	if SMTP_SERVER == 'smtp.sina.com':   # sina can't use `utf-8` in `Header`.
-		message['From'] = Header(SENDER_NAME)    # sender name
-	else:
-		message['From'] = Header(SENDER_NAME, 'utf-8')
-	message['To'] = Header(RECEIVER_NAME, 'utf-8')       # receiver name
-	message['Subject'] = Header('Warning', 'utf-8')        # subject
+def sendEmail(msg):
+    """
+    邮件通知
+    :param str: email content
+    :return:
+    """
+    try:
+            sender_name = cfg.SENDER_NAME
+            sender_email = cfg.SENDER_EMAIL
+            receiver_name = cfg.RECEIVER_NAME
+            receiver_email = cfg.RECEIVER_EMAIL
+            password = cfg.PASSWORD
+            host = cfg.SMTP_SERVER
 
-	try:
-		server = smtplib.SMTP_SSL(msg['smtp_server'], 465)
-		# server.login(msg['sender'], msg['password'])      # login
-		# server = emailServer(SMTP_SERVER, 465, SENDER_EMAIL, PASSWORD)
-		server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, message.as_string())     # send email
-		server.quit()
-		logger.info('Send email successfully.')
-	except Exception as err:
-		logger.error(err)
-		sendMsg(msg)
+            subject = '系统监控通知'
+            s = "{0}".format(msg)
+
+            msg = MIMEText(s, 'plain', 'utf-8')  # 中文需参数‘utf-8’，单字节字符不需要
+            msg['Subject'] = Header(subject, 'utf-8')
+            msg['From'] = sender_name
+            msg['To'] = receiver_name
+
+            try:
+                smtp = smtplib.SMTP_SSL(host)
+                smtp.connect(host)
+            except socket.error:
+                smtp = smtplib.SMTP()
+                smtp.connect(host)
+            # smtp.connect(host)
+            smtp.login(sender_email, password)
+            smtp.sendmail(sender_email, receiver_email, msg.as_string())
+            smtp.quit()
+            logger.info('邮件发送成功, 请查收')
+    except Exception as err:
+        logger.error(f'邮件配置有误{err}')
+
+
+if __name__ == '__main__':
+    sendEmail(1)

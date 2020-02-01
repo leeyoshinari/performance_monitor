@@ -10,10 +10,10 @@
             <th style="text-align: center;">服务器</th>
             <th style="text-align: center;">注册时间</th>
         </tr>
-        {% for foo in hosts %}
+        {% for host in ip %}
             <tr align="center">
-                <td>{{ foo[0] }}</td>
-                <td>{{ foo[1] }}</td>
+                <td>{{ ip[loop.index0] }}:{{ port[loop.index0] }}</td>
+                <td>{{ time[loop.index0] }}</td>
             </tr>
         {% endfor %}
     </table>

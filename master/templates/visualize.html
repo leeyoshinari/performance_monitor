@@ -2,19 +2,23 @@
 
 {% block content %}
 <div align="center">
-    主机：<select id="host" style="width: 180px; height: 26px; margin-right: 20px;">
-            {% for foo in hosts %}
-                <option value="{{ foo[0].split(':')[0] }}">{{ foo[0].split(':')[0] }}</option>
+    主机：<select id="host" style="width: 160px; height: 26px; margin-right: 20px;" onchange="show_disk()">
+            {% for foo in ip %}
+                <option value="{{ foo }}">{{ foo }}</option>
             {% endfor %}
     </select>
-    类型: <select id="type" style="width: 180px; height: 26px; margin-right: 20px;">
+    类型: <select id="type" style="width: 160px; height: 26px; margin-right: 20px;">
         <option value="port">端口号</option>
-        <option value="pid">进程号</option>
         <option value="system">系统</option>
     </select>
-    端口号: <input type="text" name="port" id="port" placeholder="请输入端口号或进程号" style="margin-right: 20px;">
-    开始时间: <input type="text" name="starttime" id="starttime" style="margin-right: 20px;" value="{{ starttime }}">
-    结束时间: <input type="text" name="endtime" id="endtime" style="margin-right: 20px;" value="{{ endtime }}">
+    端口号: <input type="text" name="port" id="port" placeholder="请输入端口号" style="margin-right: 20px; width: 160px;">
+    磁盘号: <select id="disk" style="width: 160px; height: 26px; margin-right: 20px;">
+            {% for disk in disks[0] %}
+                <option value="{{ disk }}">{{ disk }}</option>
+            {% endfor %}
+</select>
+    开始时间: <input type="text" name="starttime" id="starttime" style="margin-right: 20px; width: 160px;" value="{{ starttime }}">
+    结束时间: <input type="text" name="endtime" id="endtime" style="margin-right: 20px; width: 160px;" value="{{ endtime }}">
     <button type="button" id="MonitorList">&nbsp;画&nbsp;&nbsp;&nbsp;图&nbsp;</button>
 </div>
 <div id="figure"></div>
@@ -27,6 +31,7 @@
         let host = document.getElementById('host').value;
         let type = document.getElementById('type').value;
         let num = document.getElementById('port').value;
+        let disk = document.getElementById('disk').value;
         let starttime = document.getElementById('starttime').value;
         let endtime = document.getElementById('endtime').value;
         try{
@@ -46,6 +51,7 @@
             host: host,
             type: type,
             port: port,
+            disk: disk,
             startTime: starttime,
             endTime: endtime,
         };
@@ -61,5 +67,26 @@
             });
         })
     });
+
+    function show_disk() {
+        let disk = document.getElementById('host').value;
+        let diskObj = document.getElementById('disk');
+        diskObj.options.length = 0;
+        $.ajax({
+            type: 'get',
+            url: 'getDisk/'+disk,
+            dataType: "json",
+            success: function (data) {
+                if (data['code'] === 0){
+                    for (let i=0; i<data['data'].length; i++){
+                        diskObj.options.add(new Option(data['data'][i], data['data'][i]));
+                    }
+                }
+                else{
+                    $.Toast(data['msg'], 'error');
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}
