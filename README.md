@@ -30,10 +30,10 @@ It can monitor gc for java's applications, when the frequency of full gc, it can
 6. using<br>
    Enter `http://ip:port` in browser<br>
    (1) `http://ip:port/startMonitor`<br>
-   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/templates/Visualize.jpg)
+   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/tree/single/templates/Visualize.jpg)
    
    (2) `http://ip:port/Visualize`<br>
-   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/templates/startMonitor.jpg)
+   ![Visualize](https://github.com/leeyoshinari/performance_monitor/tree/single/templates/startMonitor.jpg)
    
 ## Note
 1. Your Linux must support the `jstat`, `top`, `iostat` and `netstat` commands, if not, please install them.
