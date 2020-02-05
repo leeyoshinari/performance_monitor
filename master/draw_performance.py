@@ -50,16 +50,16 @@ def draw_data_from_hbase(host, port=None, pid=None, start_time=None, end_time=No
         if disk:    # 读取磁盘IO数据
             datas = table.scan(columns=[f'io:{disk}'], row_start=str(startTime), row_stop=str(endTime))
             for data in datas:
-                io_time.append(data[0][0].decode())
-                io.append(float(data[0][1].get(f'io:{disk}'.encode()).decode()))
+                io_time.append(data[0].decode())
+                io.append(float(data[1].get(f'io:{disk}'.encode()).decode()))
 
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
             datas = table.scan(columns=[f'cpu:{port}', f'mem:{port}', f'jvm:{port}'], row_start=str(startTime), row_stop=str(endTime))
             for data in datas:
-                cpu_time.append(data[0][0].decode())
-                cpu.append(float(data[0][1].get(f'cpu:{port}'.encode()).decode()))
-                mem.append(float(data[0][2].get(f'mem:{port}'.encode()).decode()))
-                jvm.append(float(data[0][3].get(f'jvm:{port}'.encode()).decode()))
+                cpu_time.append(data[0].decode())
+                cpu.append(float(data[1].get(f'cpu:{port}'.encode()).decode()))
+                mem.append(float(data[2].get(f'mem:{port}'.encode()).decode()))
+                jvm.append(float(data[3].get(f'jvm:{port}'.encode()).decode()))
 
             img = draw(types='port', cpu_time=cpu_time, cpu=cpu, mem=mem, jvm=jvm)      # 画图
             res.update(img)
@@ -70,9 +70,9 @@ def draw_data_from_hbase(host, port=None, pid=None, start_time=None, end_time=No
         if system:      # 读取整个系统的CPU使用率、剩余内存大小
             datas = table.scan(columns=['cpu:system', 'mem:system'], row_start=str(startTime), row_stop=str(endTime))
             for data in datas:
-                cpu_time.append(data[0][0].decode())
-                cpu.append(float(data[0][1].get('cpu:system'.encode()).decode()))
-                mem.append(float(data[0][2].get('mem:system'.encode()).decode()))
+                cpu_time.append(data[0].decode())
+                cpu.append(float(data[1].get('cpu:system'.encode()).decode()))
+                mem.append(float(data[2].get('mem:system'.encode()).decode()))
 
             img = draw(types='system', cpu_time=cpu_time, cpu=cpu, mem=mem, io_time=io_time, io=io, disk=disk)  # 画图
             res.update(img)

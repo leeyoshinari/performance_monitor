@@ -21,7 +21,25 @@
     </div>
     <br><br><br>
     <h3 align="center">端口监控列表</h3>
-    <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor"></table>
+    <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
+        <tr style="align: center; margin: auto; background-color: #99CCFF">
+            <th width=20% style="text-align: center;">服务器</th>
+            <th width=17% style="text-align: center;">端口号</th>
+            <th width=18% style="text-align: center;">进程号</th>
+            <th width=18% style="text-align: center;">状态</th>
+            <th width=27% style="text-align: center;">开始监控时间</th>
+        </tr>
+        {% for foo in foos['host'] %}
+            <tr align='center'>
+            <td>{{ foos['host'][loop.index0] }}</td>
+            <td>{{ foos['port'][loop.index0] }}</td>
+            <td>{{ foos['pid'][loop.index0] }}</td>
+            <td>{{ foos['isRun'][loop.index0] }}</td>
+            <td>{{ foos['startTime'][loop.index0] }}</td>
+            </tr>
+        {% endfor %}
+
+    </table>
 </div>
 {% endblock %}
 

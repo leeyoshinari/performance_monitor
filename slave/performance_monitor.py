@@ -165,7 +165,7 @@ class PerMon(object):
 
                             jvm = self.get_jvm(port, pid)     # 获取JVM内存
 
-                            table.put(str(time.time()), {c_: str(cpu), m_: str(mem), j_: str(jvm)})    # 写数据到数据库
+                            table.put(time.strftime('%Y-%m-%d %H:%M:%S'), {c_: str(cpu), m_: str(mem), j_: str(jvm)})    # 写数据到数据库
                             logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
                             run_error_time = time.time()    # 如果监控命令执行成功，则重置
                             run_error = 0      # 如果监控命令执行成功，则重置
@@ -194,9 +194,9 @@ class PerMon(object):
                     disk, cpu, mem = self.get_system_cpu_io()   # 获取系统CPU、内存和磁盘IO
                     if disk:
                         for k, v in disk.items():
-                            table.put(str(time.time()), {f'io:{k}': v})     # 写磁盘IO数据到数据库
+                            table.put(time.strftime('%Y-%m-%d %H:%M:%S'), {f'io:{k}': v})     # 写磁盘IO数据到数据库
                     if cpu is not None and mem is not None:
-                        table.put(str(time.time()), {'cpu:system': str(cpu), 'mem:system': str(mem)})  # 写cpu和内存到数据库
+                        table.put(time.strftime('%Y-%m-%d %H:%M:%S'), {'cpu:system': str(cpu), 'mem:system': str(mem)})  # 写cpu和内存到数据库
                         logger.info(f'system: CpuAndMem,{cpu},{mem}')
 
                         if mem <= cfg.MIN_MEM:

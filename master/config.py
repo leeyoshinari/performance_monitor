@@ -8,7 +8,7 @@ PORT = '8000'
 
 # hbase数据库IP和端口
 HBASE_IP = '127.0.0.1'
-HBASE_PORT = '6379'
+HBASE_PORT = 16002
 
 # 日志相关配置
 LEVEL = 'INFO'      # 日志级别

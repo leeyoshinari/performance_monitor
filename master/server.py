@@ -38,7 +38,10 @@ async def start_monitor(request):
 	:param request:
 	:return:
 	"""
-	return aiohttp_jinja2.render_template('runMonitor.html', request, context={'ip': master.slaves['ip']})
+	# data = get_monitor(request)
+	# logger.info(data)
+	monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
+	return aiohttp_jinja2.render_template('runMonitor.html', request, context={'ip': master.slaves['ip'], 'foos': monitor_list})
 
 
 async def visualize(request):
@@ -60,6 +63,7 @@ async def registers(request):
 	:return:
 	"""
 	data = await request.json()
+	logger.debug(f'注册接口请求参数为{data}')
 	host = data.get('host')     # 客户端服务器IP
 	port = data.get('port')     # 客户端启用的端口号
 	disks = data.get('disks')   # 客户端服务器磁盘号
@@ -75,6 +79,7 @@ async def run_monitor(request):
 	"""
 	try:
 		data = await request.post()
+		logger.debug(f'监控接口请求参数为{data}')
 		host = data.get('host')     # 待监控的服务器IP
 		port = data.get('port')     # 待监控的端口号
 		is_run = data.get('isRun')  # 是否开始监控，0为停止监控，1为开始监控
@@ -111,6 +116,7 @@ async def get_monitor(request):
 			res = http.request('post', ip, port, 'getMonitor', json=post_data)      # 通过url获取
 			if res.status_code == 200:
 				response = json.loads(res.content.decode())
+				logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
 				if response['code'] == 0:
 					# 拼接端口监控列表
 					monitor_list['host'] += response['data']['host']
@@ -119,13 +125,16 @@ async def get_monitor(request):
 					monitor_list['isRun'] += response['data']['isRun']
 					monitor_list['startTime'] += response['data']['startTime']
 				else:   # 如果接口返回异常，则跳过
+					logger.warning(f'{ip}服务器获取监控列表接口返回参数异常')
 					continue
-					# return web.json_response({'code': 2, 'msg': f"系统异常，消息来自{ip}", 'data': None})
+					# return web.json_response({'code': 2, 'msg': f"系统异常", 'data': None})
 			else:   # 如果接口响应异常，则跳过
+				logger.warning(f'从{ip}服务器获取监控列表异常，响应状态码为{res.status_code}。')
 				continue
-				# return web.json_response({'code': 2, 'msg': f"系统异常，消息来自{ip}", 'data': None})
+				# return web.json_response({'code': 2, 'msg': f"系统异常", 'data': None})
 
-		if monitor_list['host']:    # 如果未监控任何端口
+		if not monitor_list['host']:    # 如果未监控任何端口
+			logger.warning('暂未监控端口')
 			return web.json_response({'code': 1, 'msg': '暂未监控端口', 'data': None})
 
 		return web.json_response({'code': 0, 'msg': '操作成功', 'data': monitor_list})
@@ -141,7 +150,8 @@ async def plot_monitor(request):
 	:param request:
 	:return:
 	"""
-	data = await request.json()
+	data = await request.post()
+	logger.debug(f'可视化接口请求参数为{data}')
 	host = data.get('host')     # 客户端服务器IP
 	start_time = data.get('startTime')  # 监控数据开始时间
 	end_time = data.get('endTime')      # 监控数据结束时间
@@ -190,7 +200,6 @@ async def get_disk(request):
 		except Exception as err:
 			logger.error(err)
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
-
 	else:
 		return web.json_response({'code': 1, 'msg': f"{host}未注册", 'data': None})
 

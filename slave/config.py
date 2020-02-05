@@ -12,7 +12,7 @@ SERVER_PORT = '5556'
 
 # hbase数据库IP和端口
 HBASE_IP = '127.0.0.1'
-HBASE_PORT = '6379'
+HBASE_PORT = 16002
 
 # 监控端口的线程池大小
 THREAD_NUM = 5
