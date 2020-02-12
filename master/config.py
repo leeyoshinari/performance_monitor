@@ -6,9 +6,12 @@
 IP = '127.0.0.1'
 PORT = '8000'
 
-# hbase数据库IP和端口
-HBASE_IP = '127.0.0.1'
-HBASE_PORT = 16002
+# influxdb数据库
+INFLUX_IP = '127.0.0.1'
+INFLUX_PORT = '8086'
+INFLUX_USERNAME = 'root'
+INFLUX_PASSWORD = '123456'
+INFLUX_DATABASE = 'test'
 
 # 日志相关配置
 LEVEL = 'INFO'      # 日志级别

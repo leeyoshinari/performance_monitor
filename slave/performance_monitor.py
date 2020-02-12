@@ -4,11 +4,11 @@
 import os
 import time
 import queue
-import requests
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import happybase
+import requests
+import influxdb
 import config as cfg
 from logger import logger
 
@@ -32,7 +32,8 @@ class PerMon(object):
         self.monitor_task = queue.Queue()   # 创建一个FIFO队列
         self.executor = ThreadPoolExecutor(cfg.THREAD_NUM+1)  # 创建线程池
 
-        self.pool = happybase.ConnectionPool(size=cfg.THREAD_NUM, host=cfg.HBASE_IP, port=cfg.HBASE_PORT)   # 创建数据库连接池
+        self.client = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
+                                              cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)   # 创建数据库连接
 
         self.FGC = {}           # 每个端口的full gc次数
         self.FGC_time = {}      # 每个端口每次full gc的时间
@@ -123,61 +124,67 @@ class PerMon(object):
         port = self._msg['port'][index]
         pid = self._msg['pid'][index]
 
-        c_ = f'cpu:{port}'
-        m_ = f'mem:{port}'
-        j_ = f'jvm:{port}'
+        line = [{'measurement': cfg.IP,
+                 'fields': {
+                     'type': str(port),
+                     'cpu': 0,
+                     'mem': 0,
+                     'jvm': 0
+                 }}]
 
-        with self.pool.connection() as connection:
-            table = connection.table(cfg.IP.replace('.', ''))
-            while True:
-                if self._msg['isRun'][index] > 0:   # 开始监控
-                    self._msg['isRun'][index] = 1   # 重置端口监控状态为监控中
-                    get_data_time = time.time()     # 获取当前时间
-                    if get_data_time - start_search_time > self.interval:    # 如果两次执行命令的时间间隔大于设置值
-                        start_search_time = get_data_time    # 更新时间
-                        try:
-                            cpu, mem = self.get_cpu_mem(pid)    # 获取CPU使用率和占用内存大小
+        while True:
+            if self._msg['isRun'][index] > 0:   # 开始监控
+                self._msg['isRun'][index] = 1   # 重置端口监控状态为监控中
+                get_data_time = time.time()     # 获取当前时间
+                if get_data_time - start_search_time > self.interval:    # 如果两次执行命令的时间间隔大于设置值
+                    start_search_time = get_data_time    # 更新时间
+                    try:
+                        cpu, mem = self.get_cpu_mem(pid)    # 获取CPU使用率和占用内存大小
 
-                            if cpu is None:     # 如果CPU使用率未获取到，说明监控命令执行异常
-                                if port:    # 如果端口号存在
-                                    pid = port_to_pid(port)  # 根据端口号查询进程号
-                                    if pid:     # 如果进程号存在，则更新进程号
-                                        self._msg['pid'][index] = pid
-                                        self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                        if cpu is None:     # 如果CPU使用率未获取到，说明监控命令执行异常
+                            if port:    # 如果端口号存在
+                                pid = port_to_pid(port)  # 根据端口号查询进程号
+                                if pid:     # 如果进程号存在，则更新进程号
+                                    self._msg['pid'][index] = pid
+                                    self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                    # 如果连续10分钟执行监控命令都失败，则停止监控
-                                    if time.time() - run_error_time > 600:
-                                        logger.error(f'{port}端口连续600s执行监控命令都失败，已停止监控')
-                                        break
+                                # 如果连续10分钟执行监控命令都失败，则停止监控
+                                if time.time() - run_error_time > 600:
+                                    logger.error(f'{port}端口连续600s执行监控命令都失败，已停止监控')
+                                    break
 
-                                    time.sleep(cfg.SLEEPTIME)
-                                    continue
-                                else:   # 如果没有端口号，说明监控的直接是进程号
-                                    # 如果连续执行监控命令失败的次数大于设置值，则停止监控
-                                    if run_error > self.error_times:
-                                        logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
-                                        break
+                                time.sleep(cfg.SLEEPTIME)
+                                continue
+                            else:   # 如果没有端口号，说明监控的直接是进程号
+                                # 如果连续执行监控命令失败的次数大于设置值，则停止监控
+                                if run_error > self.error_times:
+                                    logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
+                                    break
 
-                                    run_error += 1  # 执行命令失败次数加1
-                                    logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')
-                                    time.sleep(cfg.SLEEPTIME)
-                                    continue
+                                run_error += 1  # 执行命令失败次数加1
+                                logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')
+                                time.sleep(cfg.SLEEPTIME)
+                                continue
 
-                            jvm = self.get_jvm(port, pid)     # 获取JVM内存
+                        jvm = self.get_jvm(port, pid)     # 获取JVM内存
 
-                            table.put(time.strftime('%Y-%m-%d %H:%M:%S'), {c_: str(cpu), m_: str(mem), j_: str(jvm)})    # 写数据到数据库
-                            logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
-                            run_error_time = time.time()    # 如果监控命令执行成功，则重置
-                            run_error = 0      # 如果监控命令执行成功，则重置
+                        line[0]['fields']['cpu'] = cpu
+                        line[0]['fields']['mem'] = mem
+                        line[0]['fields']['jvm'] = jvm
+                        self.client.write_points(line)    # 写数据到数据库
+                        logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
+                        run_error_time = time.time()    # 如果监控命令执行成功，则重置
+                        run_error = 0      # 如果监控命令执行成功，则重置
 
-                        except Exception as err:
-                            logger.error(err)
-                            time.sleep(cfg.SLEEPTIME)
-                            continue
+                    except Exception as err:
+                        logger.error(err)
+                        time.sleep(cfg.SLEEPTIME)
+                        continue
 
-                if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
-                    logger.info(f'{port}端口已经停止监控')
-                    break
+            if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
+                logger.info(f'{port}端口已经停止监控')
+                self.FGC[str(port)] = 0
+                break
 
     def write_system_cpu_mem(self, is_system):
         """
@@ -187,36 +194,50 @@ class PerMon(object):
         """
         flag = True     # 控制是否邮件通知标志
         echo = True     # 控制是否清理缓存标志
-        with self.pool.connection() as connection:
-            table = connection.table(cfg.IP.replace('.', ''))
-            while True:
-                if self.is_system == 1:     # 开始监控
-                    disk, cpu, mem = self.get_system_cpu_io()   # 获取系统CPU、内存和磁盘IO
-                    if disk:
-                        for k, v in disk.items():
-                            table.put(time.strftime('%Y-%m-%d %H:%M:%S'), {f'io:{k}': v})     # 写磁盘IO数据到数据库
-                    if cpu is not None and mem is not None:
-                        table.put(time.strftime('%Y-%m-%d %H:%M:%S'), {'cpu:system': str(cpu), 'mem:system': str(mem)})  # 写cpu和内存到数据库
-                        logger.info(f'system: CpuAndMem,{cpu},{mem}')
 
-                        if mem <= cfg.MIN_MEM:
-                            logger.warning(f'当前系统剩余内存为{mem}G，内存过低')
-                            if cfg.IS_MEM_ALERT and flag:
-                                flag = False    # 标志符置为False，防止连续不断的发送邮件
-                                notification(msg=f'{self.IP} 当前系统剩余内存为{mem}G，内存过低')     # 发送邮件通知
+        line = [{'measurement': cfg.IP,
+                 'fields': {
+                     'type': 'system',
+                     'cpu': 0,
+                     'mem': 0,
+                 }}]
+        for disk in self.all_disk:
+            line[0]['fields'].update({disk: 0})
 
-                            if cfg.ECHO and echo:
-                                echo = False    # 标志符置为False，防止连续不断的清理缓存
-                                thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
-                                thread.start()
-
-                        else:
-                            # 如果内存正常，标识符重置为True
-                            flag = True
-                            echo = True
-
+        while True:
+            if self.is_system == 1:     # 开始监控
+                disk, cpu, mem = self.get_system_cpu_io()   # 获取系统CPU、内存和磁盘IO
+                if disk:
+                    for k, v in disk.items():
+                        line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
                 else:
-                    time.sleep(1)
+                    for disk in self.all_disk:
+                        line[0]['fields'][disk] = 0
+
+                if cpu is not None and mem is not None:
+                    line[0]['fields']['cpu'] = cpu
+                    line[0]['fields']['mem'] = mem
+                    self.client.write_points(line)    # 写cpu和内存到数据库
+                    logger.info(f'system: CpuAndMem,{cpu},{mem}')
+
+                    if mem <= cfg.MIN_MEM:
+                        logger.warning(f'当前系统剩余内存为{mem}G，内存过低')
+                        if cfg.IS_MEM_ALERT and flag:
+                            flag = False    # 标志符置为False，防止连续不断的发送邮件
+                            notification(msg=f'{self.IP} 当前系统剩余内存为{mem}G，内存过低')     # 发送邮件通知
+
+                        if cfg.ECHO and echo:
+                            echo = False    # 标志符置为False，防止连续不断的清理缓存
+                            thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
+                            thread.start()
+
+                    else:
+                        # 如果内存正常，标识符重置为True
+                        flag = True
+                        echo = True
+
+            else:
+                time.sleep(1)
 
     def get_cpu_mem(self, pid):
         """
@@ -264,7 +285,7 @@ class PerMon(object):
                 self.FGC_time[str(port)].append(time.time())
                 if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
                     frequency = (self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][0]) / self.FGC[str(port)]
-                    if frequency < 3600:    # 如果FGC频率大于 1次/3600s，则发送邮件提醒
+                    if frequency < cfg.FGC_FREQUENCY:    # 如果FGC频率大于设置值，则发送邮件提醒
                         logger.warning(f'{port}端口的Full GC频率为{frequency}.')
                         if cfg.IS_JVM_ALERT:
                             notification(msg=f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.')

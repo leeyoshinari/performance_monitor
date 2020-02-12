@@ -4,19 +4,15 @@
 import time
 import json
 import threading
-import happybase
 import config as cfg
 from logger import logger
 from request import Request
 
 
-families = {"cpu": dict(), "mem": dict(), "jvm": dict(), "io": dict()}  # hbase
-
-
 class Master(object):
 	def __init__(self):
 		self.request = Request()
-		self._slaves = {'ip': [''], 'port': [], 'time': [], 'disk': []}
+		self._slaves = {'ip': [], 'port': [], 'time': [], 'disk': []}
 
 		t = threading.Thread(target=self.check_status, args=())     # 开启线程，检查已经注册的客户端是否在线
 		t.start()
@@ -45,16 +41,6 @@ class Master(object):
 			self._slaves['time'].append(hosts[1])
 			self._slaves['disk'].append(disks)
 			logger.info(f'{ip}服务器注册成功')
-
-			connection = happybase.Connection(host=cfg.HBASE_IP, port=cfg.HBASE_PORT)
-			try:
-				connection.open()
-				connection.create_table(ip.replace('.', ''), families=families)
-				connection.close()
-				logger.info(f'已创建{ip}服务器对应的数据库')
-			except Exception as err:
-				logger.error(err)
-				connection.close()
 
 	def check_status(self):
 		"""

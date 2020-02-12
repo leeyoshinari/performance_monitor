@@ -17,7 +17,7 @@
 4、采用线程池+队列的方式实现同时监控多个端口<br>
 5、从机（客户端）每隔5s向主机（服务端）注册本机IP和端口<br>
 6、主机（服务端）每隔5s会查询所有已注册的从机（客户端）的状态<br>
-7、使用hbase数据库存储监控数据<br>
+7、使用influxDB数据库存储监控数据<br>
 
 ## 使用
 1. 克隆 performance_monitor
@@ -55,6 +55,6 @@
 2. aiohttp_jinja2>=1.2.0
 3. jinja2>=2.10.1
 4. matplotlib>=3.1.0
-5. happybase>=1.2.0
-6. thriftpy2>=0.4.10
-4. Python 3.7+
+5. influxdb
+6. requests
+7. Python 3.7+
