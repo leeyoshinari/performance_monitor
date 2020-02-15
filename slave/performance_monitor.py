@@ -330,7 +330,7 @@ class PerMon(object):
                 if 'Device' in disk_res[i]:
                     for j in range(i+1, len(disk_res)):     # 遍历所有磁盘
                         disk_line = disk_res[j].strip().split(' ')
-                        disk.update({disk_line[0]: float(disk_line[-1])})  # 将每个磁盘的IO以字典的形式保存
+                        disk.update({disk_line[0]: disk_line[-1]})  # 将每个磁盘的IO以字典的形式保存
 
                     continue
 

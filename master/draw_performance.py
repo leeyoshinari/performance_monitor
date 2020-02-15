@@ -32,6 +32,15 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
     :return:
     """
     try:
+        post_data = {
+            'types': 'system',
+            'cpu_time': [],
+            'cpu': [],
+            'mem': [],
+            'jvm': [],
+            'io_time': [],
+            'io': [],
+            'disk': disk}
         cpu_time = []
         cpu = []
         mem = []
@@ -57,20 +66,18 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             sql = f"select {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
             for data in datas.get_points():
-                io_time.append(data['time'])
-                io.append(float(data[disk]))
+                post_data['io_time'].append(data['time'])
+                post_data['io'].append(float(data[disk]))
 
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
             sql = f"select cpu, mem, jvm from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
             datas = connection.query(sql)
+            post_data['types'] = 'port'
             for data in datas.get_points():
-                cpu_time.append(data['time'])
-                cpu.append(data['cpu'])
-                mem.append(data['mem'])
-                jvm.append(data['jvm'])
-
-            img = draw(types='port', cpu_time=cpu_time, cpu=cpu, mem=mem, jvm=jvm)      # 画图
-            res.update(img)
+                post_data['cpu_time'].append(data['time'])
+                post_data['cpu'].append(data['cpu'])
+                post_data['mem'].append(data['mem'])
+                post_data['jvm'].append(data['jvm'])
 
         if pid:     # 读取和进程号相关的CPU使用率、内存使用大小和jvm变化数据
             pass
@@ -78,15 +85,16 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         if system:      # 读取整个系统的CPU使用率、剩余内存大小
             sql = f"select cpu, mem from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
+            post_data['types'] = 'system'
             for data in datas.get_points():
-                cpu_time.append(data['time'])
-                cpu.append(data['cpu'])
-                mem.append(data['mem'])
+                post_data['cpu_time'].append(data['time'])
+                post_data['cpu'].append(data['cpu'])
+                post_data['mem'].append(data['mem'])
 
-            img = draw(types='system', cpu_time=cpu_time, cpu=cpu, mem=mem, io_time=io_time, io=io, disk=disk)  # 画图
-            res.update(img)
+        img = draw(post_data)  # 画图
+        res.update(img)
 
-        lines = get_lines(cpu, io)      # 计算百分位数，75%、90%、95%、99%
+        lines = get_lines(post_data['cpu'], post_data['io'])      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
 
         return res
@@ -156,7 +164,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 #         raise Exception(err)
 
 
-def draw(types, cpu_time=None, cpu=None, mem=None, jvm=None, io_time=None, io=None, disk=None):
+def draw(data):
     """
     画图
     :param types: 传入数据类型，是和端口号或进程号相关的数据，还是和系统相关的数据
@@ -169,6 +177,15 @@ def draw(types, cpu_time=None, cpu=None, mem=None, jvm=None, io_time=None, io=No
     :param disk:磁盘号
     :return:
     """
+    types = data['types']
+    cpu_time = data['cpu_time']
+    cpu = data['cpu']
+    mem = data['mem']
+    jvm = data['jvm']
+    io_time = data['io_time']
+    io = data['io']
+    disk = data['disk']
+
     length = len(cpu_time)
     io_length = len(io_time)
     if min(length, io_length) < 7:  # 画图的最小刻度为7，故必须大于7个数据
