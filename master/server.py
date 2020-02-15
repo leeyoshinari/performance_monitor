@@ -15,7 +15,7 @@ from logger import logger
 from master import Master
 from Email import sendEmail
 from request import Request
-from draw_performance import draw_data_from_hbase
+from draw_performance import draw_data_from_db
 
 
 master = Master()
@@ -160,7 +160,7 @@ async def plot_monitor(request):
 	disk = data.get('disk')         # 磁盘号
 	try:
 		if type_ == 'port':
-			res = draw_data_from_hbase(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+			res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
 			return aiohttp_jinja2.render_template('figure.html', request, context={
 				'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
@@ -168,7 +168,7 @@ async def plot_monitor(request):
 				'fgc': res['fgc'], 'fgct': res['fgct'], 'fygc': res['fygc'], 'ffgc': res['ffgc']})
 
 		if type_ == 'pid':
-			res = draw_data_from_hbase(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+			res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
 			return aiohttp_jinja2.render_template('figure.html', request, context={
 					'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
@@ -176,7 +176,7 @@ async def plot_monitor(request):
 					'fgc': res['fgc'], 'fgct': res['fgct'], 'fygc': res['fygc'], 'ffgc': res['ffgc']})
 
 		if type_ == 'system':
-			res = draw_data_from_hbase(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
+			res = draw_data_from_db(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
 			return aiohttp_jinja2.render_template('figure.html', request, context={
 						'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
 						'line99': res['line99'], 'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1})

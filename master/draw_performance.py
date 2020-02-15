@@ -4,16 +4,22 @@
 import base64
 import time
 import datetime
-import influxdb
-import matplotlib.pyplot as plt
 from io import BytesIO
+import influxdb
+import matplotlib
+'''
+Due to you are using an interactive backend which is trying to create figure windows, which are failing because 
+you have disconnected the x-server that was available when you started the simulations.
+'''
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 import config as cfg
 from logger import logger
 # from extern import DealLogs
 
 
-def draw_data_from_hbase(host, port=None, pid=None, start_time=None, end_time=None, system=None, disk=None):
+def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None, system=None, disk=None):
     """
     从hbase数据库中读取数据并画图
     :param host: 客户端服务器IP，必传参数
@@ -35,7 +41,7 @@ def draw_data_from_hbase(host, port=None, pid=None, start_time=None, end_time=No
         res = {}
 
         connection = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
-                                              cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)   # 创建数据库连接
+                                             cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)   # 创建数据库连接
 
         if start_time and end_time:     # 如果存在开始时间和结束时间
             startTime = local2utc(start_time)
@@ -52,7 +58,7 @@ def draw_data_from_hbase(host, port=None, pid=None, start_time=None, end_time=No
             datas = connection.query(sql)
             for data in datas.get_points():
                 io_time.append(data['time'])
-                io.append(data[disk])
+                io.append(float(data[disk]))
 
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
             sql = f"select cpu, mem, jvm from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"

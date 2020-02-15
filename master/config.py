@@ -12,6 +12,7 @@ INFLUX_PORT = '8086'
 INFLUX_USERNAME = 'root'
 INFLUX_PASSWORD = '123456'
 INFLUX_DATABASE = 'test'
+EXPIRY_TIME = 2     # influxdb数据库数据保存时间，单位：周，默认保存2周
 
 # 日志相关配置
 LEVEL = 'INFO'      # 日志级别
