@@ -60,22 +60,18 @@ class Master(object):
 					res = self.request.request('get', self._slaves['ip'][i], self._slaves['port'][i], 'checkStatus')
 					if res.status_code == 200:
 						logger.info(f"客户端{self._slaves['ip'][i]}服务器状态正常")
-						break
-					else:
-						ip = self._slaves['ip'].pop(i)
-						self._slaves['port'].pop(i)
-						self._slaves['time'].pop(i)
-						self._slaves['disk'].pop(i)
-						logger.warning(f"客户端{ip}服务器状态异常，已下线")
+						continue
 
 				except Exception as err:
 					logger.error(err)
 
+				finally:
 					ip = self._slaves['ip'].pop(i)
 					self._slaves['port'].pop(i)
 					self._slaves['time'].pop(i)
 					self._slaves['disk'].pop(i)
 					logger.warning(f"客户端{ip}服务器状态异常，已下线")
+					break
 
 	def get_gc(self, ip, port, interface):
 		"""
@@ -101,3 +97,31 @@ class Master(object):
 		except Exception as err:
 			logger.error(err)
 			return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
+
+	def get_monitor(self):
+		"""
+		获取监控端口列表接口
+		:return:
+		"""
+		monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
+		try:
+			for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # 遍历所有客户端IP地址，获取端口监控列表
+				post_data = {
+					'host': ip,
+				}
+				res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
+				if res.status_code == 200:
+					response = json.loads(res.content.decode())
+					logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
+					if response['code'] == 0:
+						# 拼接端口监控列表
+						monitor_list['host'] += response['data']['host']
+						monitor_list['port'] += response['data']['port']
+						monitor_list['pid'] += response['data']['pid']
+						monitor_list['isRun'] += response['data']['isRun']
+						monitor_list['startTime'] += response['data']['startTime']
+
+		except Exception as err:
+			logger.error(err)
+
+		return monitor_list

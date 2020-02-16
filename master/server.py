@@ -38,9 +38,9 @@ async def start_monitor(request):
 	:param request:
 	:return:
 	"""
-	# data = get_monitor(request)
+	monitor_list = master.get_monitor()
 	# logger.info(data)
-	monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
+	#monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
 	return aiohttp_jinja2.render_template('runMonitor.html', request, context={'ip': master.slaves['ip'], 'foos': monitor_list})
 
 

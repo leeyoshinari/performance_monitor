@@ -251,13 +251,14 @@ class PerMon(object):
         try:
             # result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()
             result = os.popen(f'top -n 1 -b |grep -P {pid} |tr -s " "').readlines()     # 执行命令
-            res = result[-1].strip().split(' ')
+            res = [res.strip().split(' ') for res in result]
             logger.debug(res)
 
-            if str(pid) in res:
-                ind = res.index(str(pid))
-                cpu = float(res[ind + 8]) / self.cpu_cores      # CPU使用率
-                mem = float(res[ind + 9]) * self.total_mem      # 内存占用大小
+            for r in res:
+                if str(pid) == r[0]:
+                    ind = res.index(str(pid))
+                    cpu = float(res[ind + 8]) / self.cpu_cores      # CPU使用率
+                    mem = float(res[ind + 9]) * self.total_mem      # 内存占用大小
 
         except Exception as err:
             logger.error(err)

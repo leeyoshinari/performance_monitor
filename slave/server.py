@@ -106,7 +106,7 @@ async def get_gc(request):
 	:param request:
 	:return:
 	"""
-	port = request.match_info('port')
+	port = request.match_info['port']
 	try:
 		pid = port_to_pid(port)     # 根据端口号查询进程号
 		if pid is None:
