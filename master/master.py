@@ -61,11 +61,16 @@ class Master(object):
 					if res.status_code == 200:
 						logger.info(f"客户端{self._slaves['ip'][i]}服务器状态正常")
 						continue
+					else:
+						ip = self._slaves['ip'].pop(i)
+						self._slaves['port'].pop(i)
+						self._slaves['time'].pop(i)
+						self._slaves['disk'].pop(i)
+						logger.warning(f"客户端{ip}服务器状态异常，已下线")
+						break
 
 				except Exception as err:
 					logger.error(err)
-
-				finally:
 					ip = self._slaves['ip'].pop(i)
 					self._slaves['port'].pop(i)
 					self._slaves['time'].pop(i)
