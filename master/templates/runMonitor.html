@@ -34,7 +34,7 @@
             <td>{{ foos['host'][loop.index0] }}</td>
             <td>{{ foos['port'][loop.index0] }}</td>
             <td>{{ foos['pid'][loop.index0] }}</td>
-            <td>{{ foos['isRun'][loop.index0] }}</td>
+            <td>{{ run_status[foos['isRun'][loop.index0]] }}</td>
             <td>{{ foos['startTime'][loop.index0] }}</td>
             </tr>
         {% endfor %}
@@ -131,9 +131,10 @@
 
     $("#MonitorList").click(function () {
         $(function getMonitor () {
+            let host = $("#host").find("option:selected").text();
             $.ajax({
                 type: 'get',
-                url: 'getMonitor',
+                url: 'getMonitor/'+host,
                 success: function (data) {
                     if (data['code'] === 0) {
                         $.Toast(data['msg'], 'success');

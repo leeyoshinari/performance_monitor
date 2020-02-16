@@ -256,9 +256,9 @@ class PerMon(object):
 
             for r in res:
                 if str(pid) == r[0]:
-                    ind = res.index(str(pid))
-                    cpu = float(res[ind + 8]) / self.cpu_cores      # CPU使用率
-                    mem = float(res[ind + 9]) * self.total_mem      # 内存占用大小
+                    ind = r.index(str(pid))
+                    cpu = float(r[ind + 8]) / self.cpu_cores      # CPU使用率
+                    mem = float(r[ind + 9]) * self.total_mem      # 内存占用大小
 
         except Exception as err:
             logger.error(err)
