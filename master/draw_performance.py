@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 
 import config as cfg
 from logger import logger
-# from extern import DealLogs
 
 
 def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None, system=None, disk=None):
@@ -41,12 +40,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             'io_time': [],
             'io': [],
             'disk': disk}
-        cpu_time = []
-        cpu = []
-        mem = []
-        jvm = []
-        io_time = []
-        io = []
+
         res = {}
 
         connection = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
@@ -69,6 +63,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                 post_data['io_time'].append(data['time'])
                 post_data['io'].append(float(data[disk]))
 
+            if len(post_data['io']) == 0:
+                raise Exception('未查询到监控数据，请检查时间设置！')
+
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
             sql = f"select cpu, mem, jvm from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
             datas = connection.query(sql)
@@ -78,6 +75,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                 post_data['cpu'].append(data['cpu'])
                 post_data['mem'].append(data['mem'])
                 post_data['jvm'].append(data['jvm'])
+
+            if len(post_data['cpu']) == 0:
+                raise Exception(f'未查询到端口{port}的监控数据，请检查端口是否已监控，或者时间设置是否正确！')
 
         if pid:     # 读取和进程号相关的CPU使用率、内存使用大小和jvm变化数据
             pass
@@ -91,6 +91,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                 post_data['cpu'].append(data['cpu'])
                 post_data['mem'].append(data['mem'])
 
+            if len(post_data['cpu']) == 0:
+                raise Exception('未查询到监控数据，请检查时间设置！')
+
         img = draw(post_data)  # 画图
         res.update(img)
 
@@ -101,67 +104,6 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
     except Exception as err:
         logger.error(err)
-
-# def draw_data_from_log1(port=None, pid=None, start_time=None, end_time=None, system=0):
-#     """
-#     Read data from logs.
-#     Return html included plotting, and data.
-#     """
-#     search = None
-#     result = {}
-#
-#     if port:
-#         search = port
-#     elif pid:
-#         search = pid
-#
-#     if pid is not None:
-#         pid_num = int(pid.split('_')[-1])
-#     elif system is not None:
-#         pid_num = 'system'
-#     else:
-#         pid_num = None
-#
-#     if system == 1:
-#         search = 'system'
-#
-#     logs = glob.glob(cfg.LOG_PATH + '/*.log')  # get all logs
-#
-#     deal_logs = DealLogs(search, 1)
-#
-#     try:
-#         if start_time and end_time:
-#             # Convert `start_time` to floating point seconds after 1970.
-#             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
-#             endTime = time.mktime(datetime.datetime.strptime(end_time, '%Y-%m-%d %H:%M:%S').timetuple())
-#         elif start_time is None and end_time is None:
-#             startTime = time.mktime(datetime.datetime.strptime('2020-01-01 08:08:08', '%Y-%m-%d %H:%M:%S').timetuple())
-#             endTime = time.time()
-#         else:
-#             startTime = time.mktime(datetime.datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S').timetuple())
-#             endTime = time.time()
-#
-#         deal_logs.read_data_from_logs(logs, startTime, endTime)  # read data from logs
-#
-#         # plotting
-#         image = draw(search, deal_logs.system, deal_logs.cpu_and_mem[0], deal_logs.cpu_and_mem[1:3],
-#                      deal_logs.disk_io, deal_logs.total_time, deal_logs.io_total_time)
-#         # calculate Percentile
-#         per = get_lines(deal_logs.system[0], deal_logs.cpu_and_mem[0], deal_logs.disk_io[2], search)
-#         # gc
-#         gc = get_gc(pid_num, search)
-#
-#         result.update({'data': image})
-#         result.update(per)
-#         result.update(gc)
-#
-#         del deal_logs
-#
-#         return result
-#     except Exception as err:
-#         del deal_logs
-#         logger.error(err)
-#         raise Exception(err)
 
 
 def draw(data):

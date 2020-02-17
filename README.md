@@ -34,27 +34,29 @@
 
 6. 页面访问<br>
    （1）从机（客户端）启动后，输入`http://ip:port`可以看到页面显示服务器的CPU核数、总内存和磁盘号<br>
-   ![slave home]()
+   ![slave home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/slave.jpg)
    
    （2）主机（服务端）启动后，输入`http://ip:port`可以看到首页，页面展示已经注册的从机（客户端）的IP和注册时间<br>
-   ![master home]()
+   ![master home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/home.jpg)
    
    （3）主机（服务端）启动后，输入`http://ip:port/startMonitor`可以看到监控页面；点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前已经监控的端口<br>
-   ![startMonitor]()
+   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/monitor.jpg)
    
    （4）主机（服务端）启动后，输入`http://ip:port/Visualize`可以看到可视化页面；点击画图按钮，即可将指定服务器上的指定端口的监控数据可视化<br>
-   ![Visualize]()
+   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/visual.jpg)
    
 ## 注意
-1. 服务器必须支持以下命令：`jstat`、`top`、`iostat`、`netstat`如不支持，请安装.
+1. 服务器必须支持以下命令：`jstat`、`top`、`iostat`、`netstat`、`ps`、`top`，如不支持，请安装。
 
-2. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)
+2. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)。
+
+3. 如果你对监控要求不高，可以使用单机版，其对第三方模块依赖较少。如需获取，请切换至`single`分支，或[点我](https://github.com/leeyoshinari/performance_monitor/tree/single)。
 
 ## Requirements
 1. aiohttp>=3.6.2
 2. aiohttp_jinja2>=1.2.0
 3. jinja2>=2.10.1
 4. matplotlib>=3.1.0
-5. influxdb
+5. influxdb>=5.2.3
 6. requests
 7. Python 3.7+

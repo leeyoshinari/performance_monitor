@@ -19,6 +19,7 @@ class Master(object):
 		conn = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
 		                               cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)
 		conn.query(f'alter retention policy "autogen" on "{cfg.INFLUX_DATABASE}" duration {cfg.EXPIRY_TIME}w default;')
+		logger.info(f'设置数据过期时间为{cfg.EXPIRY_TIME}周。')
 
 		t = threading.Thread(target=self.check_status, args=())  # 开启线程，检查已经注册的客户端是否在线
 		t.start()
@@ -37,10 +38,6 @@ class Master(object):
 		if ip in self._slaves['ip']:
 			logger.info(f'{ip}服务器已注册')
 			pass
-		# index = self._slaves['ip'].index(ip)
-		# self._slaves['port'][index] = port
-		# self._slaves['time'][index] = hosts[1]
-		# self._slaves['disk'][index] = disks
 		else:
 			self._slaves['ip'].append(ip)
 			self._slaves['port'].append(port)
