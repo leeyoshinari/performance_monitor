@@ -2,7 +2,7 @@
 
 {% block content %}
 <div align="center">
-    主机：<select id="host" style="width: 160px; height: 26px; margin-right: 20px;" onchange="show_disk()">
+    主机：<select id="host" style="width: 160px; height: 26px; margin-right: 20px;" onchange="show_port_disk()">
             {% for foo in ip %}
                 <option value="{{ foo }}">{{ foo }}</option>
             {% endfor %}
@@ -11,7 +11,11 @@
         <option value="port">端口号</option>
         <option value="system">系统</option>
     </select>
-    端口号: <input type="text" name="port" id="port" placeholder="请输入端口号" style="margin-right: 20px; width: 160px;">
+    端口号: <select id="disk" style="width: 160px; height: 26px; margin-right: 20px;">
+            {% for po in port %}
+                <option value="{{ po }}">{{ po }}</option>
+            {% endfor %}
+</select>
     磁盘号: <select id="disk" style="width: 160px; height: 26px; margin-right: 20px;">
             {% for disk in disks[0] %}
                 <option value="{{ disk }}">{{ disk }}</option>
@@ -68,18 +72,26 @@
         })
     });
 
-    function show_disk() {
-        let disk = document.getElementById('host').value;
+    function show_port_disk() {
+        let host = document.getElementById('host').value;
+        let types = document.getElementById('type').value;
+        let portObj = document.getElementById('port');
         let diskObj = document.getElementById('disk');
+        portObj.options.length = 0;
         diskObj.options.length = 0;
         $.ajax({
             type: 'get',
-            url: 'getDisk/'+disk,
+            url: 'getPortAndDisk/'+host,
             dataType: "json",
             success: function (data) {
                 if (data['code'] === 0){
-                    for (let i=0; i<data['data'].length; i++){
-                        diskObj.options.add(new Option(data['data'][i], data['data'][i]));
+                    if (types === 'port'){
+                        for (let i=0; i<data['data']['port'].length; i++){
+                            portObj.options.add(new Option(data['data']['port'][i], data['data']['port'][i]));
+                        }
+                    }
+                    for (let i=0; i<data['data']['disk'].length; i++){
+                        diskObj.options.add(new Option(data['data']['disk'][i], data['data']['disk'][i]));
                     }
                 }
                 else{

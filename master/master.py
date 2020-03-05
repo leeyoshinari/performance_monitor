@@ -100,21 +100,22 @@ class Master(object):
 			logger.error(err)
 			return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
 
-	def get_monitor(self):
+	def get_monitor(self, host=None):
 		"""
 		获取监控端口列表接口
 		:return:
 		"""
 		monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
 		try:
-			for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # 遍历所有客户端IP地址，获取端口监控列表
+			if host:
 				post_data = {
-					'host': ip,
+					'host': host,
 				}
-				res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
+				port = self._slaves['port'][self._slaves['ip'].index(host)]
+				res = self.request.request('post', host, port, 'getMonitor', json=post_data)  # 通过url获取
 				if res.status_code == 200:
 					response = json.loads(res.content.decode())
-					logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
+					logger.debug(f'{host}服务器获取监控列表接口返回值为{response}')
 					if response['code'] == 0:
 						# 拼接端口监控列表
 						monitor_list['host'] += response['data']['host']
@@ -122,6 +123,22 @@ class Master(object):
 						monitor_list['pid'] += response['data']['pid']
 						monitor_list['isRun'] += response['data']['isRun']
 						monitor_list['startTime'] += response['data']['startTime']
+			else:
+				for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # 遍历所有客户端IP地址，获取端口监控列表
+					post_data = {
+						'host': ip,
+					}
+					res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
+					if res.status_code == 200:
+						response = json.loads(res.content.decode())
+						logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
+						if response['code'] == 0:
+							# 拼接端口监控列表
+							monitor_list['host'] += response['data']['host']
+							monitor_list['port'] += response['data']['port']
+							monitor_list['pid'] += response['data']['pid']
+							monitor_list['isRun'] += response['data']['isRun']
+							monitor_list['startTime'] += response['data']['startTime']
 
 		except Exception as err:
 			logger.error(err)

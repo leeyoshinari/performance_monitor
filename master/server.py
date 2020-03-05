@@ -53,8 +53,9 @@ async def visualize(request):
 	"""
 	starttime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()-3600))
 	endtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+	monitor_list = master.get_monitor(host=master.slaves['ip'][0])
 	return aiohttp_jinja2.render_template('visualize.html', request, context={'disks': master.slaves['disk'],
-		'ip': master.slaves['ip'], 'starttime': starttime, 'endtime': endtime})
+		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime})
 
 
 async def registers(request):
@@ -182,9 +183,9 @@ async def plot_monitor(request):
 		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': traceback.format_exc()})
 
 
-async def get_disk(request):
+async def get_port_disk(request):
 	"""
-	根据服务器IP获取对应服务器的所有磁盘号
+	根据服务器IP获取对应服务器的所有磁盘号和所以已监控得端口号
 	:param request:
 	:return:
 	"""
@@ -192,7 +193,8 @@ async def get_disk(request):
 	if host in master.slaves['ip']:
 		try:
 			disks = master.slaves['disk'][master.slaves['ip'].index(host)]
-			return web.json_response({'code': 0, 'msg': '操作成功', 'data': disks})
+			monitor_list = master.get_monitor(host=host)
+			return web.json_response({'code': 0, 'msg': '操作成功', 'data': {'disk': disks, 'port': monitor_list['port']}})
 		except Exception as err:
 			logger.error(err)
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
@@ -221,7 +223,7 @@ async def main():
 	app.router.add_route('GET', '/startMonitor', start_monitor)
 	app.router.add_route('GET', '/getMonitor/{host}', get_monitor)
 	app.router.add_route('GET', '/Visualize', visualize)
-	app.router.add_route('GET', '/getDisk/{host}', get_disk)
+	app.router.add_route('GET', '/getPortAndDisk/{host}', get_port_disk)
 
 	app.router.add_route('POST', '/Register', registers)
 	app.router.add_route('POST', '/runMonitor', run_monitor)

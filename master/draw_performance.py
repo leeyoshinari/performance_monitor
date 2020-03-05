@@ -56,42 +56,45 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             startTime = local2utc(start_time)
             endTime = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
 
-        if disk:    # 读取磁盘IO数据
-            sql = f"select {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
-            datas = connection.query(sql)
-            for data in datas.get_points():
-                post_data['io_time'].append(data['time'])
-                post_data['io'].append(float(data[disk]))
-
-            if len(post_data['io']) == 0:
-                raise Exception('未查询到监控数据，请检查时间设置！')
-
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
             sql = f"select cpu, mem, jvm from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
             datas = connection.query(sql)
-            post_data['types'] = 'port'
-            for data in datas.get_points():
-                post_data['cpu_time'].append(data['time'])
-                post_data['cpu'].append(data['cpu'])
-                post_data['mem'].append(data['mem'])
-                post_data['jvm'].append(data['jvm'])
-
-            if len(post_data['cpu']) == 0:
+            if datas:
+                post_data['types'] = 'port'
+                for data in datas.get_points():
+                    post_data['cpu_time'].append(data['time'])
+                    post_data['cpu'].append(data['cpu'])
+                    post_data['mem'].append(data['mem'])
+                    post_data['jvm'].append(data['jvm'])
+            else:
                 raise Exception(f'未查询到端口{port}的监控数据，请检查端口是否已监控，或者时间设置是否正确！')
+
+            if disk:  # 读取磁盘IO数据
+                sql = f"select {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+                datas = connection.query(sql)
+                if datas:
+                    for data in datas.get_points():
+                        post_data['io_time'].append(data['time'])
+                        post_data['io'].append(float(data[disk]))
+                else:
+                    raise Exception('未查询到监控数据，请检查时间设置！')
 
         if pid:     # 读取和进程号相关的CPU使用率、内存使用大小和jvm变化数据
             pass
 
-        if system:      # 读取整个系统的CPU使用率、剩余内存大小
-            sql = f"select cpu, mem from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+        if system and disk:      # 读取整个系统的CPU使用率、剩余内存大小
+            sql = f"select cpu, mem, {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
-            post_data['types'] = 'system'
-            for data in datas.get_points():
-                post_data['cpu_time'].append(data['time'])
-                post_data['cpu'].append(data['cpu'])
-                post_data['mem'].append(data['mem'])
+            if datas:
+                post_data['types'] = 'system'
+                for data in datas.get_points():
+                    post_data['cpu_time'].append(data['time'])
+                    post_data['cpu'].append(data['cpu'])
+                    post_data['mem'].append(data['mem'])
+                    post_data['io'].append(float(data[disk]))
 
-            if len(post_data['cpu']) == 0:
+                post_data['io_time'] = post_data['cpu_time']
+            else:
                 raise Exception('未查询到监控数据，请检查时间设置！')
 
         img = draw(post_data)  # 画图
@@ -99,10 +102,13 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
         lines = get_lines(post_data['cpu'], post_data['io'])      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
-
+        del connection
+        del post_data
         return res
 
     except Exception as err:
+        del connection
+        del post_data
         logger.error(err)
 
 
