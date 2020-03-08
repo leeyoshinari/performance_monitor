@@ -34,4 +34,3 @@ FGC_FREQUENCY = 3600     # FGC频率允许的最大值，默认为 1次/3600s，
 IS_MEM_ALERT = False     # 当服务器剩余内存过低时，是否发送邮件提醒；True or False
 MIN_MEM = 0.2            # 服务器剩余内存允许的最小值，单位：G
 ECHO = 0    # 当剩余内存过低时，是否清理缓存；0为不清理，1为清理page caches，2为清理dentries和inodes caches，3为清理1和2
-FGC_TIMES = 'FullGC.txt'    # 存放每次FGC的时间的文件名，文件保存在当前路径下

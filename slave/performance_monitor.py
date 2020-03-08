@@ -17,7 +17,7 @@ class PerMon(object):
     def __init__(self):
         self.IP = cfg.IP
         self.is_system = 0    # 是否监控系统CPU和内存, 0为不监控, 1为监控.
-        self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # 端口号、进程号、监控状态、开始监控时间
+        self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': [], 'stopTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.interval = int(cfg.INTERVAL)   # 每次执行监控命令的时间间隔
         self.error_times = cfg.ERROR_TIMES  # 执行命令失败次数
 
@@ -53,6 +53,7 @@ class PerMon(object):
                 if self._msg['isRun'][index] == 0:  # 如果已经停止监控，则更新监控状态和开始监控时间
                     self._msg['isRun'][index] = value['is_run']
                     self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                    self._msg['stopTime'][index] = None
                     self.monitor_task.put((self.write_cpu_mem, index))  # 把监控的端口任务放入队列中
 
                     self.FGC[str(value['port'])] = 0    # 重置 FGC次数
@@ -67,6 +68,7 @@ class PerMon(object):
                 self._msg['port'].append(value['port'])
                 self._msg['isRun'].append(value['is_run'])
                 self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
+                self._msg['stopTime'].append(None)
                 self.monitor_task.put((self.write_cpu_mem, len(self._msg['port'])-1))   # 把监控的端口任务放入队列中
 
                 self.FGC.update({str(value['port']): 0})    # 初始化 FGC 次数
@@ -75,7 +77,7 @@ class PerMon(object):
                 if self.monitor_task.qsize() > 0:   # 如果队列不为空，则监控状态置为2，排队中
                     self._msg['isRun'][-1] = 2
         else:
-            pass
+            raise Exception('参数异常')
 
         if len(self._msg['port']) > 0:  # 如果已经开始监控端口，则同时开始监控整个系统
             self.is_system = 1
@@ -107,7 +109,7 @@ class PerMon(object):
         for i in range(cfg.THREAD_NUM+1):
             self.executor.submit(self.worker)   # 启动线程池监控任务
 
-        self.monitor_task.put((register, self.all_disk))    # 将注册任务放入队列中
+        self.monitor_task.put((self.register_and_clear_port, 1))    # 将注册和清理任务放入队列中
         self.monitor_task.put((self.write_system_cpu_mem, 1))   # 将监控系统的任务放入队列中
 
     def write_cpu_mem(self, index):
@@ -148,9 +150,11 @@ class PerMon(object):
                                     self._msg['pid'][index] = pid
                                     self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                                # 如果连续10分钟执行监控命令都失败，则停止监控
-                                if time.time() - run_error_time > 600:
-                                    logger.error(f'{port}端口连续600s执行监控命令都失败，已停止监控')
+                                # 如果连续30分钟执行监控命令都失败，则停止监控
+                                if time.time() - run_error_time > 1800:
+                                    self._msg['isRun'][index] = 0
+                                    self._msg['stopTime'][index] = time.time()
+                                    logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
                                     break
 
                                 time.sleep(cfg.SLEEPTIME)
@@ -158,6 +162,8 @@ class PerMon(object):
                             else:   # 如果没有端口号，说明监控的直接是进程号
                                 # 如果连续执行监控命令失败的次数大于设置值，则停止监控
                                 if run_error > self.error_times:
+                                    self._msg['isRun'][index] = 0
+                                    self._msg['stopTime'][index] = time.time()
                                     logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
                                     break
 
@@ -182,6 +188,7 @@ class PerMon(object):
                         continue
 
             if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
+                self._msg['stopTime'][index] = time.time()
                 logger.info(f'{port}端口已经停止监控')
                 self.FGC[str(port)] = 0
                 break
@@ -291,9 +298,8 @@ class PerMon(object):
                         if cfg.IS_JVM_ALERT:
                             notification(msg=f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.')
 
-                # 将FGC次数和时间写到本地
-                with open(cfg.FGC_TIMES, 'a') as f:
-                    f.write(f"{port}--{self.FGC[str(port)]}--{time.strftime('%Y-%m-%d %H:%M:%S')}" + "\n")
+                # 将FGC次数和时间写到日志
+                logger.warning(f"端口{port}第{self.FGC[str(port)]}次Full GC.")
 
             elif self.FGC[str(port)] > fgc:   # 如果FGC次数减小，说明可能重启，则重置
                 self.FGC[str(port)] = 0
@@ -390,6 +396,60 @@ class PerMon(object):
                     self.all_disk.append(disk_line[0])
 
         logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
+
+    def clear_port(self):
+        """
+        清理系统存储的已经停止监控超过86400s的端口信息
+        :return:
+        """
+        pop_list = []
+        for ind in range(len(self._msg['port'])):
+            if self._msg['isRun'][ind] == 0 and self._msg['stopTime'][ind]:
+                if time.time() - self._msg['stopTime'][ind] > 86400:
+                    pop_list.append(ind)
+
+        for ll in pop_list:
+            port = self._msg['port'].pop(ll)
+            self._msg['pid'].pop(ll)
+            self._msg['isRun'].pop(ll)
+            self._msg['startTime'].pop(ll)
+            self._msg['stopTime'].pop(ll)
+
+            del self.FGC[str(port)]
+            del self.FGC_time[str(port)]
+
+            logger.info(f'清理端口{port}成功')
+
+    def register_and_clear_port(self, flag=None):
+        """
+        定时任务，总共有两个，一个是向服务端注册本机，一个是清理已经停止监控的过期端口
+        :param
+        :return:
+        """
+        url = f'http://{cfg.SERVER_IP}:{cfg.SERVER_PORT}/Register'
+
+        header = {
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Encoding": "gzip, deflate",
+            "Content-Type": "application/json; charset=UTF-8"}
+
+        post_data = {
+            'host': cfg.IP,
+            'port': cfg.PORT,
+            'disks': '-'.join(self.all_disk)
+        }
+
+        clear_time = time.time()
+        while True:
+            try:
+                res = requests.post(url=url, json=post_data, headers=header)
+                if time.time() - clear_time > 3600:
+                    self.clear_port()
+                    clear_time = time.time()
+            except Exception as err:
+                logger.error(err)
+
+            time.sleep(5)
 
     @staticmethod
     def clear_cache():
