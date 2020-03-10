@@ -7,11 +7,11 @@
                 <option value="{{ foo }}">{{ foo }}</option>
             {% endfor %}
     </select>
-    类型: <select id="type" style="width: 160px; height: 26px; margin-right: 20px;">
+    类型: <select id="type" style="width: 160px; height: 26px; margin-right: 20px;" onchange="clear_port()">
         <option value="port">端口号</option>
         <option value="system">系统</option>
     </select>
-    端口号: <select id="disk" style="width: 160px; height: 26px; margin-right: 20px;">
+    端口号: <select id="port" style="width: 160px; height: 26px; margin-right: 20px;">
             {% for po in port %}
                 <option value="{{ po }}">{{ po }}</option>
             {% endfor %}
@@ -99,6 +99,14 @@
                 }
             }
         });
+    }
+
+    function clear_port() {
+        let types = document.getElementById('type').value;
+        if (types === 'system') {
+            let portObj = document.getElementById('port');
+            portObj.options.length = 0;
+        }
     }
 </script>
 {% endblock %}
