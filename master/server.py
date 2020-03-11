@@ -158,6 +158,8 @@ async def plot_monitor(request):
 	try:
 		if type_ == 'port':
 			res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+			if res['code'] == 0:
+				raise Exception(res['message'])
 			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
 			return aiohttp_jinja2.render_template('figure.html', request, context={
 				'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
@@ -166,6 +168,8 @@ async def plot_monitor(request):
 
 		if type_ == 'pid':
 			res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+			if res['code'] == 0:
+				raise Exception(res['message'])
 			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
 			return aiohttp_jinja2.render_template('figure.html', request, context={
 					'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
@@ -174,13 +178,15 @@ async def plot_monitor(request):
 
 		if type_ == 'system':
 			res = draw_data_from_db(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
+			if res['code'] == 0:
+				raise Exception(res['message'])
 			return aiohttp_jinja2.render_template('figure.html', request, context={
 						'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
 						'line99': res['line99'], 'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1})
 
 	except Exception as err:
 		logger.error(err)
-		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': traceback.format_exc()})
+		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
 
 
 async def get_port_disk(request):

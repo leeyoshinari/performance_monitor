@@ -41,7 +41,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             'io': [],
             'disk': disk}
 
-        res = {}
+        res = {'code': 1, 'message': None}
 
         connection = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
                                              cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)   # 创建数据库连接
@@ -67,7 +67,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['mem'].append(data['mem'])
                     post_data['jvm'].append(data['jvm'])
             else:
-                raise Exception(f'未查询到端口{port}的监控数据，请检查端口是否已监控，或者时间设置是否正确！')
+                res['message'] = f'未查询到端口{port}的监控数据，请检查端口是否已监控，或者时间设置是否正确！'
+                res['code'] = 0
 
             if disk:  # 读取磁盘IO数据
                 sql = f"select {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
@@ -77,7 +78,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                         post_data['io_time'].append(data['time'])
                         post_data['io'].append(float(data[disk]))
                 else:
-                    raise Exception('未查询到监控数据，请检查时间设置！')
+                    res['message'] = '未查询到监控数据，请检查磁盘号，或者时间设置！'
+                    res['code'] = 0
 
         if pid:     # 读取和进程号相关的CPU使用率、内存使用大小和jvm变化数据
             pass
@@ -95,7 +97,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
                 post_data['io_time'] = post_data['cpu_time']
             else:
-                raise Exception('未查询到监控数据，请检查时间设置！')
+                res['message'] = '未查询到系统监控数据，请检查磁盘号，或者时间设置！'
+                res['code'] = 0
 
         img = draw(post_data)  # 画图
         res.update(img)
@@ -110,6 +113,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         del connection
         del post_data
         logger.error(err)
+        return res
 
 
 def draw(data):

@@ -436,7 +436,7 @@ class PerMon(object):
         post_data = {
             'host': cfg.IP,
             'port': cfg.PORT,
-            'disks': '-'.join(self.all_disk)
+            'disks': ','.join(self.all_disk)
         }
 
         clear_time = time.time()

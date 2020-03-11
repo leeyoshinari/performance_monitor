@@ -34,7 +34,7 @@ class Master(object):
 		hosts = value.split('+')
 		ip = hosts[0].split(':')[0]
 		port = hosts[0].split(':')[1]
-		disks = hosts[2].split('-')
+		disks = hosts[2].split(',')
 		if ip in self._slaves['ip']:
 			logger.info(f'{ip}服务器已注册')
 			pass
