@@ -205,27 +205,26 @@ class PerMon(object):
         line = [{'measurement': cfg.IP,
                  'fields': {
                      'type': 'system',
-                     'cpu': 0,
-                     'mem': 0,
+                     'cpu': 0.0,
+                     'mem': 0.0,
                  }}]
         for disk in self.all_disk:
-            line[0]['fields'].update({disk: 0})
+            # 系统磁盘号目前发现2种格式，分别是'sda'和'sda-1'，因为influxdb查询时，无法识别'-'，故replace。其他格式的待验证
+            disk_n = disk.replace('-', '')
+            line[0]['fields'].update({disk_n: 0.0})
 
         while True:
             if self.is_system == 1:     # 开始监控
                 disk, cpu, mem = self.get_system_cpu_io()   # 获取系统CPU、内存和磁盘IO
-                if disk:
+
+                if disk and cpu is not None and mem is not None:
                     for k, v in disk.items():
                         line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
-                else:
-                    for disk in self.all_disk:
-                        line[0]['fields'][disk] = '0'
 
-                if cpu is not None and mem is not None:
                     line[0]['fields']['cpu'] = cpu
                     line[0]['fields']['mem'] = mem
                     self.client.write_points(line)    # 写cpu和内存到数据库
-                    logger.info(f'system: CpuAndMem,{cpu},{mem}')
+                    logger.info(f'system: CpuAndMem,{cpu},{mem},{disk}')
 
                     if mem <= cfg.MIN_MEM:
                         logger.warning(f'当前系统剩余内存为{mem}G，内存过低')
@@ -337,7 +336,8 @@ class PerMon(object):
                 if 'Device' in disk_res[i]:
                     for j in range(i+1, len(disk_res)):     # 遍历所有磁盘
                         disk_line = disk_res[j].strip().split(' ')
-                        disk.update({disk_line[0]: disk_line[-1]})  # 将每个磁盘的IO以字典的形式保存
+                        disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
+                        disk.update({disk_num: disk_line[-1]})  # 将每个磁盘的IO以字典的形式保存
 
                     continue
 

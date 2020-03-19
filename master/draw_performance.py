@@ -71,12 +71,13 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                 res['code'] = 0
 
             if disk:  # 读取磁盘IO数据
-                sql = f"select {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+                disk_n = disk.replace('-', '')
+                sql = f"select {disk_n} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
                 datas = connection.query(sql)
                 if datas:
                     for data in datas.get_points():
                         post_data['io_time'].append(data['time'])
-                        post_data['io'].append(float(data[disk]))
+                        post_data['io'].append(float(data[disk_n]))
                 else:
                     res['message'] = '未查询到监控数据，请检查磁盘号，或者时间设置！'
                     res['code'] = 0
@@ -85,7 +86,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             pass
 
         if system and disk:      # 读取整个系统的CPU使用率、剩余内存大小
-            sql = f"select cpu, mem, {disk} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+            disk_n = disk.replace('-', '')
+            sql = f"select cpu, mem, {disk_n} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
@@ -93,7 +95,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['cpu_time'].append(data['time'])
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
-                    post_data['io'].append(float(data[disk]))
+                    post_data['io'].append(float(data[disk_n]))
 
                 post_data['io_time'] = post_data['cpu_time']
             else:
