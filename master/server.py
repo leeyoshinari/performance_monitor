@@ -29,7 +29,8 @@ async def index(request):
 	:return:
 	"""
 	return aiohttp_jinja2.render_template('home.html', request, context={
-		'ip': master.slaves['ip'], 'port': master.slaves['port'], 'time': master.slaves['time']})
+		'ip': master.slaves['ip'], 'port': master.slaves['port'], 'system': master.slaves['system'],
+		'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'time': master.slaves['time']})
 
 
 async def start_monitor(request):
@@ -68,8 +69,19 @@ async def registers(request):
 	logger.debug(f'注册接口请求参数为{data}')
 	host = data.get('host')     # 客户端服务器IP
 	port = data.get('port')     # 客户端启用的端口号
+	system = data.get('system')
+	cpu = data.get('cpu')
+	mem = data.get('mem')
 	disks = data.get('disks')   # 客户端服务器磁盘号
-	master.slaves = f"{host}:{port}+{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}+{disks}"
+	master.slaves = {
+		'host': host,
+		'port': port,
+		'system': system,
+		'cpu': cpu,
+		'mem': mem,
+		'disk': disks,
+		'time': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+	}
 	return web.json_response({'code': 0, 'msg': '注册成功!', 'data': None})
 
 

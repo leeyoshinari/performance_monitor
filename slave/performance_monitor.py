@@ -2,6 +2,7 @@
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 import os
+import re
 import time
 import queue
 import threading
@@ -21,10 +22,12 @@ class PerMon(object):
         self.interval = int(cfg.INTERVAL)   # 每次执行监控命令的时间间隔
         self.error_times = cfg.ERROR_TIMES  # 执行命令失败次数
 
+        self.system_version = ''   # 系统版本
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
         self.all_disk = []  # 磁盘号
 
+        self.get_system_version()
         self.get_cpu_cores()
         self.get_total_mem()
         self.get_disks()
@@ -397,6 +400,24 @@ class PerMon(object):
 
         logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
 
+    def get_system_version(self):
+        """
+        获取系统发行版本或内核版本
+        :return:
+        """
+        try:
+            result = os.popen('cat /etc/redhat-release').readlines()    # 获取系统发行版本
+            if result:
+                self.system_version = result[0].strip()
+            else:
+                result = os.popen('cat /proc/version').readlines()[0]   # 获取系统内核版本
+                res = re.findall("gcc.*\((.*?)\).*GCC", result.strip())
+                self.system_version = res[0]
+        except Exception as err:
+            logger.error(err)
+
+        logger.info(f'当前系统发行/内核版本为{self.system_version}')
+
     def clear_port(self):
         """
         清理系统存储的已经停止监控超过86400s的端口信息
@@ -436,6 +457,9 @@ class PerMon(object):
         post_data = {
             'host': cfg.IP,
             'port': cfg.PORT,
+            'system': self.system_version,
+            'cpu': self.cpu_cores,
+            'mem': round(self.total_mem*100, 2),
             'disks': ','.join(self.all_disk)
         }
 

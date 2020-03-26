@@ -20,7 +20,7 @@ async def index(request):
 	:return:
 	"""
 	return web.Response(
-		body=f'当前服务器CPU核数为{permon.cpu_cores}，总内存为{permon.total_mem * 100}G，共有{len(permon.all_disk)}个磁盘，'
+		body=f'当前服务器系统版本为{permon.system_version}，CPU核数为{permon.cpu_cores}，总内存为{permon.total_mem * 100}G，共有{len(permon.all_disk)}个磁盘，'
 		f'磁盘号分别为{"、".join(permon.all_disk)}。')
 
 

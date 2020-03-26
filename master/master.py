@@ -13,7 +13,7 @@ from request import Request
 class Master(object):
 	def __init__(self):
 		self.request = Request()
-		self._slaves = {'ip': [], 'port': [], 'time': [], 'disk': []}
+		self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': []}
 
 		# 设置数据库过期时间
 		conn = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
@@ -31,18 +31,18 @@ class Master(object):
 	@slaves.setter
 	def slaves(self, value):
 		logger.debug(f'客户端注册数据为{value}')
-		hosts = value.split('+')
-		ip = hosts[0].split(':')[0]
-		port = hosts[0].split(':')[1]
-		disks = hosts[2].split(',')
+		ip = value['host']
 		if ip in self._slaves['ip']:
 			logger.info(f'{ip}服务器已注册')
 			pass
 		else:
-			self._slaves['ip'].append(ip)
-			self._slaves['port'].append(port)
-			self._slaves['time'].append(hosts[1])
-			self._slaves['disk'].append(disks)
+			self._slaves['ip'].append(value['host'])
+			self._slaves['port'].append(value['port'])
+			self._slaves['system'].append(value['system'])
+			self._slaves['cpu'].append(value['cpu'])
+			self._slaves['mem'].append(value['mem'])
+			self._slaves['time'].append(value['time'])
+			self._slaves['disk'].append(value['disk'])
 			logger.info(f'{ip}服务器注册成功')
 
 	def check_status(self):
@@ -61,6 +61,9 @@ class Master(object):
 					else:
 						ip = self._slaves['ip'].pop(i)
 						self._slaves['port'].pop(i)
+						self._slaves['system'].pop(i)
+						self._slaves['cpu'].pop(i)
+						self._slaves['mem'].pop(i)
 						self._slaves['time'].pop(i)
 						self._slaves['disk'].pop(i)
 						logger.warning(f"客户端{ip}服务器状态异常，已下线")
@@ -70,6 +73,9 @@ class Master(object):
 					logger.error(err)
 					ip = self._slaves['ip'].pop(i)
 					self._slaves['port'].pop(i)
+					self._slaves['system'].pop(i)
+					self._slaves['cpu'].pop(i)
+					self._slaves['mem'].pop(i)
 					self._slaves['time'].pop(i)
 					self._slaves['disk'].pop(i)
 					logger.warning(f"客户端{ip}服务器状态异常，已下线")

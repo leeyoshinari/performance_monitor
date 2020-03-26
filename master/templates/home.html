@@ -8,11 +8,17 @@
     <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
         <tr style="align: center; margin: auto; background-color: #99CCFF">
             <th style="text-align: center;">服务器</th>
+            <th style="text-align: center;">系统版本</th>
+            <th style="text-align: center;">cpu核数</th>
+            <th style="text-align: center;">内存大小</th>
             <th style="text-align: center;">注册时间</th>
         </tr>
         {% for host in ip %}
             <tr align="center">
                 <td>{{ ip[loop.index0] }}:{{ port[loop.index0] }}</td>
+                <td>{{ system[loop.index0] }}</td>
+                <td>{{ cpu[loop.index0] }}核</td>
+                <td>{{ mem[loop.index0] }}G</td>
                 <td>{{ time[loop.index0] }}</td>
             </tr>
         {% endfor %}
