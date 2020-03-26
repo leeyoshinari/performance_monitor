@@ -42,7 +42,7 @@ class Master(object):
 			self._slaves['cpu'].append(value['cpu'])
 			self._slaves['mem'].append(value['mem'])
 			self._slaves['time'].append(value['time'])
-			self._slaves['disk'].append(value['disk'])
+			self._slaves['disk'].append(value['disk'].split(','))
 			logger.info(f'{ip}服务器注册成功')
 
 	def check_status(self):
