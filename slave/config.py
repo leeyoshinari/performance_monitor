@@ -41,8 +41,3 @@ class Config(object):
 
 	def __del__(self):
 		pass
-
-
-if __name__ == '__main__':
-	c = Config()
-	print(c.getEmail('smtp'))
