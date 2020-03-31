@@ -4,12 +4,13 @@
 
 import os
 import logging.handlers
-import config as cfg
+from config import Config
 
 
-LEVEL = cfg.LEVEL
-backupcount = cfg.BACKUP_COUNT
-log_path = cfg.LOG_PATH
+cfg = Config()
+LEVEL = cfg.getLogging('level')
+backupcount = cfg.getLogging('backupCount')
+log_path = cfg.getLogging('logPath')
 
 if not os.path.exists(log_path):
 	os.mkdir(log_path)

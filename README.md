@@ -25,7 +25,7 @@
    git clone https://github.com/leeyoshinari/performance_monitor.git
    ```
 
-2. 分别修改master和slave文件夹里的配置文件 `config.py`.
+2. 分别修改master和slave文件夹里的配置文件 `config.ini`.
    
 5. 运行
    ```shell

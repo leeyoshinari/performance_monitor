@@ -10,8 +10,7 @@ import jinja2
 import aiohttp_jinja2
 from aiohttp import web
 
-import config as cfg
-from logger import logger
+from logger import logger, cfg
 from master import Master
 from Email import sendEmail
 from request import Request
@@ -40,8 +39,6 @@ async def start_monitor(request):
 	:return:
 	"""
 	monitor_list = master.get_monitor()
-	# logger.info(data)
-	#monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
 	return aiohttp_jinja2.render_template('runMonitor.html', request, context={
 		'ip': master.slaves['ip'], 'foos': monitor_list, 'run_status': ['已停止', '监控中', '排队中']})
 
@@ -250,7 +247,7 @@ async def main():
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	site = web.TCPSite(runner, cfg.IP, cfg.PORT)
+	site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
 	await site.start()
 
 

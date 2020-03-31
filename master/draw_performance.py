@@ -13,9 +13,7 @@ you have disconnected the x-server that was available when you started the simul
 '''
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
-import config as cfg
-from logger import logger
+from logger import logger, cfg
 
 
 def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None, system=None, disk=None):
@@ -43,8 +41,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
         res = {'code': 1, 'message': None}
 
-        connection = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
-                                             cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)   # 创建数据库连接
+        connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
+                                             cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
 
         if start_time and end_time:     # 如果存在开始时间和结束时间
             startTime = local2utc(start_time)

@@ -5,8 +5,7 @@ import time
 import json
 import threading
 import influxdb
-import config as cfg
-from logger import logger
+from logger import logger, cfg
 from request import Request
 
 
@@ -16,10 +15,10 @@ class Master(object):
 		self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': []}
 
 		# 设置数据库过期时间
-		conn = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
-		                               cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)
-		conn.query(f'alter retention policy "autogen" on "{cfg.INFLUX_DATABASE}" duration {cfg.EXPIRY_TIME}w default;')
-		logger.info(f'设置数据过期时间为{cfg.EXPIRY_TIME}周。')
+		conn = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
+		                               cfg.getInflux('password'), cfg.getInflux('database'))
+		conn.query(f'alter retention policy "autogen" on "{cfg.getInflux("database")}" duration {cfg.getInflux("expiryTime")}w default;')
+		logger.info(f'设置数据过期时间为{cfg.getInflux("expiryTime")}周。')
 
 		t = threading.Thread(target=self.check_status, args=())  # 开启线程，检查已经注册的客户端是否在线
 		t.start()

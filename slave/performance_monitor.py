@@ -10,17 +10,17 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import influxdb
-import config as cfg
-from logger import logger
+from config import Config
+from logger import logger, cfg
 
 
 class PerMon(object):
     def __init__(self):
-        self.IP = cfg.IP
+        self.IP = cfg.getServer('host')
         self.is_system = 0    # 是否监控系统CPU和内存, 0为不监控, 1为监控.
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': [], 'stopTime': []}   # 端口号、进程号、监控状态、开始监控时间
-        self.interval = int(cfg.INTERVAL)   # 每次执行监控命令的时间间隔
-        self.error_times = cfg.ERROR_TIMES  # 执行命令失败次数
+        self.interval = cfg.getMonitor('interval')   # 每次执行监控命令的时间间隔
+        self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
 
         self.system_version = ''   # 系统版本
         self.cpu_cores = 0  # CPU核数
@@ -33,10 +33,10 @@ class PerMon(object):
         self.get_disks()
 
         self.monitor_task = queue.Queue()   # 创建一个FIFO队列
-        self.executor = ThreadPoolExecutor(cfg.THREAD_NUM+1)  # 创建线程池
+        self.executor = ThreadPoolExecutor(cfg.getServer('threadPool')+1)  # 创建线程池
 
-        self.client = influxdb.InfluxDBClient(cfg.INFLUX_IP, cfg.INFLUX_PORT, cfg.INFLUX_USERNAME,
-                                              cfg.INFLUX_PASSWORD, cfg.INFLUX_DATABASE)   # 创建数据库连接
+        self.client = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
+                                              cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
 
         self.FGC = {}           # 每个端口的full gc次数
         self.FGC_time = {}      # 每个端口每次full gc的时间
@@ -109,7 +109,7 @@ class PerMon(object):
         开始监控
         :return:
         """
-        for i in range(cfg.THREAD_NUM+1):
+        for i in range(cfg.getServer('threadPool')+1):
             self.executor.submit(self.worker)   # 启动线程池监控任务
 
         self.monitor_task.put((self.register_and_clear_port, 1))    # 将注册和清理任务放入队列中
@@ -129,7 +129,7 @@ class PerMon(object):
         port = self._msg['port'][index]
         pid = self._msg['pid'][index]
 
-        line = [{'measurement': cfg.IP,
+        line = [{'measurement': self.IP,
                  'fields': {
                      'type': str(port),
                      'cpu': 0,
@@ -160,7 +160,7 @@ class PerMon(object):
                                     logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
                                     break
 
-                                time.sleep(cfg.SLEEPTIME)
+                                time.sleep(cfg.getMonitor('sleepTime'))
                                 continue
                             else:   # 如果没有端口号，说明监控的直接是进程号
                                 # 如果连续执行监控命令失败的次数大于设置值，则停止监控
@@ -172,7 +172,7 @@ class PerMon(object):
 
                                 run_error += 1  # 执行命令失败次数加1
                                 logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')
-                                time.sleep(cfg.SLEEPTIME)
+                                time.sleep(cfg.getMonitor('sleepTime'))
                                 continue
 
                         jvm = self.get_jvm(port, pid)     # 获取JVM内存
@@ -187,7 +187,7 @@ class PerMon(object):
 
                     except Exception as err:
                         logger.error(err)
-                        time.sleep(cfg.SLEEPTIME)
+                        time.sleep(cfg.getMonitor('sleepTime'))
                         continue
 
             if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
@@ -205,7 +205,7 @@ class PerMon(object):
         flag = True     # 控制是否邮件通知标志
         echo = True     # 控制是否清理缓存标志
 
-        line = [{'measurement': cfg.IP,
+        line = [{'measurement': self.IP,
                  'fields': {
                      'type': 'system',
                      'cpu': 0.0,
@@ -229,13 +229,13 @@ class PerMon(object):
                     self.client.write_points(line)    # 写cpu和内存到数据库
                     logger.info(f'system: CpuAndMem,{cpu},{mem},{disk}')
 
-                    if mem <= cfg.MIN_MEM:
+                    if mem <= cfg.getMonitor('minMem'):
                         logger.warning(f'当前系统剩余内存为{mem}G，内存过低')
-                        if cfg.IS_MEM_ALERT and flag:
+                        if cfg.getMonitor('isMemAlert') and flag:
                             flag = False    # 标志符置为False，防止连续不断的发送邮件
                             notification(msg=f'{self.IP} 当前系统剩余内存为{mem}G，内存过低')     # 发送邮件通知
 
-                        if cfg.ECHO and echo:
+                        if cfg.getMonitor('echo') and echo:
                             echo = False    # 标志符置为False，防止连续不断的清理缓存
                             thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
                             thread.start()
@@ -295,9 +295,9 @@ class PerMon(object):
                 self.FGC_time[str(port)].append(time.time())
                 if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
                     frequency = (self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][0]) / self.FGC[str(port)]
-                    if frequency < cfg.FGC_FREQUENCY:    # 如果FGC频率大于设置值，则发送邮件提醒
+                    if frequency < cfg.getMonitor('frequencyFGC'):    # 如果FGC频率大于设置值，则发送邮件提醒
                         logger.warning(f'{port}端口的Full GC频率为{frequency}.')
-                        if cfg.IS_JVM_ALERT:
+                        if cfg.getMonitor('isJvmAlert'):
                             notification(msg=f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.')
 
                 # 将FGC次数和时间写到日志
@@ -447,7 +447,7 @@ class PerMon(object):
         :param
         :return:
         """
-        url = f'http://{cfg.SERVER_IP}:{cfg.SERVER_PORT}/Register'
+        url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
 
         header = {
             "Accept": "application/json, text/plain, */*",
@@ -455,8 +455,8 @@ class PerMon(object):
             "Content-Type": "application/json; charset=UTF-8"}
 
         post_data = {
-            'host': cfg.IP,
-            'port': cfg.PORT,
+            'host': self.IP,
+            'port': cfg.getServer('port'),
             'system': self.system_version,
             'cpu': self.cpu_cores,
             'mem': round(self.total_mem*100, 2),
@@ -481,8 +481,8 @@ class PerMon(object):
         清理缓存
         :return:
         """
-        logger.info(f'开始清理缓存：echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
-        os.popen(f'echo {cfg.ECHO} >/proc/sys/vm/drop_caches')
+        logger.info(f'开始清理缓存：echo {cfg.getMonitor("echo")} >/proc/sys/vm/drop_caches')
+        os.popen(f'echo {cfg.getMonitor("echo")} >/proc/sys/vm/drop_caches')
         logger.info('清理缓存成功')
 
     def __del__(self):
@@ -511,41 +511,13 @@ def port_to_pid(port):
     return pid
 
 
-def register(disks):
-    """
-    向服务端注册本机
-    :param disks: 磁盘号
-    :return:
-    """
-    url = f'http://{cfg.SERVER_IP}:{cfg.SERVER_PORT}/Register'
-
-    header = {
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Encoding": "gzip, deflate",
-        "Content-Type": "application/json; charset=UTF-8"}
-
-    post_data = {
-        'host': cfg.IP,
-        'port': cfg.PORT,
-        'disks': '-'.join(disks)
-    }
-
-    while True:
-        try:
-            res = requests.post(url=url, json=post_data, headers=header)
-        except Exception as err:
-            logger.error(err)
-
-        time.sleep(5)
-
-
 def notification(msg=None):
     """
     发送邮件通知
     :param msg: 邮件正文信息
     :return:
     """
-    url = f'http://{cfg.SERVER_IP}:{cfg.SERVER_PORT}/Notification'
+    url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Notification'
 
     header = {
         "Accept": "application/json, text/plain, */*",
@@ -553,7 +525,7 @@ def notification(msg=None):
         "Content-Type": "application/json; charset=UTF-8"}
 
     post_data = {
-        'host': cfg.IP,
+        'host': cfg.getServer('host'),
         'msg': msg
     }
 

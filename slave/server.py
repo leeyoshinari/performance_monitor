@@ -6,8 +6,7 @@ import os
 import asyncio
 from aiohttp import web
 
-import config as cfg
-from logger import logger
+from logger import logger, cfg
 from performance_monitor import PerMon, port_to_pid
 
 permon = PerMon()
@@ -36,7 +35,7 @@ async def run_monitor(request):
 		port = data.get('port')
 		is_run = data.get('isRun')
 
-		if host == cfg.IP:
+		if host == cfg.getServer('host'):
 			if port:
 				pid = port_to_pid(port)     # 根据端口号查询进程号
 				if pid is None:
@@ -73,7 +72,7 @@ async def run_monitor(request):
 	except Exception as err:
 		logger.error(err)
 		return web.json_response({
-			'code': 2, 'msg': err, 'data': {'host': cfg.IP, 'port': None, 'pid': None}})
+			'code': 2, 'msg': err, 'data': {'host': cfg.getServer('host'), 'port': None, 'pid': None}})
 
 
 async def get_monitor(request):
@@ -84,7 +83,7 @@ async def get_monitor(request):
 	"""
 	data = await request.json()
 	host = data.get('host')
-	if host == cfg.IP:
+	if host == cfg.getServer('host'):
 		msg = permon.start
 		if len(msg['port']) > 0:    # 是否监控过端口
 			data = {'host': [host]*len(msg['port'])}
@@ -161,7 +160,7 @@ async def main():
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	site = web.TCPSite(runner, cfg.IP, cfg.PORT)
+	site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
 	await site.start()
 
 

@@ -5,8 +5,7 @@ import smtplib
 import socket
 from email.header import Header
 from email.mime.text import MIMEText
-import config as cfg
-from logger import logger
+from logger import logger, cfg
 
 
 def sendEmail(msg):
@@ -16,12 +15,12 @@ def sendEmail(msg):
     :return:
     """
     try:
-        sender_name = cfg.SENDER_NAME
-        sender_email = cfg.SENDER_EMAIL
-        receiver_name = cfg.RECEIVER_NAME
-        receiver_email = cfg.RECEIVER_EMAIL
-        password = cfg.PASSWORD
-        host = cfg.SMTP_SERVER
+        sender_name = cfg.getEmail('senderNmae')
+        sender_email = cfg.getEmail('senderEmail')
+        receiver_name = cfg.getEmail('receiverName')
+        receiver_email = cfg.getEmail('receiverEmail')
+        password = cfg.getEmail('password')
+        host = cfg.getEmail('SMTP')
 
         subject = '系统监控通知'
         s = "{0}".format(msg)
