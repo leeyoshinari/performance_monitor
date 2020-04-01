@@ -26,13 +26,15 @@
    ```
 
 2. 分别修改master和slave文件夹里的配置文件 `config.ini`.
+
+3. 部署InfluxDB数据库.
    
-5. 运行
+4. 运行
    ```shell
    nohup python3 server.py &
    ```
 
-6. 页面访问<br>
+5. 页面访问<br>
    （1）从机（客户端）启动后，输入`http://ip:port`可以看到页面显示服务器的CPU核数、总内存和磁盘号<br>
    ![slave home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/slave.jpg)
    
@@ -45,6 +47,39 @@
    （4）主机（服务端）启动后，输入`http://ip:port/Visualize`可以看到可视化页面；点击画图按钮，即可将指定服务器上的指定端口的监控数据可视化<br>
    ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/visual.jpg)
    
+## 打包
+pyinstaller既可以将python脚本打包成Windows环境下的可执行文件，也可以打包成Linux环境下的可执行文件。打包完成后，可快速在其他环境上部署该监控服务，而不需要安装python3.7+环境和第三方包。<br>
+
+pyinstaller安装过程自行百度，下面直接进行打包：<br>
+
+1. 打包master<br>
+    (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
+    (2)进入master文件夹，开始打包：<br>
+    ```shell
+    pyinstaller server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request
+    ```
+    `打包过程可能提示缺少一些模块，请按照提示安装对应的模块`<br>
+    (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist/server`即可找到可执行文件`server`;<br>
+    (4)将配置文件`config.ini`拷贝到`dist/server`文件夹下，并修改配置文件；<br>
+    (5)将模板文件`templates`和静态文件`static`拷贝到`dist/server`文件夹下；<br>
+    (6)将`dist/server`整个文件夹拷贝到其他环境，启动server
+    ```shell
+    nohup ./server &
+    ```
+
+2. 打包slave<br>
+    (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
+    (2)进入slave文件夹，开始打包：<br>
+    ```shell
+    pyinstaller server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config
+    ```
+    (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist/server`即可找到可执行文件`server`;<br>
+    (4)将配置文件`config.ini`拷贝到`dist/server`文件夹下，并修改配置文件；<br>
+    (5)将`dist/server`整个文件夹拷贝到其他环境，启动server
+    ```shell
+    nohup ./server &
+    ```
+
 ## 注意
 1. 服务器必须支持以下命令：`jstat`、`top`、`iostat`、`netstat`、`ps`、`top`，如不支持，请安装。
 

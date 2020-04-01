@@ -9,7 +9,7 @@ from logger import logger, cfg
 from request import Request
 
 
-class Master(object):
+class Process(object):
 	def __init__(self):
 		self.request = Request()
 		self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': []}

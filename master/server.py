@@ -11,13 +11,13 @@ import aiohttp_jinja2
 from aiohttp import web
 
 from logger import logger, cfg
-from master import Master
+from process import Process
 from Email import sendEmail
 from request import Request
 from draw_performance import draw_data_from_db
 
 
-master = Master()
+master = Process()
 http = Request()
 
 
@@ -51,7 +51,11 @@ async def visualize(request):
 	"""
 	starttime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()-3600))
 	endtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-	monitor_list = master.get_monitor(host=master.slaves['ip'][0])
+	# 防止未监控时，访问页面报错
+	if master.slaves['ip']:
+		monitor_list = master.get_monitor(host=master.slaves['ip'][0])
+	else:
+		monitor_list = {'port': []}
 	return aiohttp_jinja2.render_template('visualize.html', request, context={'disks': master.slaves['disk'],
 		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime})
 
