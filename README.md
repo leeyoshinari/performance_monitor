@@ -92,7 +92,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 1. aiohttp>=3.6.2
 2. aiohttp_jinja2>=1.2.0
 3. jinja2>=2.10.1
-4. matplotlib>=3.1.0
+4. matplotlib<=3.2.0
 5. influxdb>=5.2.3
 6. requests
 7. Python 3.7+
