@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import influxdb
-from config import Config
 from logger import logger, cfg
 
 
@@ -158,7 +157,6 @@ class PerMon(object):
                                     self._msg['isRun'][index] = 0
                                     self._msg['stopTime'][index] = time.time()
                                     logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
-                                    break
 
                                 time.sleep(cfg.getMonitor('sleepTime'))
                                 continue
@@ -168,7 +166,6 @@ class PerMon(object):
                                     self._msg['isRun'][index] = 0
                                     self._msg['stopTime'][index] = time.time()
                                     logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
-                                    break
 
                                 run_error += 1  # 执行命令失败次数加1
                                 logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')
@@ -188,7 +185,6 @@ class PerMon(object):
                     except Exception as err:
                         logger.error(err)
                         time.sleep(cfg.getMonitor('sleepTime'))
-                        continue
 
             if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
                 self._msg['stopTime'][index] = time.time()
@@ -426,7 +422,7 @@ class PerMon(object):
         pop_list = []
         for ind in range(len(self._msg['port'])):
             if self._msg['isRun'][ind] == 0 and self._msg['stopTime'][ind]:
-                if time.time() - self._msg['stopTime'][ind] > 86400:
+                if time.time() - self._msg['stopTime'][ind] > 7200:
                     pop_list.append(ind)
 
         for ll in pop_list:
@@ -467,7 +463,7 @@ class PerMon(object):
         while True:
             try:
                 res = requests.post(url=url, json=post_data, headers=header)
-                if time.time() - clear_time > 3600:
+                if time.time() - clear_time > 600:
                     self.clear_port()
                     clear_time = time.time()
             except Exception as err:
