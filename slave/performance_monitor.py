@@ -24,12 +24,16 @@ class PerMon(object):
         self.system_version = ''   # 系统版本
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
+        self.nic = ''   # 系统正在使用的网卡
         self.all_disk = []  # 磁盘号
+        self.network_speed = 0  # 系统带宽
 
         self.get_system_version()
         self.get_cpu_cores()
         self.get_total_mem()
+        self.get_system_nic()
         self.get_disks()
+        self.get_system_net_speed()
 
         self.monitor_task = queue.Queue()   # 创建一个FIFO队列
         self.executor = ThreadPoolExecutor(cfg.getServer('threadPool')+1)  # 创建线程池
@@ -206,6 +210,9 @@ class PerMon(object):
                      'type': 'system',
                      'cpu': 0.0,
                      'mem': 0.0,
+                     'rec': 0.0,
+                     'trans': 0.0,
+                     'net': 0.0
                  }}]
         for disk in self.all_disk:
             # 系统磁盘号目前发现2种格式，分别是'sda'和'sda-1'，因为influxdb查询时，无法识别'-'，故replace。其他格式的待验证
@@ -214,22 +221,25 @@ class PerMon(object):
 
         while True:
             if self.is_system == 1:     # 开始监控
-                disk, cpu, mem = self.get_system_cpu_io()   # 获取系统CPU、内存和磁盘IO
+                res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
 
-                if disk and cpu is not None and mem is not None:
-                    for k, v in disk.items():
+                if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
+                    for k, v in res['disk'].items():
                         line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
 
-                    line[0]['fields']['cpu'] = cpu
-                    line[0]['fields']['mem'] = mem
+                    line[0]['fields']['cpu'] = res['cpu']
+                    line[0]['fields']['mem'] = res['mem']
+                    line[0]['fields']['rec'] = res['rece']
+                    line[0]['fields']['trans'] = res['trans']
+                    line[0]['fields']['net'] = res['network']
                     self.client.write_points(line)    # 写cpu和内存到数据库
-                    logger.info(f'system: CpuAndMem,{cpu},{mem},{disk}')
+                    logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
 
-                    if mem <= cfg.getMonitor('minMem'):
-                        logger.warning(f'当前系统剩余内存为{mem}G，内存过低')
+                    if res['mem'] <= cfg.getMonitor('minMem'):
+                        logger.warning(f"当前系统剩余内存为{res['mem']}G，内存过低")
                         if cfg.getMonitor('isMemAlert') and flag:
                             flag = False    # 标志符置为False，防止连续不断的发送邮件
-                            notification(msg=f'{self.IP} 当前系统剩余内存为{mem}G，内存过低')     # 发送邮件通知
+                            notification(msg=f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低")     # 发送邮件通知
 
                         if cfg.getMonitor('echo') and echo:
                             echo = False    # 标志符置为False，防止连续不断的清理缓存
@@ -310,16 +320,28 @@ class PerMon(object):
 
         return mem / 1024 / 1024
 
-    def get_system_cpu_io(self):
+    def get_system_cpu_io_speed(self):
         """
-        获取系统CPU使用率、剩余内存和磁盘IO
-        :return: 磁盘IO，cpu使用率（%），剩余内存（G）
+        获取系统CPU使用率、剩余内存和磁盘IO、网速和网络使用率
+        :return: 磁盘IO，cpu使用率（%），剩余内存（G），网络上行和下行速率，单位 Mb/s
         """
         disk = {}
         cpu = None
         mem = None
+        bps1 = None
+        bps2 = None
+        rece = None
+        trans = None
+        network = None
         try:
+            if self.nic:
+                bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+
             result = os.popen(f'iostat -x -k 1 2 |tr -s " "').readlines()    # 执行命令
+
+            if self.nic:
+                bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+
             result.pop(0)
             disk_res = [l.strip() for l in result if len(l) > 5]
             disk_res = disk_res[int(len(disk_res)/2)-1:]
@@ -343,10 +365,17 @@ class PerMon(object):
             result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]   # 执行命令，获取系统剩余内存
             mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
+            if bps1 and bps2:
+                data1 = bps1[0].split(':')[1].strip().split(' ')
+                data2 = bps2[0].split(':')[1].strip().split(' ')
+                rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
+                trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
+                network = (rece + trans) / self.network_speed
+
         except Exception as err:
             logger.error(err)
 
-        return disk, cpu, mem
+        return {'disk': disk, 'cpu': cpu, 'mem': mem, 'rece': rece, 'trans': trans, 'network': network}
 
     '''def get_handle(pid):
         """
@@ -395,6 +424,54 @@ class PerMon(object):
                     self.all_disk.append(disk_line[0])
 
         logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
+
+    def get_system_nic(self):
+        """
+        获取系统使用的网卡。
+        只能获取一个网卡，如果系统使用多个网卡，只能获取第一个，网卡排序使用 cat /proc/net/dev 查看
+        :return:
+        """
+        network_card = []
+        result = os.popen('cat /proc/net/dev |tr -s " "').readlines()   # 获取网卡
+        time.sleep(1)
+        result1 = os.popen('cat /proc/net/dev |tr -s " "').readlines()  # 一秒后再次获取网卡
+        for i in range(len(result)):
+            if ':' in result[i]:
+                title = result[i].strip().split(':')[0]
+                data = result[i].strip().split(':')[1]
+                title1 = result1[i].strip().split(':')[0]
+                data1 = result1[i].strip().split(':')[1]
+                if title == title1:
+                    rec = data.strip().split(' ')[0]
+                    rec1 = data1.strip().split(' ')[0]
+                    if rec != rec1:     # 如果这个网卡数据有变化，则说明此卡在使用
+                        network_card.append(title)
+
+        if 'lo' in network_card:    # 'lo'卡是本地127.0.0.1，需要去掉
+            network_card.pop(network_card.index('lo'))
+
+        if len(network_card) == 0:  # 获取第一个卡
+            self.nic = network_card[0]
+
+    def get_system_net_speed(self):
+        """
+        获取系统的带宽，单位是 Mbs
+        :return:
+        """
+        if self.nic:
+            result = os.popen(f'ethtool {self.nic}').readlines()
+            for line in result:
+                if 'Speed' in line:
+                    res = re.findall("(\d+)", line)
+                    speed = int(res[0])
+                    if 'G' in line:
+                        speed = speed * 1024
+                    if 'K' in line:
+                        speed = speed / 1024
+
+                    self.network_speed = speed
+
+                    break
 
     def get_system_version(self):
         """
@@ -455,6 +532,7 @@ class PerMon(object):
             'port': cfg.getServer('port'),
             'system': self.system_version,
             'cpu': self.cpu_cores,
+            'nic': self.nic,
             'mem': round(self.total_mem*100, 2),
             'disks': ','.join(self.all_disk)
         }

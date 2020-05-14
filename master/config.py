@@ -14,26 +14,26 @@ class Config(object):
 		self.cfg.read(config_path, encoding='utf-8')
 
 	def getServer(self, key):
-		return self.cfg.get('server', key)
+		return self.cfg.get('server', key, fallback=None)
 
 	def getInflux(self, key):
 		if key == 'expiryTime':
-			return self.cfg.getint('influx', key)
+			return self.cfg.getint('influx', key, fallback=None)
 		else:
-			return self.cfg.get('influx', key)
+			return self.cfg.get('influx', key, fallback=None)
 
 	def getLogging(self, key):
 		if key == 'backupCount':
-			return self.cfg.getint('logging', key)
+			return self.cfg.getint('logging', key, fallback=None)
 		else:
-			return self.cfg.get('logging', key)
+			return self.cfg.get('logging', key, fallback=None)
 
 	def getEmail(self, key):
 		if key == 'receiverEmail':
-			emails = self.cfg.get('email', key)
+			emails = self.cfg.get('email', key, fallback=None)
 			return [a.strip() for a in emails.split(',')]
 		else:
-			return self.cfg.get('email', key)
+			return self.cfg.get('email', key, fallback=None)
 
 	def __del__(self):
 		pass

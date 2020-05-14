@@ -73,6 +73,7 @@ async def registers(request):
 	system = data.get('system')
 	cpu = data.get('cpu')
 	mem = data.get('mem')
+	nic = data.get('nic')
 	disks = data.get('disks')   # 客户端服务器磁盘号
 	master.slaves = {
 		'host': host,
@@ -81,6 +82,7 @@ async def registers(request):
 		'cpu': cpu,
 		'mem': mem,
 		'disk': disks,
+		'nic': nic,
 		'time': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 	}
 	return web.json_response({'code': 0, 'msg': '注册成功!', 'data': None})

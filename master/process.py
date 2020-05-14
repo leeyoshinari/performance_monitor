@@ -12,7 +12,7 @@ from request import Request
 class Process(object):
 	def __init__(self):
 		self.request = Request()
-		self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': []}
+		self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': [], 'nic': []}
 
 		# 设置数据库过期时间
 		conn = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
@@ -42,6 +42,7 @@ class Process(object):
 			self._slaves['mem'].append(value['mem'])
 			self._slaves['time'].append(value['time'])
 			self._slaves['disk'].append(value['disk'].split(','))
+			self._slaves['nic'].append(value['nic'])
 			logger.info(f'{ip}服务器注册成功')
 
 	def check_status(self):
@@ -65,6 +66,7 @@ class Process(object):
 						self._slaves['mem'].pop(i)
 						self._slaves['time'].pop(i)
 						self._slaves['disk'].pop(i)
+						self._slaves['nic'].pop(i)
 						logger.warning(f"客户端{ip}服务器状态异常，已下线")
 						break
 
@@ -77,6 +79,7 @@ class Process(object):
 					self._slaves['mem'].pop(i)
 					self._slaves['time'].pop(i)
 					self._slaves['disk'].pop(i)
+					self._slaves['nic'].pop(i)
 					logger.warning(f"客户端{ip}服务器状态异常，已下线")
 					break
 

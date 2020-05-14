@@ -19,8 +19,7 @@ async def index(request):
 	:return:
 	"""
 	return web.Response(
-		body=f'当前服务器系统版本为{permon.system_version}，CPU核数为{permon.cpu_cores}，总内存为{permon.total_mem * 100}G，共有{len(permon.all_disk)}个磁盘，'
-		f'磁盘号分别为{"、".join(permon.all_disk)}。')
+		body=f'当前服务器系统版本为{permon.system_version}，CPU核数为{permon.cpu_cores}，总内存为{permon.total_mem * 100}G，使用的网卡为{permon.nic}，系统带宽为{permon.network_speed}Mb/s，共有{len(permon.all_disk)}个磁盘，磁盘号分别为{"、".join(permon.all_disk)}。')
 
 
 async def run_monitor(request):
@@ -33,6 +32,7 @@ async def run_monitor(request):
 		data = await request.json()
 		host = data.get('host')
 		port = data.get('port')
+		network = data.get('net')
 		is_run = data.get('isRun')
 
 		if host == cfg.getServer('host'):
@@ -45,7 +45,7 @@ async def run_monitor(request):
 
 				if is_run == '0':   # 如果是停止监控
 					if port in permon.stop['port']:     # 端口是否监控过
-						permon.stop = {'port': port, 'pid': pid, 'is_run': 0}
+						permon.stop = {'port': port, 'pid': pid, 'net': network, 'is_run': 0}
 						logger.info('停止监控成功！')
 						return web.json_response({
 							'code': 0, 'msg': '停止监控成功！', 'data': {'host': host, 'port': port, 'pid': pid}})

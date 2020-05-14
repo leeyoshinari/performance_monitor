@@ -37,6 +37,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             'jvm': [],
             'io_time': [],
             'io': [],
+            'rec': [],
+            'trans': [],
+            'nic': [],
             'disk': disk}
 
         res = {'code': 1, 'message': None}
@@ -70,11 +73,12 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
             if disk:  # 读取磁盘IO数据
                 disk_n = disk.replace('-', '')
-                sql = f"select {disk_n} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+                sql = f"select {disk_n}, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
                 datas = connection.query(sql)
                 if datas:
                     for data in datas.get_points():
                         post_data['io_time'].append(data['time'])
+                        post_data['nic'].append(data['net'])
                         post_data['io'].append(float(data[disk_n]))
                 else:
                     res['message'] = '未查询到监控数据，请检查磁盘号，或者时间设置！'
@@ -85,7 +89,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
         if system and disk:      # 读取整个系统的CPU使用率、剩余内存大小
             disk_n = disk.replace('-', '')
-            sql = f"select cpu, mem, {disk_n} from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+            sql = f"select cpu, mem, {disk_n}, rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
@@ -93,6 +97,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['cpu_time'].append(data['time'])
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
+                    post_data['rec'].append(data['rec'])
+                    post_data['trans'].append(data['trans'])
+                    post_data['nic'].append(data['net'])
                     post_data['io'].append(float(data[disk_n]))
 
                 post_data['io_time'] = post_data['cpu_time']
@@ -103,7 +110,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         img = draw(post_data)  # 画图
         res.update(img)
 
-        lines = get_lines(post_data['cpu'], post_data['io'])      # 计算百分位数，75%、90%、95%、99%
+        lines = get_lines(post_data['cpu'], post_data['io'], post_data['nic'])      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
         del connection
         del post_data
@@ -119,14 +126,6 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 def draw(data):
     """
     画图
-    :param types: 传入数据类型，是和端口号或进程号相关的数据，还是和系统相关的数据
-    :param cpu_time: 每一个cpu数据对应的时间戳
-    :param cpu: CPU使用率(%)
-    :param mem: 内存大小(G)
-    :param jvm: jvm大小(G)
-    :param io_time: 每一个磁盘IO数据对应的时间戳
-    :param io: 磁盘IO(%)
-    :param disk:磁盘号
     :return:
     """
     types = data['types']
@@ -137,10 +136,14 @@ def draw(data):
     io_time = data['io_time']
     io = data['io']
     disk = data['disk']
+    rec = data['rec']
+    trans = data['trans']
+    net = data['nic']
 
     length = len(cpu_time)
     io_length = len(io_time)
-    if min(length, io_length) < 7:  # 画图的最小刻度为7，故必须大于7个数据
+    net_length = len(net)
+    if min(length, io_length, net_length) < 7:  # 画图的最小刻度为7，故必须大于7个数据
         logger.error('数据太少，请稍后再试')
         raise Exception('当前数据太少，请稍后再试')
 
@@ -171,10 +174,11 @@ def draw(data):
         io_start_time = time.mktime(datetime.datetime.strptime(io_time[0].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
         io_end_time = time.mktime(datetime.datetime.strptime(io_time[-1].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
 
-        fig = plt.figure('figure', figsize=(20, 15))
-        ax1 = plt.subplot(3, 1, 1)
-        ax2 = plt.subplot(3, 1, 2)
-        ax3 = plt.subplot(3, 1, 3)
+        fig = plt.figure('figure', figsize=(20, 20))
+        ax1 = plt.subplot(4, 1, 1)
+        ax2 = plt.subplot(4, 1, 2)
+        ax3 = plt.subplot(4, 1, 3)
+        ax4 = plt.subplot(4, 1, 4)
 
         # 画CPU使用率
         plt.sca(ax1)
@@ -207,6 +211,25 @@ def draw(data):
         plt.title('IO({}), max:{:.2f}%, duration:{:.1f}h'.format(disk, max(io), (io_end_time - io_start_time) / 3600), size=12)
         plt.xticks(index[1], labels[1])
         plt.margins(0, 0)
+
+        # 画带宽图
+        plt.sca(ax4)
+        plt.plot(rec, color='block', linewidth=1, label='rMbs')
+        plt.plot(trans, color='b', linewidth=1, label='tMbs')
+        plt.legend(loc='upper left')
+        plt.grid()
+        plt.xlim(0, len(rec))
+        plt.ylim(0, max(max(rec), max(trans)))
+        plt.title('NetWork, Rmax:{:.2f}Mb/s, Tmax:{:.2f}Mb/s, NetWork:{:.2f}%, duration:{:.1f}h'.format(
+            max(rec), max(trans), max(net), (cpu_end_time - cpu_start_time) / 3600), size=12)
+        plt.xticks(index[0], labels[0])
+        plt.margins(0, 0)
+
+        ax_net = ax4.twinx()
+        plt.sca(ax_net)
+        plt.plot(net, color='red', linewidth=1, labels='%net')
+        plt.legend(loc='upper right')
+        plt.ylim(0, max(net))
 
     else:
         fig = plt.figure('figure', figsize=(20, 10))
@@ -251,7 +274,7 @@ def draw(data):
     return {'img': img}
 
 
-def get_lines(cpu, dutil):
+def get_lines(cpu, dutil, nic):
     """
     计算cpu和磁盘IO的百分位数
     :param cpu: CPU使用率(%)
@@ -260,11 +283,12 @@ def get_lines(cpu, dutil):
     """
     cpu.sort()      # 排序
     dutil.sort()
+    nic.sort()
 
-    line75 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)])
-    line90 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)])
-    line95 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)])
-    line99 = 'CPU: {:.2f}%, util: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)])
+    line75 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)], nic[int(len(nic) * 0.75)])
+    line90 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)], nic[int(len(nic) * 0.90)])
+    line95 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)], nic[int(len(nic) * 0.95)])
+    line99 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)], nic[int(len(nic) * 0.99)])
 
     return {'line75': line75, 'line90': line90, 'line95': line95, 'line99': line99}
 
