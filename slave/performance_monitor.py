@@ -450,7 +450,7 @@ class PerMon(object):
         if 'lo' in network_card:    # 'lo'卡是本地127.0.0.1，需要去掉
             network_card.pop(network_card.index('lo'))
 
-        if len(network_card) == 0:  # 获取第一个卡
+        if len(network_card) > 0:  # 获取第一个卡
             self.nic = network_card[0]
             logger.info(f'当前服务器使用的网卡为{self.nic}')
         else:
