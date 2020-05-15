@@ -370,7 +370,7 @@ class PerMon(object):
                 data2 = bps2[0].split(':')[1].strip().split(' ')
                 rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
                 trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
-                network = (rece + trans) / self.network_speed
+                network = 100 * (rece + trans) / self.network_speed
 
         except Exception as err:
             logger.error(err)
@@ -452,6 +452,9 @@ class PerMon(object):
 
         if len(network_card) == 0:  # 获取第一个卡
             self.nic = network_card[0]
+            logger.info(f'当前服务器使用的网卡为{self.nic}')
+        else:
+            logger.warning('当前服务器网卡未找到')
 
     def get_system_net_speed(self):
         """
