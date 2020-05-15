@@ -214,8 +214,8 @@ def draw(data):
 
         # 画带宽图
         plt.sca(ax4)
-        plt.plot(rec, color='orange', linewidth=1, label='rMbs')
-        plt.plot(trans, color='blue', linewidth=1, label='tMbs')
+        plt.plot(rec, color='orange', linewidth=0.5, label='rMbs')
+        plt.plot(trans, color='blue', linewidth=0.5, label='tMbs')
         plt.legend(loc='upper left')
         plt.grid()
         plt.xlim(0, len(rec))
@@ -227,7 +227,7 @@ def draw(data):
 
         ax_net = ax4.twinx()
         plt.sca(ax_net)
-        plt.plot(net, color='red', linewidth=1, label='%net')
+        plt.plot(net, color='red', linewidth=0.5, label='%net')
         plt.legend(loc='upper right')
         plt.ylim(0, max(net))
 
