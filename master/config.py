@@ -30,7 +30,7 @@ class Config(object):
 
 	def getEmail(self, key):
 		if key == 'receiverEmail':
-			emails = self.cfg.get('email', key, fallback=None)
+			emails = self.cfg.get('email', key, fallback='')
 			return [a.strip() for a in emails.split(',')]
 		else:
 			return self.cfg.get('email', key, fallback=None)

@@ -20,6 +20,14 @@ class PerMon(object):
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': [], 'stopTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.interval = cfg.getMonitor('interval')   # 每次执行监控命令的时间间隔
         self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
+        self.sleepTime = cfg.getMonitor('sleepTime')
+        self.maxCPU = cfg.getMonitor('maxCPU')
+        self.isCPUAlert = cfg.getMonitor('isCPUAlert')
+        self.minMem = cfg.getMonitor('minMem')
+        self.isMemAlert = cfg.getMonitor('isMemAlert')
+        self.frequencyFGC = cfg.getMonitor('frequencyFGC')
+        self.isJvmAlert = cfg.getMonitor('isJvmAlert')
+        self.echo = cfg.getMonitor('echo')
 
         self.system_version = ''   # 系统版本
         self.cpu_cores = 0  # CPU核数
@@ -43,6 +51,8 @@ class PerMon(object):
 
         self.FGC = {}           # 每个端口的full gc次数
         self.FGC_time = {}      # 每个端口每次full gc的时间
+
+        self.last_cpu_io = []   # 最近一段时间的cpu的值，约100s
 
         self.monitor()
 
@@ -162,7 +172,7 @@ class PerMon(object):
                                     self._msg['stopTime'][index] = time.time()
                                     logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
 
-                                time.sleep(cfg.getMonitor('sleepTime'))
+                                time.sleep(self.sleepTime)
                                 continue
                             else:   # 如果没有端口号，说明监控的直接是进程号
                                 # 如果连续执行监控命令失败的次数大于设置值，则停止监控
@@ -173,7 +183,7 @@ class PerMon(object):
 
                                 run_error += 1  # 执行命令失败次数加1
                                 logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')
-                                time.sleep(cfg.getMonitor('sleepTime'))
+                                time.sleep(self.sleepTime)
                                 continue
 
                         jvm = self.get_jvm(port, pid)     # 获取JVM内存
@@ -188,7 +198,7 @@ class PerMon(object):
 
                     except Exception as err:
                         logger.error(err)
-                        time.sleep(cfg.getMonitor('sleepTime'))
+                        time.sleep(self.sleepTime)
 
             if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
                 self._msg['stopTime'][index] = time.time()
@@ -235,13 +245,15 @@ class PerMon(object):
                     self.client.write_points(line)    # 写cpu和内存到数据库
                     logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
 
-                    if res['mem'] <= cfg.getMonitor('minMem'):
-                        logger.warning(f"当前系统剩余内存为{res['mem']}G，内存过低")
-                        if cfg.getMonitor('isMemAlert') and flag:
+                    if res['mem'] <= self.minMem:
+                        msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
+                        logger.warning(msg)
+                        if self.isMemAlert and flag:
                             flag = False    # 标志符置为False，防止连续不断的发送邮件
-                            notification(msg=f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低")     # 发送邮件通知
+                            thread = threading.Thread(target=notification, args=(msg, ))     # 发送邮件通知
+                            thread.start()
 
-                        if cfg.getMonitor('echo') and echo:
+                        if self.echo and echo:
                             echo = False    # 标志符置为False，防止连续不断的清理缓存
                             thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
                             thread.start()
@@ -301,10 +313,12 @@ class PerMon(object):
                 self.FGC_time[str(port)].append(time.time())
                 if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
                     frequency = (self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][0]) / self.FGC[str(port)]
-                    if frequency < cfg.getMonitor('frequencyFGC'):    # 如果FGC频率大于设置值，则发送邮件提醒
-                        logger.warning(f'{port}端口的Full GC频率为{frequency}.')
-                        if cfg.getMonitor('isJvmAlert'):
-                            notification(msg=f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.')
+                    if frequency < self.frequencyFGC:    # 如果FGC频率大于设置值，则发送邮件提醒
+                        msg = f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.'
+                        logger.warning(msg)
+                        if self.isJvmAlert:
+                            thread = threading.Thread(target=notification, args=(msg, ))
+                            thread.start()
 
                 # 将FGC次数和时间写到日志
                 logger.warning(f"端口{port}第{self.FGC[str(port)]}次Full GC.")
@@ -352,6 +366,10 @@ class PerMon(object):
                     cpu_res = disk_res[i+1].strip().split(' ')      # CPU空闲率
                     if len(cpu_res) > 3:
                         cpu = 100 - float(cpu_res[-1])      # CPU使用率
+                        if len(self.last_cpu_io) > 100:
+                            self.last_cpu_io.pop(0)
+
+                        self.last_cpu_io.append(cpu)
                         continue
 
                 if 'Device' in disk_res[i]:
@@ -371,6 +389,13 @@ class PerMon(object):
                 rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
                 trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
                 network = 100 * (rece + trans) / self.network_speed
+
+            if sum(self.last_cpu_io) > len(self.last_cpu_io) * self.maxCPU:
+                msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
+                logger.warning(msg)
+                if self.isCPUAlert:
+                    thread = threading.Thread(target=notification, args=(msg, ))
+                    thread.start()
 
         except Exception as err:
             logger.error(err)
@@ -454,7 +479,7 @@ class PerMon(object):
             self.nic = network_card[0]
             logger.info(f'当前服务器使用的网卡为{self.nic}')
         else:
-            logger.warning('当前服务器网卡未找到')
+            logger.error('当前服务器网卡未找到')
 
     def get_system_net_speed(self):
         """
@@ -552,14 +577,13 @@ class PerMon(object):
 
             time.sleep(5)
 
-    @staticmethod
-    def clear_cache():
+    def clear_cache(self):
         """
         清理缓存
         :return:
         """
-        logger.info(f'开始清理缓存：echo {cfg.getMonitor("echo")} >/proc/sys/vm/drop_caches')
-        os.popen(f'echo {cfg.getMonitor("echo")} >/proc/sys/vm/drop_caches')
+        logger.info(f'开始清理缓存：echo {self.echo} >/proc/sys/vm/drop_caches')
+        os.popen(f'echo {self.echo} >/proc/sys/vm/drop_caches')
         logger.info('清理缓存成功')
 
     def __del__(self):
@@ -588,7 +612,7 @@ def port_to_pid(port):
     return pid
 
 
-def notification(msg=None):
+def notification(msg):
     """
     发送邮件通知
     :param msg: 邮件正文信息

@@ -11,7 +11,7 @@ from logger import logger, cfg
 def sendEmail(msg):
     """
     邮件通知
-    :param str: email content
+    :param msg: email content
     :return:
     """
     try:
@@ -22,7 +22,7 @@ def sendEmail(msg):
         password = cfg.getEmail('password')
         host = cfg.getEmail('SMTP')
 
-        subject = '系统监控通知'
+        subject = cfg.getEmail('subject')
         s = "{0}".format(msg)
 
         msg = MIMEText(s, 'plain', 'utf-8')  # 中文需参数‘utf-8’，单字节字符不需要
@@ -31,12 +31,10 @@ def sendEmail(msg):
         msg['To'] = receiver_name
 
         try:
-            smtp = smtplib.SMTP_SSL(host)
-            smtp.connect(host)
+            smtp = smtplib.SMTP_SSL(host, 465)
         except socket.error:
-            smtp = smtplib.SMTP()
-            smtp.connect(host)
-        # smtp.connect(host)
+            smtp = smtplib.SMTP(host, 25)
+
         smtp.login(sender_email, password)
         smtp.sendmail(sender_email, receiver_email, msg.as_string())
         smtp.quit()

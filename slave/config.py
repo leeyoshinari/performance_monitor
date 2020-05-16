@@ -32,7 +32,7 @@ class Config(object):
 			return self.cfg.get('logging', key, fallback=None)
 
 	def getMonitor(self, key):
-		if key == 'isJvmAlert' or key == 'isMemAlert':
+		if key == 'isJvmAlert' or key == 'isMemAlert' or key == 'isCPUAlert':
 			return self.cfg.getboolean('monitor', key, fallback=None)
 		elif key == 'minMem':
 			return self.cfg.getfloat('monitor', key, fallback=None)
