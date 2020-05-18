@@ -34,7 +34,7 @@ class PerMon(object):
         self.total_mem = 0  # 总内存
         self.nic = ''   # 系统正在使用的网卡
         self.all_disk = []  # 磁盘号
-        self.network_speed = 0  # 系统带宽
+        self.network_speed = 0  # 服务器网卡带宽
 
         self.get_system_version()
         self.get_cpu_cores()
@@ -487,19 +487,22 @@ class PerMon(object):
         :return:
         """
         if self.nic:
-            result = os.popen(f'ethtool {self.nic}').readlines()
-            for line in result:
-                if 'Speed' in line:
-                    res = re.findall("(\d+)", line)
-                    speed = int(res[0])
-                    if 'G' in line:
-                        speed = speed * 1024
-                    if 'K' in line:
-                        speed = speed / 1024
+            try:
+                result = os.popen(f'ethtool {self.nic}').readlines()
+                for line in result:
+                    if 'Speed' in line:
+                        res = re.findall("(\d+)", line)
+                        speed = int(res[0])
+                        if 'G' in line:
+                            speed = speed * 1024
+                        if 'K' in line:
+                            speed = speed / 1024
 
-                    self.network_speed = speed
-
-                    break
+                        self.network_speed = speed
+                        break
+            except Exception as err:
+                logger.error(err)
+                self.network_speed = 1  # 如果没用获取到值，则带宽设置为1Mbs
 
     def get_system_version(self):
         """
