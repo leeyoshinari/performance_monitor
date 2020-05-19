@@ -34,6 +34,7 @@ class PerMon(object):
         self.total_mem = 0  # 总内存
         self.nic = ''   # 系统正在使用的网卡
         self.all_disk = []  # 磁盘号
+        self.total_disk = 0     # 磁盘总大小
         self.network_speed = 0  # 服务器网卡带宽
 
         self.get_system_version()
@@ -42,16 +43,15 @@ class PerMon(object):
         self.get_system_nic()
         self.get_disks()
         self.get_system_net_speed()
+        self.get_total_disk_size()
 
         self.monitor_task = queue.Queue()   # 创建一个FIFO队列
         self.executor = ThreadPoolExecutor(cfg.getServer('threadPool')+1)  # 创建线程池
-
         self.client = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
                                               cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
 
         self.FGC = {}           # 每个端口的full gc次数
         self.FGC_time = {}      # 每个端口每次full gc的时间
-
         self.last_cpu_io = []   # 最近一段时间的cpu的值，约100s
 
         self.monitor()
@@ -388,7 +388,7 @@ class PerMon(object):
                 data2 = bps2[0].split(':')[1].strip().split(' ')
                 rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
                 trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
-                network = 100 * (rece + trans) / self.network_speed
+                network = 100 * (rece + trans) / self.network_speed     # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000。
 
             if sum(self.last_cpu_io) > len(self.last_cpu_io) * self.maxCPU:
                 msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
@@ -481,6 +481,38 @@ class PerMon(object):
         else:
             logger.error('当前服务器网卡未找到')
 
+    def get_total_disk_size(self):
+        """
+        获取系统磁盘总大小
+        :return:
+        """
+        total = 0
+        result = os.popen('fdisk -l | grep Disk').read()
+        if not result:
+            result = os.popen('fdisk -l | grep 磁盘').read()   # 针对有中文的操作系统
+
+        res_T = re.findall('(\d+.\d+) TB', result)
+        res_G = re.findall('(\d+.\d+) GB', result)
+        res_M = re.findall('(\d+.\d+) MB', result)
+
+        if res_T:
+            for i in res_T:
+                total += float(i) * 1024
+
+        if res_G:
+            for i in res_G:
+                total += float(i)
+
+        if res_M:
+            for i in res_M:
+                total += float(i) / 1024
+
+        if total > 1024:
+            total = round(total / 1024, 2)
+            self.total_disk = f'{total}TB'
+        else:
+            self.total_disk = f'{total}GB'
+
     def get_system_net_speed(self):
         """
         获取系统的带宽，单位是 Mbs
@@ -564,7 +596,9 @@ class PerMon(object):
             'system': self.system_version,
             'cpu': self.cpu_cores,
             'nic': self.nic,
+            'network_speed': self.network_speed,
             'mem': round(self.total_mem*100, 2),
+            'disk_size': self.total_disk,
             'disks': ','.join(self.all_disk)
         }
 

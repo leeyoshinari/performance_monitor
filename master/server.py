@@ -29,7 +29,8 @@ async def index(request):
 	"""
 	return aiohttp_jinja2.render_template('home.html', request, context={
 		'ip': master.slaves['ip'], 'port': master.slaves['port'], 'system': master.slaves['system'],
-		'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'time': master.slaves['time']})
+		'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'disk': master.slaves['disk_size'],
+		'net': master.slaves['network_speed']})
 
 
 async def start_monitor(request):
@@ -74,6 +75,8 @@ async def registers(request):
 	cpu = data.get('cpu')
 	mem = data.get('mem')
 	nic = data.get('nic')
+	network_speed = data.get('network_speed')
+	disk_size = data.get('disk_size')
 	disks = data.get('disks')   # 客户端服务器磁盘号
 	master.slaves = {
 		'host': host,
@@ -82,8 +85,10 @@ async def registers(request):
 		'cpu': cpu,
 		'mem': mem,
 		'disk': disks,
+		'disk_size': disk_size,
 		'nic': nic,
-		'time': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+		'network_speed': network_speed,
+		'time': time.time()
 	}
 	return web.json_response({'code': 0, 'msg': '注册成功!', 'data': None})
 
