@@ -524,6 +524,7 @@ class PerMon(object):
             total = round(total / 1024, 2)
             self.total_disk = f'{total}T'
         else:
+            total = round(total, 2)
             self.total_disk = f'{total}G'
 
         logger.info(f'当前服务器磁盘总大小为{self.total_disk}')
