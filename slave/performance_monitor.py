@@ -487,7 +487,7 @@ class PerMon(object):
         :return:
         """
         total = 0
-        result = os.popen('fdisk -l | grep Disk').read()
+        '''result = os.popen('fdisk -l | grep Disk').read()
         if not result:
             result = os.popen('fdisk -l | grep 磁盘').read()   # 针对有中文的操作系统
 
@@ -505,13 +505,28 @@ class PerMon(object):
 
         if res_M:
             for i in res_M:
-                total += float(i) / 1024
+                total += float(i) / 1024'''
+        result = os.popen('df -h |tr -s " "').readlines()
+        for line in result:
+            res = line.strip().split(' ')
+            if '/dev/' in res[0]:
+                if 'G' in res[1]:
+                    size = float(res[1].split('G')[0])
+                if 'M' in res[1]:
+                    size = float(res[1].split('M')[0]) / 1024
+                if 'T' in res[1]:
+                    size = float(res[1].split('T')[0]) * 1024
+
+                total += size
+                # used = float(res[4].split('%')[0])    # 磁盘使用率
 
         if total > 1024:
             total = round(total / 1024, 2)
-            self.total_disk = f'{total}TB'
+            self.total_disk = f'{total}T'
         else:
-            self.total_disk = f'{total}GB'
+            self.total_disk = f'{total}G'
+
+        logger.info(f'当前服务器磁盘总大小为{self.total_disk}')
 
     def get_system_net_speed(self):
         """
@@ -535,6 +550,8 @@ class PerMon(object):
             except Exception as err:
                 logger.error(err)
                 self.network_speed = 1  # 如果没用获取到值，则带宽设置为1Mbs
+
+            logger.info(f'当前服务器网口带宽为{self.network_speed}Mb/s')
 
     def get_system_version(self):
         """
