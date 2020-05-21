@@ -16,7 +16,7 @@ from logger import logger, cfg
 class PerMon(object):
     def __init__(self):
         self.IP = cfg.getServer('host')
-        self.is_system = 0    # 是否监控系统CPU和内存, 0为不监控, 1为监控.
+        self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': [], 'stopTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.interval = cfg.getMonitor('interval')   # 每次执行监控命令的时间间隔
         self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
@@ -47,7 +47,7 @@ class PerMon(object):
         self.get_total_disk_size()
 
         self.monitor_task = queue.Queue()   # 创建一个FIFO队列
-        self.executor = ThreadPoolExecutor(cfg.getServer('threadPool')+1)  # 创建线程池
+        self.executor = ThreadPoolExecutor(self.thread_pool + 1)  # 创建线程池, +1是需要监控系统
         self.client = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
                                               cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
 
@@ -123,7 +123,7 @@ class PerMon(object):
         开始监控
         :return:
         """
-        for i in range(cfg.getServer('threadPool')+1):
+        for i in range(self.thread_pool + 1):
             self.executor.submit(self.worker)   # 启动线程池监控任务
 
         # self.monitor_task.put((self.register_and_clear_port, 1))    # 将注册和清理任务放入队列中

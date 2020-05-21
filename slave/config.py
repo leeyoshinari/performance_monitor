@@ -15,7 +15,7 @@ class Config(object):
 
 	def getServer(self, key):
 		if key == 'threadPool':
-			return self.cfg.getint('server', key, fallback=None)
+			return self.cfg.getint('server', key, fallback=0)
 		else:
 			return self.cfg.get('server', key, fallback=None)
 
@@ -27,7 +27,7 @@ class Config(object):
 
 	def getLogging(self, key):
 		if key == 'backupCount':
-			return self.cfg.getint('logging', key, fallback=None)
+			return self.cfg.getint('logging', key, fallback=30)
 		else:
 			return self.cfg.get('logging', key, fallback=None)
 
