@@ -19,7 +19,7 @@ async def index(request):
 	:return:
 	"""
 	return web.Response(
-		body=f'当前服务器系统版本为{permon.system_version}，CPU核数为{permon.cpu_cores}，总内存为{permon.total_mem * 100}G，使用的网卡为{permon.nic}，系统带宽为{permon.network_speed}Mb/s，共有{len(permon.all_disk)}个磁盘，磁盘总大小为{permon.total_disk}，磁盘号分别为{"、".join(permon.all_disk)}。')
+		body=f'当前服务器系统版本为{permon.system_version}，{permon.cpu_info}，总内存为{permon.total_mem * 100}G，使用的网卡为{permon.nic}，系统带宽为{permon.network_speed}Mb/s，共有{len(permon.all_disk)}个磁盘，磁盘总大小为{permon.total_disk}，磁盘号分别为{"、".join(permon.all_disk)}。')
 
 
 async def run_monitor(request):

@@ -30,6 +30,7 @@ class PerMon(object):
         self.echo = cfg.getMonitor('echo')
 
         self.system_version = ''   # 系统版本
+        self.cpu_info = ''
         self.cpu_cores = 0  # CPU核数
         self.total_mem = 0  # 总内存
         self.nic = ''   # 系统正在使用的网卡
@@ -95,8 +96,8 @@ class PerMon(object):
         else:
             raise Exception('参数异常')
 
-        if len(self._msg['port']) > 0:  # 如果已经开始监控端口，则同时开始监控整个系统
-            self.is_system = 1
+        # if len(self._msg['port']) > 0:  # 如果已经开始监控端口，则同时开始监控整个系统
+        #     self.is_system = 1
 
     @property
     def stop(self):
@@ -125,8 +126,8 @@ class PerMon(object):
         for i in range(cfg.getServer('threadPool')+1):
             self.executor.submit(self.worker)   # 启动线程池监控任务
 
-        self.monitor_task.put((self.register_and_clear_port, 1))    # 将注册和清理任务放入队列中
-        self.monitor_task.put((self.write_system_cpu_mem, 1))   # 将监控系统的任务放入队列中
+        # self.monitor_task.put((self.register_and_clear_port, 1))    # 将注册和清理任务放入队列中
+        self.monitor_task.put((self.write_system_cpu_mem_and_register_clear, 1))   # 将监控系统的任务放入队列中
 
     def write_cpu_mem(self, index):
         """
@@ -206,9 +207,10 @@ class PerMon(object):
                 self.FGC[str(port)] = 0
                 break
 
-    def write_system_cpu_mem(self, is_system):
+    def write_system_cpu_mem_and_register_clear(self, is_system):
         """
         监控系统CPU使用率、剩余内存和磁盘IO
+        定时任务，总共有两个，一个是向服务端注册本机，一个是清理已经停止监控的过期端口
         :param is_system: 未使用
         :return:
         """
@@ -229,42 +231,69 @@ class PerMon(object):
             disk_n = disk.replace('-', '')
             line[0]['fields'].update({disk_n: 0.0})
 
+        # 注册本机参数
+        url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
+        header = {
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Encoding": "gzip, deflate",
+            "Content-Type": "application/json; charset=UTF-8"}
+        post_data = {
+            'host': self.IP,
+            'port': cfg.getServer('port'),
+            'system': self.system_version,
+            'cpu': self.cpu_cores,
+            'nic': self.nic,
+            'network_speed': self.network_speed,
+            'mem': round(self.total_mem * 100, 2),
+            'disk_size': self.total_disk,
+            'disks': ','.join(self.all_disk)
+        }
+        clear_time = time.time()
+        start_time = time.time()
+
         while True:
-            if self.is_system == 1:     # 开始监控
-                res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
+            if time.time() - start_time > 5:    # 每隔5秒注册本机
+                try:
+                    res = requests.post(url=url, json=post_data, headers=header)
+                    start_time = time.time()
+                    if time.time() - clear_time > 600:  # 每隔10分钟清理一次过期的端口
+                        self.clear_port()
+                        clear_time = time.time()
+                except Exception as err:
+                    logger.error(err)
 
-                if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
-                    for k, v in res['disk'].items():
-                        line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
+            # if self.is_system == 1:     # 开始监控
+            res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
 
-                    line[0]['fields']['cpu'] = res['cpu']
-                    line[0]['fields']['mem'] = res['mem']
-                    line[0]['fields']['rec'] = res['rece']
-                    line[0]['fields']['trans'] = res['trans']
-                    line[0]['fields']['net'] = res['network']
-                    self.client.write_points(line)    # 写cpu和内存到数据库
-                    logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
+            if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
+                for k, v in res['disk'].items():
+                    line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
 
-                    if res['mem'] <= self.minMem:
-                        msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
-                        logger.warning(msg)
-                        if self.isMemAlert and flag:
-                            flag = False    # 标志符置为False，防止连续不断的发送邮件
-                            thread = threading.Thread(target=notification, args=(msg, ))     # 发送邮件通知
-                            thread.start()
+                line[0]['fields']['cpu'] = res['cpu']
+                line[0]['fields']['mem'] = res['mem']
+                line[0]['fields']['rec'] = res['rece']
+                line[0]['fields']['trans'] = res['trans']
+                line[0]['fields']['net'] = res['network']
+                self.client.write_points(line)    # 写cpu和内存到数据库
+                logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
 
-                        if self.echo and echo:
-                            echo = False    # 标志符置为False，防止连续不断的清理缓存
-                            thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
-                            thread.start()
+                if res['mem'] <= self.minMem:
+                    msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
+                    logger.warning(msg)
+                    if self.isMemAlert and flag:
+                        flag = False    # 标志符置为False，防止连续不断的发送邮件
+                        thread = threading.Thread(target=notification, args=(msg, ))     # 发送邮件通知
+                        thread.start()
 
-                    else:
-                        # 如果内存正常，标识符重置为True
-                        flag = True
-                        echo = True
+                    if self.echo and echo:
+                        echo = False    # 标志符置为False，防止连续不断的清理缓存
+                        thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
+                        thread.start()
 
-            else:
-                time.sleep(1)
+                else:
+                    # 如果内存正常，标识符重置为True
+                    flag = True
+                    echo = True
 
     def get_cpu_mem(self, pid):
         """
@@ -419,12 +448,44 @@ class PerMon(object):
 
     def get_cpu_cores(self):
         """
-        获取系统CPU核数
+        获取系统CPU信息
         :return:
         """
+        cpu_model = ''
+        cpu_num = 0
+        cpu_core = 0
+        try:
+            result = os.popen('cat /proc/cpuinfo | grep "model name" |uniq').readlines()[0]
+            cpu_model = result.strip().split(':')[1].strip()
+            logger.info(f'当前系统CPU型号为{cpu_model}')
+        except Exception as err:
+            logger.error('CPU型号未获取到')
+            logger.error(err)
+
+        try:
+            result = os.popen('cat /proc/cpuinfo | grep "physical id" | uniq | wc -l').readlines()[0]
+            cpu_num = int(result)
+            logger.info(f'当前系统CPU个数为{cpu_num}')
+        except Exception as err:
+            logger.error('CPU型号未获取到')
+            logger.error(err)
+
+        try:
+            result = os.popen('cat /proc/cpuinfo | grep "cpu cores" | uniq').readlines()[0]
+            cpu_core = int(result.strip().split(':')[1].strip())
+            logger.info(f'当前系统每个CPU的核数为{cpu_core}')
+        except Exception as err:
+            logger.error('每个CPU的核数未获取到')
+            logger.error(err)
+
         result = os.popen('cat /proc/cpuinfo| grep "processor"| wc -l').readlines()[0]
         self.cpu_cores = int(result)
         logger.info(f'当前系统CPU核数为{self.cpu_cores}')
+
+        if cpu_model and cpu_num and cpu_core:
+            self.cpu_info = f'{cpu_num}个{cpu_core}核CPU，共有{self.cpu_cores}核，CPU型号为{cpu_model}'
+        else:
+            self.cpu_info = f'CPU核数为{self.cpu_cores}'
 
     def get_total_mem(self):
         """
@@ -597,11 +658,13 @@ class PerMon(object):
 
     def register_and_clear_port(self, flag=None):
         """
+        已弃用，该功能已放在 self.write_system_cpu_mem_and_register_clear 函数中执行
         定时任务，总共有两个，一个是向服务端注册本机，一个是清理已经停止监控的过期端口
         :param
         :return:
         """
-        url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
+        pass
+        '''url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
 
         header = {
             "Accept": "application/json, text/plain, */*",
@@ -630,7 +693,7 @@ class PerMon(object):
             except Exception as err:
                 logger.error(err)
 
-            time.sleep(5)
+            time.sleep(5)'''
 
     def clear_cache(self):
         """
