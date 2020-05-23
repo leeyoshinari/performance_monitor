@@ -172,6 +172,7 @@ class PerMon(object):
                                     self._msg['isRun'][index] = 0
                                     self._msg['stopTime'][index] = time.time()
                                     logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
+                                    break
 
                                 time.sleep(self.sleepTime)
                                 continue
@@ -181,6 +182,7 @@ class PerMon(object):
                                     self._msg['isRun'][index] = 0
                                     self._msg['stopTime'][index] = time.time()
                                     logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
+                                    break
 
                                 run_error += 1  # 执行命令失败次数加1
                                 logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')

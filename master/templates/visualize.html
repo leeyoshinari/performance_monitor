@@ -8,8 +8,8 @@
             {% endfor %}
     </select>
     类型: <select id="type" style="width: 160px; height: 26px; margin-right: 20px;" onchange="clear_port()">
-        <option value="port">端口号</option>
         <option value="system">系统</option>
+        <option value="port">端口</option>
     </select>
     端口号: <select id="port" style="width: 160px; height: 26px; margin-right: 20px;">
             {% for po in port %}

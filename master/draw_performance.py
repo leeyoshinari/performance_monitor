@@ -285,10 +285,10 @@ def get_lines(cpu, dutil, nic):
     dutil.sort()
     nic.sort()
 
-    line75 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)], nic[int(len(nic) * 0.75)])
-    line90 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)], nic[int(len(nic) * 0.90)])
-    line95 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)], nic[int(len(nic) * 0.95)])
-    line99 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.2f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)], nic[int(len(nic) * 0.99)])
+    line75 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)], nic[int(len(nic) * 0.75)])
+    line90 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)], nic[int(len(nic) * 0.90)])
+    line95 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)], nic[int(len(nic) * 0.95)])
+    line99 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)], nic[int(len(nic) * 0.99)])
 
     return {'line75': line75, 'line90': line90, 'line95': line95, 'line99': line99}
 
