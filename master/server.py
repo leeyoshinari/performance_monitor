@@ -61,6 +61,15 @@ async def visualize(request):
 		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime})
 
 
+async def course(request):
+	"""
+	教程
+	:param request:
+	:return:
+	"""
+	return aiohttp_jinja2.render_template('course.html', request, context={})
+
+
 async def registers(request):
 	"""
 	注册接口
@@ -249,6 +258,7 @@ async def main():
 	app.router.add_route('GET', '/startMonitor', start_monitor)
 	app.router.add_route('GET', '/getMonitor/{host}', get_monitor)
 	app.router.add_route('GET', '/Visualize', visualize)
+	app.router.add_route('GET', '/course', course)
 	app.router.add_route('GET', '/getPortAndDisk/{host}', get_port_disk)
 
 	app.router.add_route('POST', '/Register', registers)

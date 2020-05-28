@@ -1,0 +1,117 @@
+{% extends "template.html" %}
+
+{% block page_content %}
+<div class="page-header">
+    <h2>介绍</h2>
+    <h4>已完成如下功能<br></h4>
+    <ol>
+        <p>
+            1、监控整个服务器的CPU使用率、剩余内存大小、磁盘IO和网络带宽<br>
+            2、监控指定端口的CPU使用率、内存占用大小<br>
+            3、针对java应用，可以监控jvm大小和垃圾回收情况；当Full GC频率过高时，可发送邮件提醒<br>
+            4、当系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
+            5、可随时启动/停止监控指定端口<br>
+            6、当端口重启后，可自动重新监控<br>
+            7、可按照指定时间段可视化监控结果<br>
+            8、自动按照百分位数计算出CPU、磁盘IO和带宽的数据<br>
+            9、支持集群部署
+        </p>
+    </ol>
+    <h4>实现过程</h4>
+    <ol>
+        <p>
+            1、为保证监控结果准确性，直接使用Linux系统命令获取数据；且可视化时未做任何曲线拟合处理<br>
+            2、使用基于协程的http框架<code>aiohttp</code>满足高并发<br>
+            3、服务端前端使用<code>jinjia2</code>模板渲染<br>
+            4、采用线程池+队列的方式实现同时监控多个端口<br>
+            5、客户端每隔5s向服务端注册本机IP和端口，以及一些服务型配置<br>
+            6、服务端每隔5s会查询所有已注册的客户端的状态<br>
+            7、使用influxDB数据库存储监控数据；数据可设置自动过期时间
+        </p>
+    </ol>
+    <h2>使用</h2>
+    <ol>
+        <li>
+            <p>克隆 performance_monitor</p>
+            <pre><code><span>git</span> clone https://github.com/leeyoshinari/performance_monitor.git</code></pre>
+            <p>
+                master文件夹是服务端，只需部署一个即可；slave文件夹是客户端，部署在需要监控的服务器上<br>
+            </p>
+        </li>
+        <li>
+            <p>分别修改master和slave文件夹里的配置文件 <code>config.ini</code></p>
+        </li>
+        <li>
+            <p>部署InfluxDB数据库</p>
+        </li>
+        <li>
+            <p>分别运行master和slave文件夹中的<code>server.py</code></p>
+            <pre><code><span>nohup</span> python3 server.py <span>&amp;</span></code></pre>
+        </li>
+        <li>
+            <p>页面访问<br><br>
+                （1）客户端启动后，输入<code>http://ip:port</code>
+                可以看到页面显示服务器的CPU信息、总内存、磁盘号和网络信息<br>
+                <img width="100%" src="/static/slave.jpg" alt="在这里插入图片描述">
+            </p>
+            <p>（2）服务端启动后，输入<code>http://ip:port</code>
+                可以看到首页，页面展示已经注册的客户端的IP、系统、CPU、内存、带宽等数据<br>
+                <img width="100%" src="/static/home.jpg" alt="在这里插入图片描述"><br>
+                &ensp;&ensp;&ensp;&ensp;点击列表中的IP，即可以看到客户端服务器的一些信息。
+            </p>
+            <p>（3）服务端启动后，输入<code>http://ip:port/startMonitor</code>
+                可以看到监控页面，显示当前已经监控的所有端口<br>
+                &ensp;&ensp;&ensp;&ensp;点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前服务器已经监控的端口<br>
+                <img width="100%" src="/static/monitor.jpg" alt="在这里插入图片描述">
+            </p>
+            <p>（4）服务端启动后，输入<code>http://ip:port/Visualize</code>
+                可以看到可视化页面；点击画图按钮，即可将指定服务器上的系统或端口的监控数据可视化<br>
+                <img width="100%" src="/static/visual.jpg" alt="在这里插入图片描述">
+                &ensp;&ensp;&ensp;&ensp;1.在主机下拉列表中选择不同的IP，即可可视化不同IP的监控数据；<br>
+                &ensp;&ensp;&ensp;&ensp;2.如果类型选择<code>系统</code>，如上图所示，依次是系统CPU使用率（最大值和平均值）、系统剩余内存（最小值）、系统指定磁盘的IO（最大值）、系统网络收发及带宽使用率（最大值）；<code>Percentile</code>中统计的是系统的CPU、IO和带宽的百分位数；<code>GC</code>中统计的是应用Full GC信息，-1表示没有该数据；<br>
+                &ensp;&ensp;&ensp;&ensp;3.如果类型选择<code>端口</code>，需要选择端口，可视化的图和上图类似，依次是端口的CPU使用率（最大值和平均值）、端口的内存（最大值）和JVM（最大值，仅java应用）；<code>Percentile</code>中统计的是端口CPU、系统磁盘IO和系统带宽的百分位数；<code>GC</code>中统计的是应用Full GC信息（仅java应用），-1表示没有该数据；<br>
+                &ensp;&ensp;&ensp;&ensp;4.可视化时，需要查看应用使用的磁盘号，然后在下拉列表中选择对应的磁盘号即可；通过<code>df -h 文件名</code>查看应用使用的磁盘号，如果下拉列表中没有你查到的磁盘号，可通过<code>df -h</code>查看文件系统Filesystem，然后<code>ll Filesystem 例如：ll /dev/sda1</code>即可显示磁盘号；<br>
+                &ensp;&ensp;&ensp;&ensp;5.开始时间和结束时间，默认是最近一个小时的时间段；可选择任意时间段，精确到秒；
+            </p>
+        </li>
+    </ol>
+    <h2>打包</h2>
+    <p>pyinstaller既可以将python脚本打包成Windows环境下的可执行文件，也可以打包成Linux环境下的可执行文件。打包完成后，可快速在其他环境上部署该监控服务，而不需要安装python3.7+环境和第三方包。<br></p>
+    <p>pyinstaller安装过程自行百度，下面直接进行打包：</p>
+    <ol>
+        <li>
+            <p>打包master<br>
+                (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
+                (2)进入master文件夹，开始打包：
+            </p>
+            <pre><code>pyinstaller server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request</code></pre>
+            <p>
+                <code>打包过程可能提示缺少一些模块，请按照提示安装对应的模块</code><br>
+                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist/server</code>即可找到可执行文件<code>server</code>;<br>
+                (4)将配置文件<code>config.ini</code>拷贝到<code>dist/server</code>文件夹下，并修改配置文件；<br>
+                (5)将模板文件<code>templates</code>和静态文件<code>static</code>拷贝到<code>dist/server</code>文件夹下；<br>
+                (6)将<code>dist/server</code>整个文件夹拷贝到其他环境，启动server
+            </p>
+            <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
+        </li>
+        <li>
+            <p>打包slave<br>
+                (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
+                (2)进入slave文件夹，开始打包：
+            </p>
+            <pre><code>pyinstaller server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config</code></pre>
+            <p>
+                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist/server</code>即可找到可执行文件<code>server</code>;<br>
+                (4)将配置文件<code>config.ini</code>拷贝到<code>dist/server</code>文件夹下，并修改配置文件；<br>
+                (5)将<code>dist/server</code>整个文件夹拷贝到其他环境，启动server
+            </p>
+            <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
+        </li>
+    </ol>
+    <h2>注意</h2>
+    <ol>
+        <li>服务器必须支持以下命令：<code>jstat</code>、<code>top</code>、<code>iostat</code>、<code>netstat</code>、<code>ps</code>、<code>top</code>，如不支持，请安装。</li>
+        <li>如果你对监控要求不高，可以使用单机版，其对第三方模块依赖较少。如需获取，请切换至<code>single</code>分支，或<a href="https://github.com/leeyoshinari/performance_monitor/tree/single">点我</a>。</li>
+    </ol>
+</div>
+{% endblock %}
