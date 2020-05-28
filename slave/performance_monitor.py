@@ -161,6 +161,7 @@ class PerMon(object):
                         cpu, mem = self.get_cpu_mem(pid)    # 获取CPU使用率和占用内存大小
 
                         if cpu is None:     # 如果CPU使用率未获取到，说明监控命令执行异常
+                            logger.warning(f'获取cpu数据异常，异常pid为{pid}')
                             if port:    # 如果端口号存在
                                 pid = port_to_pid(port)  # 根据端口号查询进程号
                                 if pid:     # 如果进程号存在，则更新进程号
@@ -257,8 +258,10 @@ class PerMon(object):
             if time.time() - start_time > 5:    # 每隔5秒注册本机
                 try:
                     res = requests.post(url=url, json=post_data, headers=header)
+                    logger.info(f"客户端注册结果：{res.content.decode('unicode_escape')}")
                     start_time = time.time()
                     if time.time() - clear_time > 600:  # 每隔10分钟清理一次过期的端口
+                        logger.debug('正常清理停止监控的端口')
                         self.clear_port()
                         clear_time = time.time()
                 except Exception as err:
@@ -309,8 +312,8 @@ class PerMon(object):
         try:
             # result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()
             result = os.popen(f'top -n 1 -b |grep -P {pid} |tr -s " "').readlines()     # 执行命令
-            res = [res.strip().split(' ') for res in result]
-            logger.debug(res)
+            res = [ress.strip().split(' ') for ress in result]
+            logger.debug(f'查询进程{pid}的CPU使用率和内存结果为：{res}')
 
             for r in res:
                 if str(pid) == r[0]:
@@ -334,7 +337,7 @@ class PerMon(object):
         try:
             result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行命令
             res = result.strip().split(' ')
-            logger.debug(res)
+            logger.debug(f'查询进程{pid}的JVM结果为：{res}')
             mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算jvm
 
             # 已追加写的方式，将FGC次数和时间写到本地。当FGC频率过高时，发送邮件提醒
@@ -343,7 +346,7 @@ class PerMon(object):
                 self.FGC[str(port)] = fgc
                 self.FGC_time[str(port)].append(time.time())
                 if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
-                    frequency = (self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][0]) / self.FGC[str(port)]
+                    frequency = (self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][-2])
                     if frequency < self.frequencyFGC:    # 如果FGC频率大于设置值，则发送邮件提醒
                         msg = f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.'
                         logger.warning(msg)
@@ -368,6 +371,8 @@ class PerMon(object):
     def get_system_cpu_io_speed(self):
         """
         获取系统CPU使用率、剩余内存和磁盘IO、网速和网络使用率
+        网速的获取，必须得间隔一段时间；磁盘IO的获取也得间隔一段时间
+        执行磁盘IO命令一般间隔1秒，故在执行磁盘IO命令前后执行网速命令，此时正好间隔约1秒
         :return: 磁盘IO，cpu使用率（%），剩余内存（G），网络上行和下行速率，单位 Mb/s
         """
         disk = {}
@@ -381,22 +386,25 @@ class PerMon(object):
         try:
             if self.nic:
                 bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+                logger.debug(f'第一次获取网速的结果：{bps1}')
 
             result = os.popen(f'iostat -x -k 1 2 |tr -s " "').readlines()    # 执行命令
+            logger.debug(f'获取磁盘IO结果：{result}')
 
             if self.nic:
                 bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+                logger.debug(f'第二次获取网速的结果：{bps2}')
 
             result.pop(0)
             disk_res = [l.strip() for l in result if len(l) > 5]
             disk_res = disk_res[int(len(disk_res)/2)-1:]
-            logger.debug(disk_res)
 
             for i in range(len(disk_res)):
                 if 'avg-cpu' in disk_res[i]:
                     cpu_res = disk_res[i+1].strip().split(' ')      # CPU空闲率
                     if len(cpu_res) > 3:
                         cpu = 100 - float(cpu_res[-1])      # CPU使用率
+                        logger.debug(f'系统CPU使用率为：{cpu}%')
                         if len(self.last_cpu_io) > 100:
                             self.last_cpu_io.pop(0)
 
@@ -409,9 +417,12 @@ class PerMon(object):
                         disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
                         disk.update({disk_num: disk_line[-1]})  # 将每个磁盘的IO以字典的形式保存
 
+                    logger.debug(f'当前获取的磁盘数据：{disk}')
+
                     continue
 
             result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]   # 执行命令，获取系统剩余内存
+            logger.debug(f'系统剩余内存为：{result}G')
             mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
             if bps1 and bps2:
@@ -420,6 +431,7 @@ class PerMon(object):
                 rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
                 trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
                 network = 100 * (rece + trans) / self.network_speed     # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000。
+                logger.debug(f'系统网络带宽：收{rece}Mb/s，发{trans}Mb/s，带宽占比{network}%')
 
             if sum(self.last_cpu_io) > len(self.last_cpu_io) * self.maxCPU:
                 msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
@@ -521,8 +533,10 @@ class PerMon(object):
         """
         network_card = []
         result = os.popen('cat /proc/net/dev |tr -s " "').readlines()   # 获取网卡
+        logger.debug(f'查询网卡时，第一次执行命令结果：{result}')
         time.sleep(1)
         result1 = os.popen('cat /proc/net/dev |tr -s " "').readlines()  # 一秒后再次获取网卡
+        logger.debug(f'查询网卡时，第二次执行命令结果：{result1}')
         for i in range(len(result)):
             if ':' in result[i]:
                 title = result[i].strip().split(':')[0]
@@ -530,11 +544,14 @@ class PerMon(object):
                 title1 = result1[i].strip().split(':')[0]
                 data1 = result1[i].strip().split(':')[1]
                 if title == title1:
+                    logger.debug(f'第一次数据有变化的网卡数据：{data}')
+                    logger.debug(f'第二次数据有变化的网卡数据：{data1}')
                     rec = data.strip().split(' ')[0]
                     rec1 = data1.strip().split(' ')[0]
                     if rec != rec1:     # 如果这个网卡数据有变化，则说明此卡在使用
                         network_card.append(title)
 
+        logger.debug(f'当前获得网卡数据：{network_card}')
         if 'lo' in network_card:    # 'lo'卡是本地127.0.0.1，需要去掉
             network_card.pop(network_card.index('lo'))
 
@@ -570,6 +587,7 @@ class PerMon(object):
             for i in res_M:
                 total += float(i) / 1024'''
         result = os.popen('df -h |tr -s " "').readlines()
+        logger.debug(f'查询磁盘执行命令结果：{result}')
         for line in result:
             res = line.strip().split(' ')
             if '/dev/' in res[0]:
@@ -581,6 +599,7 @@ class PerMon(object):
                     size = float(res[1].split('T')[0]) * 1024
 
                 total += size
+                logger.debug(f'当前磁盘大小为：{total}M')
                 # used = float(res[4].split('%')[0])    # 磁盘使用率
 
         if total > 1024:
@@ -600,8 +619,10 @@ class PerMon(object):
         if self.nic:
             try:
                 result = os.popen(f'ethtool {self.nic}').readlines()
+                logger.debug(f'查询网络带宽执行命令结果：{result}')
                 for line in result:
                     if 'Speed' in line:
+                        logger.debug(f'当前网络带宽为：{line}')
                         res = re.findall("(\d+)", line)
                         speed = int(res[0])
                         if 'G' in line:
@@ -624,10 +645,12 @@ class PerMon(object):
         """
         try:
             result = os.popen('cat /etc/redhat-release').readlines()    # 获取系统发行版本
+            logger.debug(f'查询系统发行版本执行命令结果：{result}')
             if result:
                 self.system_version = result[0].strip()
             else:
                 result = os.popen('cat /proc/version').readlines()[0]   # 获取系统内核版本
+                logger.debug(f'查询系统内核版本执行命令结果：{result}')
                 res = re.findall("gcc.*\((.*?)\).*GCC", result.strip())
                 self.system_version = res[0]
         except Exception as err:
@@ -645,6 +668,8 @@ class PerMon(object):
             if self._msg['isRun'][ind] == 0 and self._msg['stopTime'][ind]:
                 if time.time() - self._msg['stopTime'][ind] > 7200:
                     pop_list.append(ind)
+
+        logger.debug(f'清理过期停止监控端口：{pop_list}')
 
         for ll in pop_list:
             port = self._msg['port'].pop(ll)
@@ -719,6 +744,7 @@ def port_to_pid(port):
     pid = None
     try:
         result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()
+        logger.debug(f'{port}端口的进程结果为：{result}')
         flag = f':{port}'
         res = [line.strip() for line in result if flag in line]
         logger.debug(res[0])
@@ -749,6 +775,8 @@ def notification(msg):
         'host': cfg.getServer('host'),
         'msg': msg
     }
+
+    logger.debug(f'发送邮件信息的内容：{msg}')
 
     try:
         res = requests.post(url=url, json=post_data, headers=header)
