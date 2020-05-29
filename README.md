@@ -37,16 +37,16 @@
 
 5. 页面访问<br>
    （1）从机（客户端）启动后，输入`http://ip:port`可以看到页面显示服务器的CPU核数、总内存和磁盘号<br>
-   ![slave home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/slave.jpg)
+   ![slave home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/slave.jpg)
    
    （2）主机（服务端）启动后，输入`http://ip:port`可以看到首页，页面展示已经注册的从机（客户端）的IP和注册时间<br>
-   ![master home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/home.jpg)
+   ![master home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/home.jpg)
    
    （3）主机（服务端）启动后，输入`http://ip:port/startMonitor`可以看到监控页面；点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前已经监控的端口<br>
-   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/monitor.jpg)
+   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/monitor.jpg)
    
    （4）主机（服务端）启动后，输入`http://ip:port/Visualize`可以看到可视化页面；点击画图按钮，即可将指定服务器上的指定端口的监控数据可视化<br>
-   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/master/templates/visual.jpg)
+   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/visual.jpg)
    
 ## 打包
 pyinstaller既可以将python脚本打包成Windows环境下的可执行文件，也可以打包成Linux环境下的可执行文件。打包完成后，可快速在其他环境上部署该监控服务，而不需要安装python3.7+环境和第三方包。<br>
