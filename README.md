@@ -86,7 +86,9 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 
 2. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)。
 
-3. 如果你对监控要求不高，可以使用单机版，其对第三方模块依赖较少。如需获取，请切换至`single`分支，或[点我](https://github.com/leeyoshinari/performance_monitor/tree/single)。
+3. 如需查看最新的操作文档，可在运行程序后，查看教程即可。
+
+4. 如果你对监控要求不高，可以使用单机版，其对第三方模块依赖较少。如需获取，请切换至`single`分支，或[点我](https://github.com/leeyoshinari/performance_monitor/tree/single)。
 
 ## Requirements
 1. aiohttp>=3.6.2

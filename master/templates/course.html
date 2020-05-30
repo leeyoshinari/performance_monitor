@@ -2,7 +2,8 @@
 
 {% block page_content %}
 <div class="page-header">
-    <h2>介绍</h2>
+    <h2>介绍</h2><br>
+    <h4>项目地址：<a href="https://github.com/leeyoshinari/performance_monitor" target="_blank">请点我</a>，欢迎star，欢迎fork。如有bug或建议，可在<a href="https://github.com/leeyoshinari/performance_monitor/issues" target="_blank">Issue</a>中提出；如果您修改了bug，欢迎merge。</h4><br>
     <h4>已完成如下功能<br></h4>
     <ol>
         <p>
@@ -53,20 +54,20 @@
                 （1）客户端启动后，输入<code>http://ip:port</code>
                 可以看到页面显示服务器的CPU信息、总内存、磁盘号和网络信息<br>
                 <img width="100%" src="/static/slave.jpg" alt="在这里插入图片描述">
-            </p>
+            </p><br>
             <p>（2）服务端启动后，输入<code>http://ip:port</code>
                 可以看到首页，页面展示已经注册的客户端的IP、系统、CPU、内存、磁盘、带宽等数据<br>
                 <img width="100%" src="/static/home.jpg" alt="在这里插入图片描述"><br>
                 &ensp;&ensp;&ensp;&ensp;点击列表中的IP，即可以看到客户端服务器的一些信息。
-            </p>
+            </p><br>
             <p>（3）服务端启动后，输入<code>http://ip:port/startMonitor</code>
                 可以看到监控页面，显示当前已经监控的所有端口<br>
                 &ensp;&ensp;&ensp;&ensp;点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前服务器已经监控的端口<br>
                 <img width="100%" src="/static/monitor.jpg" alt="在这里插入图片描述">
-            </p>
+            </p><br>
             <p>（4）服务端启动后，输入<code>http://ip:port/Visualize</code>
                 可以看到可视化页面；点击画图按钮，即可将指定服务器上的系统或端口的监控数据可视化<br>
-                <img width="100%" src="/static/visual.jpg" alt="在这里插入图片描述">
+                <img width="100%" src="/static/visual.jpg" alt="在这里插入图片描述"><br>
                 &ensp;&ensp;&ensp;&ensp;1.在主机下拉列表中选择不同的IP，即可可视化不同IP的监控数据；<br>
                 &ensp;&ensp;&ensp;&ensp;2.如果类型选择<code>系统</code>，如上图所示，依次是系统CPU使用率（最大值和平均值）、系统剩余内存（最小值）、系统指定磁盘的IO（最大值）、系统网络收发及带宽使用率（最大值）；<code>Percentile</code>中统计的是系统的CPU、IO和带宽的百分位数；<code>GC</code>中统计的是应用Full GC信息，-1表示没有该数据；<br>
                 &ensp;&ensp;&ensp;&ensp;3.如果类型选择<code>端口</code>，需要选择端口，可视化的图和上图类似，依次是端口的CPU使用率（最大值和平均值）、端口的内存（最大值）和JVM（最大值，仅java应用）；<code>Percentile</code>中统计的是端口CPU、系统磁盘IO和系统带宽的百分位数；<code>GC</code>中统计的是应用Full GC信息（仅java应用），-1表示没有该数据；<br>
@@ -76,8 +77,8 @@
         </li>
     </ol>
     <h2>打包</h2>
-    <p>pyinstaller既可以将python脚本打包成Windows环境下的可执行文件，也可以打包成Linux环境下的可执行文件。打包完成后，可快速在其他环境上部署该监控服务，而不需要安装python3.7+环境和第三方包。<br></p>
-    <p>pyinstaller安装过程自行百度，下面直接进行打包：</p>
+    <p>&ensp;&ensp;&ensp;&ensp;pyinstaller既可以将python脚本打包成Windows环境下的可执行文件，也可以打包成Linux环境下的可执行文件。打包完成后，可快速在其他环境上部署该监控服务，而不需要安装python3.7+环境和第三方包。<br></p>
+    <p>&ensp;&ensp;&ensp;&ensp;pyinstaller安装过程自行百度，下面直接进行打包：</p>
     <ol>
         <li>
             <p>打包master<br>

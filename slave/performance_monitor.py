@@ -18,6 +18,7 @@ class PerMon(object):
         self.IP = cfg.getServer('host')
         self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': [], 'stopTime': []}   # 端口号、进程号、监控状态、开始监控时间
+        self.is_system = cfg.getMonitor('isMonSystem')      # 是否监控服务器的资源
         self.interval = cfg.getMonitor('interval')   # 每次执行监控命令的时间间隔
         self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
         self.sleepTime = cfg.getMonitor('sleepTime')
@@ -267,38 +268,40 @@ class PerMon(object):
                 except Exception as err:
                     logger.error(err)
 
-            # if self.is_system == 1:     # 开始监控
-            res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
+            if self.is_system:     # 开始监控
+                res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
 
-            if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
-                for k, v in res['disk'].items():
-                    line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
+                if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
+                    for k, v in res['disk'].items():
+                        line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
 
-                line[0]['fields']['cpu'] = res['cpu']
-                line[0]['fields']['mem'] = res['mem']
-                line[0]['fields']['rec'] = res['rece']
-                line[0]['fields']['trans'] = res['trans']
-                line[0]['fields']['net'] = res['network']
-                self.client.write_points(line)    # 写cpu和内存到数据库
-                logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
+                    line[0]['fields']['cpu'] = res['cpu']
+                    line[0]['fields']['mem'] = res['mem']
+                    line[0]['fields']['rec'] = res['rece']
+                    line[0]['fields']['trans'] = res['trans']
+                    line[0]['fields']['net'] = res['network']
+                    self.client.write_points(line)    # 写cpu和内存到数据库
+                    logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
 
-                if res['mem'] <= self.minMem:
-                    msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
-                    logger.warning(msg)
-                    if self.isMemAlert and flag:
-                        flag = False    # 标志符置为False，防止连续不断的发送邮件
-                        thread = threading.Thread(target=notification, args=(msg, ))     # 发送邮件通知
-                        thread.start()
+                    if res['mem'] <= self.minMem:
+                        msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
+                        logger.warning(msg)
+                        if self.isMemAlert and flag:
+                            flag = False    # 标志符置为False，防止连续不断的发送邮件
+                            thread = threading.Thread(target=notification, args=(msg, ))     # 发送邮件通知
+                            thread.start()
 
-                    if self.echo and echo:
-                        echo = False    # 标志符置为False，防止连续不断的清理缓存
-                        thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
-                        thread.start()
+                        if self.echo and echo:
+                            echo = False    # 标志符置为False，防止连续不断的清理缓存
+                            thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
+                            thread.start()
 
-                else:
-                    # 如果内存正常，标识符重置为True
-                    flag = True
-                    echo = True
+                    else:
+                        # 如果内存正常，标识符重置为True
+                        flag = True
+                        echo = True
+            else:
+                time.sleep(3)
 
     def get_cpu_mem(self, pid):
         """
