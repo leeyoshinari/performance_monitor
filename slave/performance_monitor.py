@@ -608,7 +608,7 @@ class PerMon(object):
                     size = float(res[1].split('T')[0]) * 1024
 
                 total += size
-                logger.debug(f'当前磁盘大小为：{total}M')
+                logger.debug(f'当前磁盘大小为：{total}G')
                 # used = float(res[4].split('%')[0])    # 磁盘使用率
 
         if total > 1024:
