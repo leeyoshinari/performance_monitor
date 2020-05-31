@@ -23,6 +23,7 @@ class PerMon(object):
         self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
         self.sleepTime = cfg.getMonitor('sleepTime')
         self.maxCPU = cfg.getMonitor('maxCPU')
+        self.CPUDuration = cfg.getMonitor('CPUDuration')
         self.isCPUAlert = cfg.getMonitor('isCPUAlert')
         self.minMem = cfg.getMonitor('minMem')
         self.isMemAlert = cfg.getMonitor('isMemAlert')
@@ -218,7 +219,8 @@ class PerMon(object):
         :param is_system: 未使用
         :return:
         """
-        flag = True     # 控制是否邮件通知标志
+        cpu_flag = True     # 控制CPU过高时是否邮件通知标志
+        mem_flag = True     # 控制内存过低时是否邮件通知标志
         echo = True     # 控制是否清理缓存标志
 
         line = [{'measurement': self.IP,
@@ -283,22 +285,36 @@ class PerMon(object):
                     self.client.write_points(line)    # 写cpu和内存到数据库
                     logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
 
+                    if len(self.last_cpu_io) > self.CPUDuration:
+                        self.last_cpu_io.pop(0)
+
+                    self.last_cpu_io.append(res['cpu'])
+
+                    if sum(self.last_cpu_io) > len(self.last_cpu_io) * self.maxCPU:
+                        msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
+                        logger.warning(msg)
+                        if self.isCPUAlert and cpu_flag:
+                            cpu_flag = False    # 标志符置为False，防止连续不断的发送邮件
+                            thread = threading.Thread(target=notification, args=(msg,))     # 开启线程发送邮件通知
+                            thread.start()
+
                     if res['mem'] <= self.minMem:
                         msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
                         logger.warning(msg)
-                        if self.isMemAlert and flag:
-                            flag = False    # 标志符置为False，防止连续不断的发送邮件
-                            thread = threading.Thread(target=notification, args=(msg, ))     # 发送邮件通知
+                        if self.isMemAlert and mem_flag:
+                            mem_flag = False    # 标志符置为False，防止连续不断的发送邮件
+                            thread = threading.Thread(target=notification, args=(msg, ))     # 开启线程发送邮件通知
                             thread.start()
 
                         if self.echo and echo:
                             echo = False    # 标志符置为False，防止连续不断的清理缓存
-                            thread = threading.Thread(target=self.clear_cache, args=())     # 开启多线程清理缓存
+                            thread = threading.Thread(target=self.clear_cache, args=())     # 开启线程清理缓存
                             thread.start()
 
                     else:
                         # 如果内存正常，标识符重置为True
-                        flag = True
+                        cpu_flag = True
+                        mem_flag = True
                         echo = True
             else:
                 time.sleep(3)
@@ -408,10 +424,7 @@ class PerMon(object):
                     if len(cpu_res) > 3:
                         cpu = 100 - float(cpu_res[-1])      # CPU使用率
                         logger.debug(f'系统CPU使用率为：{cpu}%')
-                        if len(self.last_cpu_io) > 100:
-                            self.last_cpu_io.pop(0)
 
-                        self.last_cpu_io.append(cpu)
                         continue
 
                 if 'Device' in disk_res[i]:
@@ -435,13 +448,6 @@ class PerMon(object):
                 trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
                 network = 100 * (rece + trans) / self.network_speed     # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000。
                 logger.debug(f'系统网络带宽：收{rece}Mb/s，发{trans}Mb/s，带宽占比{network}%')
-
-            if sum(self.last_cpu_io) > len(self.last_cpu_io) * self.maxCPU:
-                msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
-                logger.warning(msg)
-                if self.isCPUAlert:
-                    thread = threading.Thread(target=notification, args=(msg, ))
-                    thread.start()
 
         except Exception as err:
             logger.error(err)
