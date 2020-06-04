@@ -205,6 +205,8 @@ class PerMon(object):
                     except Exception as err:
                         logger.error(err)
                         time.sleep(self.sleepTime)
+                else:
+                    time.sleep(0.01)
 
             if self._msg['isRun'][index] == 0:   # 如果监控状态为0， 则停止监控
                 self._msg['stopTime'][index] = time.time()
