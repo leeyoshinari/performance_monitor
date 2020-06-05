@@ -448,7 +448,9 @@ class PerMon(object):
                 data2 = bps2[0].split(':')[1].strip().split(' ')
                 rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
                 trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
-                network = 100 * (rece + trans) / self.network_speed     # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000。
+                # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000
+                # 800 = 8 * 100，为什么要乘以8，因为网口带宽除以8即为网口支持的最大速率
+                network = 800 * (rece + trans) / self.network_speed
                 logger.debug(f'系统网络带宽：收{rece}Mb/s，发{trans}Mb/s，带宽占比{network}%')
 
         except Exception as err:
