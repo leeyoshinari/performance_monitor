@@ -37,12 +37,14 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             'jvm': [],
             'io_time': [],
             'io': [],
+            'disk_r': [],
+            'disk_w': [],
             'rec': [],
             'trans': [],
             'nic': [],
             'disk': disk}
 
-        res = {'code': 1, 'message': None}
+        res = {'code': 1, 'flag': 1, 'message': None}
 
         connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
                                              cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
@@ -79,7 +81,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     for data in datas.get_points():
                         post_data['io_time'].append(data['time'])
                         post_data['nic'].append(data['net'])
-                        post_data['io'].append(float(data[disk_n]))
+                        post_data['io'].append(data[disk_n])
                 else:
                     res['message'] = '未查询到监控数据，请检查磁盘号，或者时间设置！'
                     res['code'] = 0
@@ -89,7 +91,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
         if system and disk:      # 读取整个系统的CPU使用率、剩余内存大小
             disk_n = disk.replace('-', '')
-            sql = f"select cpu, mem, {disk_n}, rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+            disk_r = disk_n + '_r'
+            disk_w = disk_n + '_w'
+            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
@@ -100,7 +104,9 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['rec'].append(data['rec'])
                     post_data['trans'].append(data['trans'])
                     post_data['nic'].append(data['net'])
-                    post_data['io'].append(float(data[disk_n]))
+                    post_data['io'].append(data[disk_n])
+                    post_data['disk_r'].append(data[disk_r])
+                    post_data['disk_w'].append(data[disk_w])
 
                 post_data['io_time'] = post_data['cpu_time']
             else:
@@ -110,7 +116,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         img = draw(post_data)  # 画图
         res.update(img)
 
-        lines = get_lines(post_data['cpu'], post_data['io'], post_data['nic'])      # 计算百分位数，75%、90%、95%、99%
+        lines = get_lines(post_data)      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
         del connection
         del post_data
@@ -120,6 +126,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         del connection
         del post_data
         logger.error(err)
+        res['message'] = err
+        res['code'] = 0
         return res
 
 
@@ -136,6 +144,8 @@ def draw(data):
     io_time = data['io_time']
     io = data['io']
     disk = data['disk']
+    disk_r = data['disk_r']
+    disk_w = data['disk_w']
     rec = data['rec']
     trans = data['trans']
     net = data['nic']
@@ -145,35 +155,25 @@ def draw(data):
     net_length = len(net)
     if min(length, io_length, net_length) < 7:  # 画图的最小刻度为7，故必须大于7个数据
         logger.error('数据太少，请稍后再试')
-        raise Exception('当前数据太少，请稍后再试')
+        raise Exception('当前数据太少，请稍等10秒再试')
 
-    index = [[], []]        # x轴坐标，一个是CPU和内存的x轴，一个是IO的x轴
-    labels = [[], []]       # x轴刻度
+    index = []        # x轴坐标
+    labels = []       # x轴刻度
     delta = length / 6      # x轴每个坐标间隔
     io_delta = io_length / 6    # x轴每个坐标间隔，IO
     for i in range(6):
-        index[0].append(int(i * delta))
-        labels[0].append(utc2local(cpu_time[int(i * delta)]))
-        if types == 'system':
-            index[1].append(int(i * io_delta))
-            labels[1].append(utc2local(io_time[int(i * io_delta)]))
+        index.append(int(i * delta))
+        labels.append(utc2local(cpu_time[int(i * delta)]))
 
     # 添加最后一个时刻的数据
-    index[0].append(length - 1)
-    labels[0].append(utc2local(cpu_time[length - 1]))
+    index.append(length - 1)
+    labels.append(utc2local(cpu_time[length - 1]))
 
     # 数据的开始时间和结束时间，用于计算图中展示数据的总时长
-    cpu_start_time = time.mktime(datetime.datetime.strptime(cpu_time[0].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
-    cpu_end_time = time.mktime(datetime.datetime.strptime(cpu_time[-1].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
+    start_time = time.mktime(datetime.datetime.strptime(cpu_time[0].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
+    end_time = time.mktime(datetime.datetime.strptime(cpu_time[-1].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
 
     if types == 'system':
-        # 添加最后一个时刻的数据
-        index[1].append(io_length - 1)
-        labels[1].append(utc2local(io_time[io_length - 1]))
-        # 用于计算总时长
-        io_start_time = time.mktime(datetime.datetime.strptime(io_time[0].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
-        io_end_time = time.mktime(datetime.datetime.strptime(io_time[-1].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
-
         fig = plt.figure('figure', figsize=(20, 20))
         ax1 = plt.subplot(4, 1, 1)
         ax2 = plt.subplot(4, 1, 2)
@@ -187,30 +187,39 @@ def draw(data):
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
         plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(
-            max(cpu), sum(cpu) / len(cpu), (cpu_end_time - cpu_start_time) / 3600), size=12)
-        plt.xticks(index[0], labels[0])
+            max(cpu), sum(cpu) / len(cpu), (end_time - start_time) / 3600), size=12)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         # 画内存使用大小
         plt.sca(ax2)
-        plt.plot(mem, color='r', linewidth=1, label='Memory')
+        plt.plot(mem, color='r', linewidth=0.5, label='Memory')
         plt.title('Free Memory(G), min:{:.2f}G, duration:{:.1f}h'.format(
-            min(mem), (cpu_end_time - cpu_start_time) / 3600), size=12)
+            min(mem), (end_time - start_time) / 3600), size=12)
         plt.grid()
         plt.xlim(0, len(mem))
         plt.ylim(0, max(mem) + 1)
-        plt.xticks(index[0], labels[0])
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         # 画磁盘IO
         plt.sca(ax3)
-        plt.plot(io, color='r', linewidth=1, label='%util')
+        plt.plot(disk_r, color='orange', linewidth=0.5, label='Mb/s')
+        plt.plot(disk_w, color='blue', linewidth=0.5, label='Mb/s')
+        plt.legend(loc='upper left')
         plt.grid()
         plt.xlim(0, len(io))
-        plt.ylim(0, max(io))
-        plt.title('IO({}), max:{:.2f}%, duration:{:.1f}h'.format(disk, max(io), (io_end_time - io_start_time) / 3600), size=12)
-        plt.xticks(index[1], labels[1])
+        plt.ylim(0, max(max(disk_r), max(disk_w)))
+        plt.title('Disk({}), Rmax:{:.2f}Mb/s, Wmax:{:.2f}Mb/s, IO:{:.2f}%, duration:{:.1f}h'.format(
+            disk, max(disk_r), max(disk_w), max(io), (end_time - start_time) / 3600), size=12)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
+
+        ax_twinx = ax3.twinx()
+        plt.sca(ax_twinx)
+        plt.plot(io, color='r', linewidth=0.5, label='%util')
+        plt.legend(loc='upper right')
+        plt.ylim(0, max(io))
 
         # 画带宽图
         plt.sca(ax4)
@@ -221,12 +230,12 @@ def draw(data):
         plt.xlim(0, len(rec))
         plt.ylim(0, max(max(rec), max(trans)))
         plt.title('NetWork, Rmax:{:.2f}Mb/s, Tmax:{:.2f}Mb/s, NetWork:{:.2f}%, duration:{:.1f}h'.format(
-            max(rec), max(trans), max(net), (cpu_end_time - cpu_start_time) / 3600), size=12)
-        plt.xticks(index[0], labels[0])
+            max(rec), max(trans), max(net), (end_time - start_time) / 3600), size=12)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
-        ax_net = ax4.twinx()
-        plt.sca(ax_net)
+        ax_twinx = ax4.twinx()
+        plt.sca(ax_twinx)
         plt.plot(net, color='red', linewidth=0.5, label='%net')
         plt.legend(loc='upper right')
         plt.ylim(0, max(net))
@@ -243,27 +252,27 @@ def draw(data):
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
         plt.title('CPU(%), max:{:.2f}%, average:{:.2f}%, duration:{:.1f}h'.format(
-            max(cpu), sum(cpu) / len(cpu), (cpu_end_time - cpu_start_time) / 3600), size=12)
-        plt.xticks(index[0], labels[0])
+            max(cpu), sum(cpu) / len(cpu), (end_time - start_time) / 3600), size=12)
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
         # 画内存使用大小和jvm
         plt.sca(ax2)
-        plt.plot(mem, color='r', linewidth=1, label='Memory')
+        plt.plot(mem, color='r', linewidth=0.5, label='Memory')
 
         if sum(jvm) == 0:   # 如果没有jvm数据，则不画jvm
             plt.title('Memory(G), max:{:.2f}G, duration:{:.1f}h'.format(
-                max(mem), (cpu_end_time - cpu_start_time) / 3600), size=12)
+                max(mem), (end_time - start_time) / 3600), size=12)
         else:
-            plt.plot(jvm, color='b', linewidth=1, label='JVM')
+            plt.plot(jvm, color='b', linewidth=0.5, label='JVM')
             plt.legend(loc='upper right')
             plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(
-                max(mem), max(jvm), (cpu_end_time - cpu_start_time) / 3600), size=12)
+                max(mem), max(jvm), (end_time - start_time) / 3600), size=12)
 
         plt.grid()
         plt.xlim(0, len(mem))
         plt.ylim(0, max(max(mem), max(jvm)) + 1)
-        plt.xticks(index[0], labels[0])
+        plt.xticks(index, labels)
         plt.margins(0, 0)
 
     image_byte = BytesIO()
@@ -274,23 +283,38 @@ def draw(data):
     return {'img': img}
 
 
-def get_lines(cpu, dutil, nic):
+def get_lines(datas):
     """
-    计算cpu和磁盘IO的百分位数
-    :param cpu: CPU使用率(%)
-    :param dutil: 磁盘IO(%)
+    计算cpu、磁盘、带宽的百分位数
+    :param datas: CPU使用率(%)
     :return:
     """
-    cpu.sort()      # 排序
-    dutil.sort()
-    nic.sort()
+    cpu = datas['cpu'].sort()
+    disk_r = datas['disk_r'].sort() if datas['disk_r'] else ['-']
+    disk_w = datas['disk_w'].sort() if datas['disk_w'] else ['-']
+    io = datas['io'].sort()
+    rec = datas['rec'].sort() if datas['res'] else ['-']
+    trans = datas['trans'].sort() if datas['trans'] else ['-']
+    nic = datas['nic'].sort()
 
-    line75 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.75)], dutil[int(len(dutil) * 0.75)], nic[int(len(nic) * 0.75)])
-    line90 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.90)], dutil[int(len(dutil) * 0.90)], nic[int(len(nic) * 0.90)])
-    line95 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.95)], dutil[int(len(dutil) * 0.95)], nic[int(len(nic) * 0.95)])
-    line99 = 'CPU: {:.2f}%, util: {:.2f}%, network: {:.3f}%'.format(cpu[int(len(cpu) * 0.99)], dutil[int(len(dutil) * 0.99)], nic[int(len(nic) * 0.99)])
+    line75 = [round(cpu[int(len(cpu) * 0.75)], 2), round(disk_r[int(len(disk_r) * 0.75)], 2),
+              round(disk_w[int(len(disk_w) * 0.75)], 2), round(io[int(len(io) * 0.75)], 2),
+              round(rec[int(len(rec) * 0.75)], 2), round(trans[int(len(trans) * 0.75)], 2),
+              round(nic[int(len(nic) * 0.75)], 2)]
+    line90 = [round(cpu[int(len(cpu) * 0.9)], 2), round(disk_r[int(len(disk_r) * 0.9)], 2),
+              round(disk_w[int(len(disk_w) * 0.9)], 2), round(io[int(len(io) * 0.9)], 2),
+              round(rec[int(len(rec) * 0.9)], 2), round(trans[int(len(trans) * 0.9)], 2),
+              round(nic[int(len(nic) * 0.9)], 2)]
+    line95 = [round(cpu[int(len(cpu) * 0.95)], 2), round(disk_r[int(len(disk_r) * 0.95)], 2),
+              round(disk_w[int(len(disk_w) * 0.95)], 2), round(io[int(len(io) * 0.95)], 2),
+              round(rec[int(len(rec) * 0.95)], 2), round(trans[int(len(trans) * 0.95)], 2),
+              round(nic[int(len(nic) * 0.95)], 2)]
+    line99 = [round(cpu[int(len(cpu) * 0.99)], 2), round(disk_r[int(len(disk_r) * 0.99)], 2),
+              round(disk_w[int(len(disk_w) * 0.99)], 2), round(io[int(len(io) * 0.99)], 2),
+              round(rec[int(len(rec) * 0.99)], 2), round(trans[int(len(trans) * 0.99)], 2),
+              round(nic[int(len(nic) * 0.99)], 2)]
 
-    return {'line75': line75, 'line90': line90, 'line95': line95, 'line99': line99}
+    return {'line': [line75, line90, line95, line99]}
 
 
 def utc2local(utc_time):

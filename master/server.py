@@ -185,33 +185,31 @@ async def plot_monitor(request):
 	port_pid = data.get('port')         # 端口号
 	disk = data.get('disk')         # 磁盘号
 	try:
-		if type_ == 'port':
+		row_name = ['75%line', '90%line', '95%line', '99%line']
+		if type_ == 'port':		# 如果选择端口，则可视化端口的CPU、内存，统计系统的IO和带宽
 			res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 			if res['code'] == 0:
 				raise Exception(res['message'])
 			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
-			return aiohttp_jinja2.render_template('figure.html', request, context={
-				'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
-				'line99': res['line99'], 'ygc': res['ygc'], 'ygct': res['ygct'],
-				'fgc': res['fgc'], 'fgct': res['fgct'], 'fygc': res['fygc'], 'ffgc': res['ffgc']})
+			if res['fgc'] == -1 and res['ygc'] == -1:
+				res['flag'] = 0
+			return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 
-		if type_ == 'pid':
+		if type_ == 'pid':		# 如果选择进程号，则可视化端口的CPU、内存，统计系统的IO和带宽
 			res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 			if res['code'] == 0:
 				raise Exception(res['message'])
 			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
-			return aiohttp_jinja2.render_template('figure.html', request, context={
-					'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
-					'line99': res['line99'], 'ygc': res['ygc'], 'ygct': res['ygct'],
-					'fgc': res['fgc'], 'fgct': res['fgct'], 'fygc': res['fygc'], 'ffgc': res['ffgc']})
+			if res['fgc'] == -1 and res['ygc'] == -1:
+				res['flag'] = 0
+			return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 
-		if type_ == 'system':
+		if type_ == 'system':		# 如果选择系统，则可视化系统的CPU、内存、IO和带宽
 			res = draw_data_from_db(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
 			if res['code'] == 0:
 				raise Exception(res['message'])
-			return aiohttp_jinja2.render_template('figure.html', request, context={
-						'img': res['img'], 'line75': res['line75'], 'line90': res['line90'], 'line95': res['line95'],
-						'line99': res['line99'], 'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1})
+			res['flag'] = 0
+			return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 
 	except Exception as err:
 		logger.error(err)

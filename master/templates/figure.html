@@ -1,23 +1,58 @@
 <div align="center">
-    <img width="89.911%" src="data:image/png;base64,{{img}}" />
+    <img width="89.911%" src="data:image/png;base64,{{ datas['img'] }}" />
 </div>
-<div id="container" style="width:730px; margin:0 auto">
-    <div id="Percentile" style="float:left; background-color:#FF9933; height:150px; width:400px; 'margin-right:10px">
-        <h3 align="center">Percentile</h3>
-        <p align="center">
-            75%:&nbsp&nbsp&nbsp&nbsp{{line75}}<br>
-            90%:&nbsp&nbsp&nbsp&nbsp{{line90}}<br>
-            95%:&nbsp&nbsp&nbsp&nbsp{{line95}}<br>
-            99%:&nbsp&nbsp&nbsp&nbsp{{line99}}
-        </p>
+<br>
+<div id="container" style="width: 89.911%; margin:0 auto">
+    <div style="float: left;">
+        <h4 align="center">百分位数</h4>
+        <table width="80%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
+            <tr style="align: center; margin: auto; background-color: #99CCFF">
+                <td width="10%" style="text-align: center;">百分位数</td>
+                <td width="10%" style="text-align: center;">CPU(%)</td>
+                <td width="10%" style="text-align: center;">磁盘读(Mb/s)</td>
+                <td width="10%" style="text-align: center;">磁盘写(Mb/s)</td>
+                <td width="10%" style="text-align: center;">磁盘IO(%)</td>
+                <td width="10%" style="text-align: center;">网络收(Mb/s)</td>
+                <td width="10%" style="text-align: center;">网络发(Mb/s)</td>
+                <td width="10%" style="text-align: center;">带宽(%)</td>
+            </tr>
+            {% for row in row_name %}
+                <tr align="center">
+                    <td>{{ row }}</td>
+                    <td>{{ datas['line'][loop.index0][0] }}</td>
+                    <td>{{ datas['line'][loop.index0][1] }}</td>
+                    <td>{{ datas['line'][loop.index0][2] }}</td>
+                    <td>{{ datas['line'][loop.index0][3] }}</td>
+                    <td>{{ datas['line'][loop.index0][4] }}</td>
+                    <td>{{ datas['line'][loop.index0][5] }}</td>
+                    <td>{{ datas['line'][loop.index0][6] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
     </div>
-    <div id="GC" style="float:left; background-color:#CC6633; height:150px; width:300px">
-        <h3 align="center">GC</h3>
-        <p align="center">
-            YGC:&nbsp{{ygc}}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspYGCT:&nbsp{{ygct}}s<br>
-            FGC:&nbsp{{fgc}}&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbspFGCT:&nbsp{{fgct}}s<br>
-            Frequence of YGC:&nbsp{{fygc}}s<br>
-            Frequence of FGC:&nbsp{{ffgc}}s
-        </p>
-    </div>
+    {% if datas['flag'] == 1 %}
+        <div style="float: left; margin-left: 10px;">
+            <h4 align="center">垃圾回收</h4>
+            <table width="50%" cellpadding="6" cellspacing="0" border="1", align="center" id="gc">
+                <tr align="center">
+                    <td>ygc次数</td>
+                    <td>{{ datas['ygc'] }}</td>
+                    <td>fgc次数</td>
+                    <td>{{ datas['fgc'] }}</td>
+                </tr>
+                <tr align="center">
+                    <td>ygc时间</td>
+                    <td>{{ datas['ygct'] }}</td>
+                    <td>fgc时间</td>
+                    <td>{{ datas['fgct'] }}</td>
+                </tr>
+                <tr align="center">
+                    <td>ygc频率</td>
+                    <td>{{ datas['fygc'] }}</td>
+                    <td>fgc频率</td>
+                    <td>{{ datas['ffgc'] }}</td>
+                </tr>
+            </table>
+        </div>
+    {% endif %}
 </div>

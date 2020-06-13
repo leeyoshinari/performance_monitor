@@ -35,7 +35,7 @@ def sendEmail(msg):
         except socket.error:
             smtp = smtplib.SMTP(host, 25)
 
-        smtp.login(sender_email, password)
+        smtp.login(sender_email, password)  # 如需隐藏密码，可替换password，例如'123456'，然后打包即可
         smtp.sendmail(sender_email, receiver_email, msg.as_string())
         smtp.quit()
         logger.info('邮件发送成功, 请查收')

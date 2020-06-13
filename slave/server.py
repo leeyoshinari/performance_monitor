@@ -3,6 +3,7 @@
 # @Author: leeyoshinari
 
 import os
+import time
 import asyncio
 from aiohttp import web
 
@@ -115,6 +116,7 @@ async def get_gc(request):
 		result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行jstat命令
 		res = result.strip().split(' ')
 
+		# 当前gc数据
 		ygc = int(res[12])
 		ygct = float(res[13])
 		fgc = int(res[14])
@@ -122,14 +124,21 @@ async def get_gc(request):
 		fygc = 0
 		ffgc = 0
 
-		result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]      # 查询该进程运行时间
-		runtime = int(result.strip())
-
-		# 计算垃圾回收的频率
-		if ygc > 0:
-			fygc = runtime / ygc
+		# 历史gc数据
+		fgc_history = permon.FGC[port][-1]
+		fgc_time_history = permon.FGC_time[port][-2:]
 		if fgc > 0:
-			ffgc = runtime / fgc
+			if fgc == fgc_history:
+				if len(fgc_time_history) > 1:
+					ffgc = round(time.time() - fgc_time_history[0], 2)
+				else:
+					result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]  # 查询该进程运行时间
+					runtime = int(result.strip())
+					ffgc = round(runtime / fgc, 2)
+			else:
+				ffgc = round(time.time() - fgc_time_history[1], 2)
+		else:
+			fgc = 'NaN'
 
 	except Exception as err:
 		logger.error(err)
@@ -137,7 +146,7 @@ async def get_gc(request):
 
 	return web.json_response({
 		'code': 0, 'msg': '操作成功', 'data': {
-			'ygc': ygc, 'ygct': ygct, 'fgc': fgc, 'fgct': fgct, 'fygc': f'{fygc:.2f}', 'ffgc': f'{ffgc:.2f}'}})
+			'ygc': ygc, 'ygct': ygct, 'fgc': fgc, 'fgct': fgct, 'fygc': '-', 'ffgc': ffgc}})
 
 
 async def main():

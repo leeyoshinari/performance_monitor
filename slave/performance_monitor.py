@@ -238,6 +238,8 @@ class PerMon(object):
             # 系统磁盘号目前发现2种格式，分别是'sda'和'sda-1'，因为influxdb查询时，无法识别'-'，故replace。其他格式的待验证
             disk_n = disk.replace('-', '')
             line[0]['fields'].update({disk_n: 0.0})
+            line[0]['fields'].update({disk_n + '_r': 0.0})
+            line[0]['fields'].update({disk_n + '_w': 0.0})
 
         # 注册本机参数
         url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
@@ -279,13 +281,20 @@ class PerMon(object):
                     for k, v in res['disk'].items():
                         line[0]['fields'][k] = v     # 写磁盘IO数据到数据库
 
+                    for k, v in res['disk_r'].items():
+                        line[0]['fields'][k] = v
+
+                    for k, v in res['disk_w'].items():
+                        line[0]['fields'][k] = v
+
                     line[0]['fields']['cpu'] = res['cpu']
                     line[0]['fields']['mem'] = res['mem']
                     line[0]['fields']['rec'] = res['rece']
                     line[0]['fields']['trans'] = res['trans']
                     line[0]['fields']['net'] = res['network']
                     self.client.write_points(line)    # 写cpu和内存到数据库
-                    logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['rece']},{res['trans']},{res['network']}")
+                    logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['disk_r']},{res['disk_w']},"
+                                f"{res['rece']},{res['trans']},{res['network']}")
 
                     if len(self.last_cpu_io) > self.CPUDuration:
                         self.last_cpu_io.pop(0)
@@ -367,7 +376,7 @@ class PerMon(object):
                 self.FGC[str(port)] = fgc
                 self.FGC_time[str(port)].append(time.time())
                 if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
-                    frequency = (self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][-2])
+                    frequency = self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][-2]
                     if frequency < self.frequencyFGC:    # 如果FGC频率大于设置值，则发送邮件提醒
                         msg = f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.'
                         logger.warning(msg)
@@ -397,6 +406,8 @@ class PerMon(object):
         :return: 磁盘IO，cpu使用率（%），剩余内存（G），网络上行和下行速率，单位 Mb/s
         """
         disk = {}
+        disk_r = {}
+        disk_w = {}
         cpu = None
         mem = None
         bps1 = None
@@ -409,7 +420,7 @@ class PerMon(object):
                 bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
                 logger.debug(f'第一次获取网速的结果：{bps1}')
 
-            result = os.popen(f'iostat -x -k 1 2 |tr -s " "').readlines()    # 执行命令
+            result = os.popen(f'iostat -x -m 1 2 |tr -s " "').readlines()    # 执行命令
             logger.debug(f'获取磁盘IO结果：{result}')
 
             if self.nic:
@@ -426,16 +437,17 @@ class PerMon(object):
                     if len(cpu_res) > 3:
                         cpu = 100 - float(cpu_res[-1])      # CPU使用率
                         logger.debug(f'系统CPU使用率为：{cpu}%')
-
                         continue
 
                 if 'Device' in disk_res[i]:
                     for j in range(i+1, len(disk_res)):     # 遍历所有磁盘
                         disk_line = disk_res[j].strip().split(' ')
                         disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
-                        disk.update({disk_num: disk_line[-1]})  # 将每个磁盘的IO以字典的形式保存
+                        disk.update({disk_num: disk_line[-1]})      # 磁盘的IO
+                        disk_r.update({disk_num + '_r': disk_line[7]})     # 磁盘读 Mb/s
+                        disk_w.update({disk_num + '_w': disk_line[8]})     # 磁盘写 Mb/s
 
-                    logger.debug(f'当前获取的磁盘数据：{disk}')
+                    logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 
                     continue
 
@@ -456,7 +468,7 @@ class PerMon(object):
         except Exception as err:
             logger.error(err)
 
-        return {'disk': disk, 'cpu': cpu, 'mem': mem, 'rece': rece, 'trans': trans, 'network': network}
+        return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'cpu': cpu, 'mem': mem, 'rece': rece, 'trans': trans, 'network': network}
 
     '''def get_handle(pid):
         """
