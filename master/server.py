@@ -221,7 +221,7 @@ async def plot_monitor(request):
 
 async def get_port_disk(request):
 	"""
-	根据服务器IP获取对应服务器的所有磁盘号和所以已监控得端口号
+	根据服务器IP获取对应服务器的所有磁盘号和所有已监控的端口号
 	:param request:
 	:return:
 	"""

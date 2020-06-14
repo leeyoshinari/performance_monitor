@@ -11,16 +11,12 @@
         <option value="system">系统</option>
         <option value="port">端口</option>
     </select>
-    端口号: <select id="port" style="width: 160px; height: 26px; margin-right: 20px;">
-            {% for po in port %}
-                <option value="{{ po }}">{{ po }}</option>
-            {% endfor %}
-</select>
+    端口号: <select id="port" style="width: 160px; height: 26px; margin-right: 20px;"></select>
     磁盘号: <select id="disk" style="width: 160px; height: 26px; margin-right: 20px;">
             {% for disk in disks[0] %}
                 <option value="{{ disk }}">{{ disk }}</option>
             {% endfor %}
-</select>
+    </select>
     开始时间: <input type="text" name="starttime" id="starttime" style="margin-right: 20px; width: 160px;" value="{{ starttime }}">
     结束时间: <input type="text" name="endtime" id="endtime" style="margin-right: 20px; width: 160px;" value="{{ endtime }}">
     <button type="button" id="MonitorList">&nbsp;画&nbsp;&nbsp;&nbsp;图&nbsp;</button>

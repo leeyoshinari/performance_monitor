@@ -127,7 +127,7 @@ async def get_gc(request):
 		ffgc = 0
 
 		# 历史gc数据
-		fgc_history = permon.FGC[port][-1]
+		fgc_history = permon.FGC[port]
 		fgc_time_history = permon.FGC_time[port][-2:]
 		if fgc > 0:
 			if fgc == fgc_history:

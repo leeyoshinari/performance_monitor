@@ -4,7 +4,7 @@
 <br>
 <div id="container" style="width: 89.911%; margin:0 auto">
     {% if datas['flag'] == 1 %}
-    <div style="float: left;">
+    <div style="float: left; margin-left: 20px;">
     {% else %}
     <div>
     {% endif %}
@@ -15,7 +15,7 @@
         <table width="50%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
         {% endif %}
             <tr style="align: center; margin: auto; background-color: #99CCFF">
-                <td width="10%" style="text-align: center;">百分位数</td>
+                <td width="10%" style="text-align: center;">百分位</td>
                 <td width="10%" style="text-align: center;">CPU(%)</td>
                 <td width="10%" style="text-align: center;">磁盘读(Mb/s)</td>
                 <td width="10%" style="text-align: center;">磁盘写(Mb/s)</td>
@@ -39,25 +39,25 @@
         </table>
     </div>
     {% if datas['flag'] == 1 %}
-        <div style="float: left; margin-left: 10px;">
+        <div style="float: left; margin-left: 10px; margin-top: 15px; margin-bottom: 66px;">
             <h4 align="center">垃圾回收</h4>
             <table width="50%" cellpadding="6" cellspacing="0" border="1", align="center" id="gc">
+                <tr style="align: center; margin: auto; background-color: #99CCFF">
+                    <td width="10%" style="text-align: center;">GC</td>
+                    <td width="10%" style="text-align: center;">次数</td>
+                    <td width="10%" style="text-align: center;">时间(s)</td>
+                    <td width="10%" style="text-align: center;">频率(s/次)</td>
+                </tr>
                 <tr align="center">
-                    <td>ygc次数</td>
+                    <td>YGC</td>
                     <td>{{ datas['ygc'] }}</td>
-                    <td>fgc次数</td>
-                    <td>{{ datas['fgc'] }}</td>
-                </tr>
-                <tr align="center">
-                    <td>ygc时间</td>
                     <td>{{ datas['ygct'] }}</td>
-                    <td>fgc时间</td>
-                    <td>{{ datas['fgct'] }}</td>
+                    <td>{{ datas['fygc'] }}</td>
                 </tr>
                 <tr align="center">
-                    <td>ygc频率</td>
-                    <td>{{ datas['fygc'] }}</td>
-                    <td>fgc频率</td>
+                    <td>FGC</td>
+                    <td>{{ datas['fgc'] }}</td>
+                    <td>{{ datas['fgct'] }}</td>
                     <td>{{ datas['ffgc'] }}</td>
                 </tr>
             </table>
