@@ -129,6 +129,7 @@ async def run_monitor(request):
 
 	except Exception as err:
 		logger.error(err)
+		logger.error(traceback.format_exc())
 		return web.json_response({'code': 2, 'msg': '系统异常',	'data': None})
 
 
@@ -167,6 +168,7 @@ async def get_monitor(request):
 
 	except Exception as err:
 		logger.error(err)
+		logger.error(traceback.format_exc())
 		return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 
 
@@ -213,6 +215,7 @@ async def plot_monitor(request):
 
 	except Exception as err:
 		logger.error(err)
+		logger.error(traceback.format_exc())
 		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
 
 
@@ -230,6 +233,7 @@ async def get_port_disk(request):
 			return web.json_response({'code': 0, 'msg': '操作成功', 'data': {'disk': disks, 'port': monitor_list['port']}})
 		except Exception as err:
 			logger.error(err)
+			logger.error(traceback.format_exc())
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 	else:
 		return web.json_response({'code': 1, 'msg': f"{host}未注册", 'data': None})

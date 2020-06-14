@@ -206,8 +206,8 @@ def draw(data):
 
         # 画磁盘IO
         plt.sca(ax3)
-        plt.plot(disk_r, color='orange', linewidth=0.5, label='Mb/s')
-        plt.plot(disk_w, color='blue', linewidth=0.5, label='Mb/s')
+        plt.plot(disk_r, color='orange', linewidth=0.5, label='rMb/s')
+        plt.plot(disk_w, color='blue', linewidth=0.5, label='wMb/s')
         plt.legend(loc='upper left')
         plt.grid()
         plt.xlim(0, len(io))
@@ -308,21 +308,21 @@ def get_lines(datas):
     nic.sort()
 
     line75 = [round(cpu[int(len(cpu) * 0.75)], 2), round(disk_r[int(len(disk_r) * 0.75)], 2),
-              round(disk_w[int(len(disk_w) * 0.75)], 2), round(io[int(len(io) * 0.75)], 2),
+              round(disk_w[int(len(disk_w) * 0.75)], 2), round(io[int(len(io) * 0.75)], 3),
               round(rec[int(len(rec) * 0.75)], 2), round(trans[int(len(trans) * 0.75)], 2),
-              round(nic[int(len(nic) * 0.75)], 2)]
+              round(nic[int(len(nic) * 0.75)], 3)]
     line90 = [round(cpu[int(len(cpu) * 0.9)], 2), round(disk_r[int(len(disk_r) * 0.9)], 2),
-              round(disk_w[int(len(disk_w) * 0.9)], 2), round(io[int(len(io) * 0.9)], 2),
+              round(disk_w[int(len(disk_w) * 0.9)], 2), round(io[int(len(io) * 0.9)], 3),
               round(rec[int(len(rec) * 0.9)], 2), round(trans[int(len(trans) * 0.9)], 2),
-              round(nic[int(len(nic) * 0.9)], 2)]
+              round(nic[int(len(nic) * 0.9)], 3)]
     line95 = [round(cpu[int(len(cpu) * 0.95)], 2), round(disk_r[int(len(disk_r) * 0.95)], 2),
-              round(disk_w[int(len(disk_w) * 0.95)], 2), round(io[int(len(io) * 0.95)], 2),
+              round(disk_w[int(len(disk_w) * 0.95)], 2), round(io[int(len(io) * 0.95)], 3),
               round(rec[int(len(rec) * 0.95)], 2), round(trans[int(len(trans) * 0.95)], 2),
-              round(nic[int(len(nic) * 0.95)], 2)]
+              round(nic[int(len(nic) * 0.95)], 3)]
     line99 = [round(cpu[int(len(cpu) * 0.99)], 2), round(disk_r[int(len(disk_r) * 0.99)], 2),
-              round(disk_w[int(len(disk_w) * 0.99)], 2), round(io[int(len(io) * 0.99)], 2),
+              round(disk_w[int(len(disk_w) * 0.99)], 2), round(io[int(len(io) * 0.99)], 3),
               round(rec[int(len(rec) * 0.99)], 2), round(trans[int(len(trans) * 0.99)], 2),
-              round(nic[int(len(nic) * 0.99)], 2)]
+              round(nic[int(len(nic) * 0.99)], 3)]
 
     return {'line': [line75, line90, line95, line99]}
 

@@ -5,6 +5,7 @@
 import os
 import time
 import asyncio
+import traceback
 from aiohttp import web
 
 from logger import logger, cfg
@@ -72,6 +73,7 @@ async def run_monitor(request):
 
 	except Exception as err:
 		logger.error(err)
+		logger.error(traceback.format_exc())
 		return web.json_response({
 			'code': 2, 'msg': err, 'data': {'host': cfg.getServer('host'), 'port': None, 'pid': None}})
 
@@ -142,6 +144,7 @@ async def get_gc(request):
 
 	except Exception as err:
 		logger.error(err)
+		logger.error(traceback.format_exc())
 		ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 
 	return web.json_response({

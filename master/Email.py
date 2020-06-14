@@ -3,6 +3,7 @@
 # Author: leeyoshinari
 import smtplib
 import socket
+import traceback
 from email.header import Header
 from email.mime.text import MIMEText
 from logger import logger, cfg
@@ -41,6 +42,7 @@ def sendEmail(msg):
         logger.info('邮件发送成功, 请查收')
     except Exception as err:
         logger.error(f'邮件配置有误{err}')
+        logger.error(traceback.format_exc())
 
 
 if __name__ == '__main__':

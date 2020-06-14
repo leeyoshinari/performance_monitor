@@ -3,6 +3,7 @@
 # @Author: leeyoshinari
 import time
 import json
+import traceback
 import threading
 import influxdb
 from logger import logger, cfg
@@ -94,6 +95,7 @@ class Process(object):
 				return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
 		except Exception as err:
 			logger.error(err)
+			logger.error(traceback.format_exc())
 			return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
 
 	def get_monitor(self, host=None):
@@ -138,5 +140,6 @@ class Process(object):
 
 		except Exception as err:
 			logger.error(err)
+			logger.error(traceback.format_exc())
 
 		return monitor_list

@@ -5,6 +5,7 @@ import os
 import re
 import time
 import queue
+import traceback
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
@@ -204,6 +205,7 @@ class PerMon(object):
 
                     except Exception as err:
                         logger.error(err)
+                        logger.error(traceback.format_exc())
                         time.sleep(self.sleepTime)
                 else:
                     time.sleep(0.01)
@@ -273,6 +275,7 @@ class PerMon(object):
                         clear_time = time.time()
                 except Exception as err:
                     logger.error(err)
+                    logger.error(traceback.format_exc())
 
             if self.is_system:     # 开始监控
                 res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
@@ -353,6 +356,7 @@ class PerMon(object):
 
         except Exception as err:
             logger.error(err)
+            logger.error(traceback.format_exc())
 
         return cpu, mem
 
@@ -449,7 +453,7 @@ class PerMon(object):
 
                     logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 
-                    continue
+                    break
 
             result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]   # 执行命令，获取系统剩余内存
             logger.debug(f'系统剩余内存为：{result}G')
@@ -467,6 +471,7 @@ class PerMon(object):
 
         except Exception as err:
             logger.error(err)
+            logger.error(traceback.format_exc())
 
         return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'cpu': cpu, 'mem': mem, 'rece': rece, 'trans': trans, 'network': network}
 
@@ -779,6 +784,7 @@ def port_to_pid(port):
             pid = p[p.index('LISTEN') + 1].split('/')[0]
     except Exception as err:
         logger.error(err)
+        logger.error(traceback.format_exc())
 
     return pid
 
@@ -811,3 +817,4 @@ def notification(msg):
             logger.error('邮件发送失败')
     except Exception as err:
         logger.error(f'邮件发送失败，失败详情：{err}')
+        logger.error(traceback.format_exc())
