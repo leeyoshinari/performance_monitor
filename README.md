@@ -29,7 +29,21 @@
 
 2. 分别修改master和slave文件夹里的配置文件 `config.ini`
 
-3. 部署InfluxDB数据库
+3. 部署InfluxDB数据库。CentOS安装过程如下：<br>
+    （1）下载并安装<br>
+        `wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.0.x86_64.rpm` <br>
+        `yum localinstall influxdb-1.8.0.x86_64.rpm` <br>
+    （2）启动<br>
+        `systemctl enable influxdb` <br>
+        `systemctl start influxdb` <br>
+    （3）修改配置<br>
+         `vim /etc/influxdb/influxdb.conf` <br>
+         第256行左右，修改端口：`bind-address = ":8086"` <br>
+         重启 <br>
+    （4）创建数据库<br>
+        `create database test` <br>
+        `create user root with password 123456` 创建用户和设置密码 <br>
+        `grant all privileges on test to root` 授权数据库给指定用户 <br>
    
 4. 分别运行master和slave文件夹中的`server.py`
    ```shell

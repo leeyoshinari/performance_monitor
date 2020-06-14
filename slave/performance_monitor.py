@@ -443,9 +443,9 @@ class PerMon(object):
                     for j in range(i+1, len(disk_res)):     # 遍历所有磁盘
                         disk_line = disk_res[j].strip().split(' ')
                         disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
-                        disk.update({disk_num: disk_line[-1]})      # 磁盘的IO
-                        disk_r.update({disk_num + '_r': disk_line[7]})     # 磁盘读 Mb/s
-                        disk_w.update({disk_num + '_w': disk_line[8]})     # 磁盘写 Mb/s
+                        disk.update({disk_num: float(disk_line[-1])})      # 磁盘的IO
+                        disk_r.update({disk_num + '_r': float(disk_line[7])})     # 磁盘读 Mb/s
+                        disk_w.update({disk_num + '_w': float(disk_line[8])})     # 磁盘写 Mb/s
 
                     logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 

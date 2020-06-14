@@ -4,6 +4,7 @@
 import base64
 import time
 import datetime
+import traceback
 from io import BytesIO
 import influxdb
 import matplotlib
@@ -70,7 +71,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['mem'].append(data['mem'])
                     post_data['jvm'].append(data['jvm'])
             else:
-                res['message'] = f'未查询到端口{port}的监控数据，请检查端口是否已监控，或者时间设置是否正确！'
+                res['message'] = f'未查询到{port}端口的监控数据，请检查端口是否已监控，或者时间设置是否正确！'
                 res['code'] = 0
 
             if disk:  # 读取磁盘IO数据
@@ -126,6 +127,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         del connection
         del post_data
         logger.error(err)
+        logger.error(traceback.format_exc())
         res['message'] = err
         res['code'] = 0
         return res
@@ -289,13 +291,21 @@ def get_lines(datas):
     :param datas: CPU使用率(%)
     :return:
     """
-    cpu = datas['cpu'].sort()
-    disk_r = datas['disk_r'].sort() if datas['disk_r'] else ['-']
-    disk_w = datas['disk_w'].sort() if datas['disk_w'] else ['-']
-    io = datas['io'].sort()
-    rec = datas['rec'].sort() if datas['res'] else ['-']
-    trans = datas['trans'].sort() if datas['trans'] else ['-']
-    nic = datas['nic'].sort()
+    cpu = datas['cpu']
+    disk_r = datas['disk_r'] if datas['disk_r'] else [-1]
+    disk_w = datas['disk_w'] if datas['disk_w'] else [-1]
+    io = datas['io']
+    rec = datas['rec'] if datas['rec'] else [-1]
+    trans = datas['trans'] if datas['trans'] else [-1]
+    nic = datas['nic']
+
+    cpu.sort()
+    disk_r.sort()
+    disk_w.sort()
+    io.sort()
+    rec.sort()
+    trans.sort()
+    nic.sort()
 
     line75 = [round(cpu[int(len(cpu) * 0.75)], 2), round(disk_r[int(len(disk_r) * 0.75)], 2),
               round(disk_w[int(len(disk_w) * 0.75)], 2), round(io[int(len(io) * 0.75)], 2),

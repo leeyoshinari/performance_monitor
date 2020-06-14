@@ -185,7 +185,7 @@ async def plot_monitor(request):
 	port_pid = data.get('port')         # 端口号
 	disk = data.get('disk')         # 磁盘号
 	try:
-		row_name = ['75%line', '90%line', '95%line', '99%line']
+		row_name = ['75%', '90%', '95%', '99%']
 		if type_ == 'port':		# 如果选择端口，则可视化端口的CPU、内存，统计系统的IO和带宽
 			res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 			if res['code'] == 0:

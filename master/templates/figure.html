@@ -3,9 +3,17 @@
 </div>
 <br>
 <div id="container" style="width: 89.911%; margin:0 auto">
+    {% if datas['flag'] == 1 %}
     <div style="float: left;">
+    {% else %}
+    <div>
+    {% endif %}
         <h4 align="center">百分位数</h4>
-        <table width="80%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
+        {% if datas['flag'] == 1 %}
+        <table width="90%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
+        {% else %}
+        <table width="50%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
+        {% endif %}
             <tr style="align: center; margin: auto; background-color: #99CCFF">
                 <td width="10%" style="text-align: center;">百分位数</td>
                 <td width="10%" style="text-align: center;">CPU(%)</td>
@@ -56,3 +64,4 @@
         </div>
     {% endif %}
 </div>
+<br><br>

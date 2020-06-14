@@ -27,7 +27,7 @@
             4、采用线程池+队列的方式实现同时监控多个端口<br>
             5、客户端每隔5s向服务端注册本机IP和端口，以及服务器信息<br>
             6、服务端每隔5s会查询所有已注册的客户端的状态<br>
-            7、使用influxDB数据库存储监控数据；数据可设置自动过期时间
+            7、使用InfluxDB数据库存储监控数据；数据可设置自动过期时间
         </p>
     </ol>
     <h2>使用</h2>
@@ -43,7 +43,22 @@
             <p>分别修改master和slave文件夹里的配置文件 <code>config.ini</code></p>
         </li>
         <li>
-            <p>部署InfluxDB数据库</p>
+            <p>部署InfluxDB数据库。CentOS安装过程如下：</p>
+            <p>
+                （1）下载并安装<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.0.x86_64.rpm</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>yum localinstall influxdb-1.8.0.x86_64.rpm</code> <br>
+                （2）启动<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>systemctl enable influxdb</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>systemctl start influxdb</code> <br>
+                （3）修改配置<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>vim /etc/influxdb/influxdb.conf</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;第256行左右，修改端口：<code>bind-address = ":8086"</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;重启 <br>
+                （4）创建数据库<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>create database test</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;Influxdb数据库权限默认关闭，如需设置用户名和密码，可修改配置文件中的第259行“auth-enabled = true”，然后创建用户并授权给指定用户<br>
+            </p>
         </li>
         <li>
             <p>分别运行master和slave文件夹中的<code>server.py</code></p>
