@@ -54,7 +54,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             startTime = local2utc(start_time)
             endTime = local2utc(end_time)
         elif start_time is None and end_time is None:   # 如果开始时间和结束时间都不存在，则使用默认时间，即查询所有数据
-            startTime = local2utc('2020-02-02 02:02:02')
+            startTime = local2utc('2020-05-20 20:20:20')
             endTime = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
         else:   # 如果结束时间不存在，则使用当前时间
             startTime = local2utc(start_time)

@@ -186,37 +186,41 @@ async def plot_monitor(request):
 	type_ = data.get('type')            # 可视化类型，画端口结果还是系统结果
 	port_pid = data.get('port')         # 端口号
 	disk = data.get('disk')         # 磁盘号
-	try:
-		row_name = ['75%', '90%', '95%', '99%']
-		if type_ == 'port':		# 如果选择端口，则可视化端口的CPU、内存，统计系统的IO和带宽
-			res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
-			if res['code'] == 0:
-				raise Exception(res['message'])
-			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
-			if res['fgc'] == -1 and res['ygc'] == -1:
+	if host in master.slaves['ip']:
+		try:
+			row_name = ['75%', '90%', '95%', '99%']
+			if type_ == 'port':		# 如果选择端口，则可视化端口的CPU、内存，统计系统的IO和带宽
+				res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+				if res['code'] == 0:
+					raise Exception(res['message'])
+				res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
+				if res['fgc'] == -1 and res['ygc'] == -1:
+					res['flag'] = 0
+				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
+
+			if type_ == 'pid':		# 如果选择进程号，则可视化端口的CPU、内存，统计系统的IO和带宽
+				res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+				if res['code'] == 0:
+					raise Exception(res['message'])
+				res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
+				if res['fgc'] == -1 and res['ygc'] == -1:
+					res['flag'] = 0
+				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
+
+			if type_ == 'system':		# 如果选择系统，则可视化系统的CPU、内存、IO和带宽
+				res = draw_data_from_db(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
+				if res['code'] == 0:
+					raise Exception(res['message'])
 				res['flag'] = 0
-			return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
+				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 
-		if type_ == 'pid':		# 如果选择进程号，则可视化端口的CPU、内存，统计系统的IO和带宽
-			res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
-			if res['code'] == 0:
-				raise Exception(res['message'])
-			res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
-			if res['fgc'] == -1 and res['ygc'] == -1:
-				res['flag'] = 0
-			return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
-
-		if type_ == 'system':		# 如果选择系统，则可视化系统的CPU、内存、IO和带宽
-			res = draw_data_from_db(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
-			if res['code'] == 0:
-				raise Exception(res['message'])
-			res['flag'] = 0
-			return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
-
-	except Exception as err:
-		logger.error(err)
-		logger.error(traceback.format_exc())
-		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
+		except Exception as err:
+			logger.error(err)
+			logger.error(traceback.format_exc())
+			return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
+	else:
+		logger.error(f'{host}服务器可能未注册')
+		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': f'{host}服务器可能未注册'})
 
 
 async def get_port_disk(request):
@@ -236,7 +240,7 @@ async def get_port_disk(request):
 			logger.error(traceback.format_exc())
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 	else:
-		return web.json_response({'code': 1, 'msg': f"{host}未注册", 'data': None})
+		return web.json_response({'code': 1, 'msg': f"{host}服务器可能未注册", 'data': None})
 
 
 async def notice(request):
