@@ -25,9 +25,9 @@
    ```shell
    git clone https://github.com/leeyoshinari/performance_monitor.git
    ```
-   master文件夹是服务端，只需部署一个即可；slave文件夹是客户端，部署在需要监控的服务器上<br>
+   server文件夹是服务端，只需部署一个即可；agent文件夹是客户端，部署在需要监控的服务器上<br>
 
-2. 分别修改master和slave文件夹里的配置文件 `config.ini`
+2. 分别修改server和agent文件夹里的配置文件 `config.ini`
 
 3. 部署InfluxDB数据库。CentOS安装过程如下：<br>
     （1）下载并安装<br>
@@ -45,7 +45,7 @@
         `create user root with password 123456` 创建用户和设置密码 <br>
         `grant all privileges on test to root` 授权数据库给指定用户 <br>
    
-4. 分别运行master和slave文件夹中的`server.py`
+4. 分别运行server和agent文件夹中的`server.py`
    ```shell
    nohup python3 server.py &
    ```
@@ -70,7 +70,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 
 1. 打包master<br>
     (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
-    (2)进入master文件夹，开始打包：<br>
+    (2)进入server文件夹，开始打包：<br>
     ```shell
     pyinstaller server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request
     ```
@@ -85,7 +85,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 
 2. 打包slave<br>
     (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
-    (2)进入slave文件夹，开始打包：<br>
+    (2)进入agent文件夹，开始打包：<br>
     ```shell
     pyinstaller server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config
     ```
