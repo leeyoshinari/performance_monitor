@@ -47,7 +47,7 @@ class PerMon(object):
         self.total_mem_100 = 0  # 总内存，单位100*G，主要用于求内存占比，减少运算量
         self.nic = ''   # 系统正在使用的网卡
         self.all_disk = []  # 磁盘号
-        self.total_disk = 0  # 磁盘总大小，单位G
+        self.total_disk = 1  # 磁盘总大小，单位M
         self.total_disk_h = 0     # 磁盘总大小，以人可读的方式展示，单位T或G
         self.network_speed = 0  # 服务器网卡带宽
 
@@ -688,28 +688,26 @@ class PerMon(object):
         获取磁盘总大小
         :return:
         """
-        size = 0
-        result = os.popen('df -k |tr -s " "').readlines()
-        logger.debug(f'查询磁盘执行命令结果：{result}')
-        for line in result:
-            res = line.strip().split(' ')
-            if '/dev/' in res[0]:
-                if 'G' in res[1]:
-                    size = float(res[1].split('G')[0])
-                if 'M' in res[1]:
-                    size = float(res[1].split('M')[0]) / 1024
-                if 'T' in res[1]:
-                    size = float(res[1].split('T')[0]) * 1024
+        try:
+            result = os.popen('df -m |tr -s " "').readlines()
+            logger.debug(f'查询磁盘执行命令结果：{result}')
+            for line in result:
+                res = line.strip().split(' ')
+                if '/dev/' in res[0]:
+                    size = float(res[1])
+                    self.total_disk += size
+            logger.debug(f'当前磁盘大小为：{self.total_disk}M')
 
-                self.total_disk += size
-        logger.debug(f'当前磁盘大小为：{self.total_disk}G')
-
-        if self.total_disk > 1024:
-            total = round(self.total_disk / 1024, 2)
-            self.total_disk_h = f'{total}T'
-        else:
-            total = round(self.total_disk, 2)
-            self.total_disk_h = f'{total}G'
+            self.total_disk_h = self.total_disk / 1024
+            if self.total_disk_h > 1024:
+                total = round(self.total_disk_h / 1024, 2)
+                self.total_disk_h = f'{total}T'
+            else:
+                total = round(self.total_disk_h, 2)
+                self.total_disk_h = f'{total}G'
+        except Exception as err:
+            logger.error(err)
+            logger.error(traceback.format_exc())
 
         logger.info(f'当前服务器磁盘总大小为{self.total_disk_h}')
 
@@ -718,7 +716,6 @@ class PerMon(object):
         获取磁盘使用的大小
         :return:
         """
-        size = 0
         used_disk_size = 0
         try:
             result = os.popen('df -k |tr -s " "').readlines()
@@ -726,13 +723,7 @@ class PerMon(object):
             for line in result:
                 res = line.strip().split(' ')
                 if '/dev/' in res[0]:
-                    if 'G' in res[2]:
-                        size = float(res[2].split('G')[0])
-                    if 'M' in res[2]:
-                        size = float(res[2].split('M')[0]) / 1024
-                    if 'T' in res[2]:
-                        size = float(res[2].split('T')[0]) * 1024
-
+                    size = float(res[2])
                     used_disk_size += size
             logger.info(f'当前磁盘已使用{used_disk_size}G')
         except Exception as err:

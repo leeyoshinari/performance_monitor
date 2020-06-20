@@ -2,16 +2,13 @@
 # -*- coding: utf-8 -*-
 # @Author: leeyoshinari
 
-import os
 import configparser
 
 
 class Config(object):
 	def __init__(self):
 		self.cfg = configparser.ConfigParser()
-		path = os.path.dirname(os.path.abspath(__file__))
-		config_path = os.path.join(path, 'config.ini')
-		self.cfg.read(config_path, encoding='utf-8')
+		self.cfg.read('config.ini', encoding='utf-8')
 
 	def getServer(self, key):
 		if key == 'threadPool':

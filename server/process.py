@@ -19,8 +19,9 @@ class Process(object):
 		# 设置数据库过期时间
 		conn = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
 		                               cfg.getInflux('password'), cfg.getInflux('database'))
-		conn.query(f'alter retention policy "autogen" on "{cfg.getInflux("database")}" duration {cfg.getInflux("expiryTime")}w default;')
-		logger.info(f'设置数据过期时间为{cfg.getInflux("expiryTime")}周。')
+		conn.query(f'alter retention policy "autogen" on "{cfg.getInflux("database")}" duration '
+				   f'{cfg.getInflux("expiryTime")}d REPLICATION 1 SHARD DURATION {cfg.getInflux("shardDuration")} default;')
+		logger.info(f'设置数据过期时间为{cfg.getInflux("expiryTime")}天。')
 
 		t = threading.Thread(target=self.check_status, args=())  # 开启线程，检查已经注册的客户端是否在线
 		t.start()
