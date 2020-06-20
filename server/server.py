@@ -30,7 +30,8 @@ async def index(request):
 	return aiohttp_jinja2.render_template('home.html', request, context={
 		'ip': master.slaves['ip'], 'port': master.slaves['port'], 'system': master.slaves['system'],
 		'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'disk': master.slaves['disk_size'],
-		'net': master.slaves['network_speed']})
+		'net': master.slaves['network_speed'], 'cpu_usage': master.slaves['cpu_usage'],
+		'mem_usage': master.slaves['mem_usage'] * 100, 'disk_usage': master.slaves['disk_usage'] * 100})
 
 
 async def start_monitor(request):
@@ -78,27 +79,7 @@ async def registers(request):
 	"""
 	data = await request.json()
 	logger.debug(f'注册接口请求参数为{data}')
-	host = data.get('host')     # 客户端服务器IP
-	port = data.get('port')     # 客户端启用的端口号
-	system = data.get('system')
-	cpu = data.get('cpu')
-	mem = data.get('mem')
-	nic = data.get('nic')
-	network_speed = data.get('network_speed')
-	disk_size = data.get('disk_size')
-	disks = data.get('disks')   # 客户端服务器磁盘号
-	master.slaves = {
-		'host': host,
-		'port': port,
-		'system': system,
-		'cpu': cpu,
-		'mem': mem,
-		'disk': disks,
-		'disk_size': disk_size,
-		'nic': nic,
-		'network_speed': network_speed,
-		'time': time.time()
-	}
+	master.slaves = data
 	return web.json_response({'code': 0, 'msg': '注册成功!', 'data': None})
 
 

@@ -14,7 +14,7 @@ class Process(object):
 	def __init__(self):
 		self.request = Request()
 		self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': [], 'nic': [],
-						'network_speed': [], 'disk_size': []}
+						'network_speed': [], 'disk_size': [], 'mem_usage': [], 'cpu_usage': [], 'disk_usage': []}
 
 		# 设置数据库过期时间
 		conn = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
@@ -35,6 +35,9 @@ class Process(object):
 		ip = value['host']
 		if ip in self._slaves['ip']:
 			ind = self._slaves['ip'].index(ip)
+			self._slaves['cpu_usage'][ind] = value['cpu_usage']
+			self._slaves['mem_usage'][ind] = value['mem_usage']
+			self._slaves['disk_usage'][ind] = value['disk_usage']
 			self._slaves['time'][ind] = value['time']
 			logger.info(f'{ip}服务器已注册')
 		else:
@@ -48,6 +51,9 @@ class Process(object):
 			self._slaves['nic'].append(value['nic'])
 			self._slaves['disk_size'].append(value['disk_size'])
 			self._slaves['network_speed'].append(value['network_speed'])
+			self._slaves['cpu_usage'].append((value['cpu_usage']))
+			self._slaves['mem_usage'].append((value['mem_usage']))
+			self._slaves['disk_usage'].append((value['disk_usage']))
 			logger.info(f'{ip}服务器注册成功')
 
 	def check_status(self):
@@ -69,6 +75,9 @@ class Process(object):
 					self._slaves['nic'].pop(i)
 					self._slaves['network_speed'].pop(i)
 					self._slaves['disk_size'].pop(i)
+					self._slaves['cpu_usage'].pop(i)
+					self._slaves['mem_usage'].pop(i)
+					self._slaves['disk_usage'].pop(i)
 					logger.warning(f"客户端{ip}服务器状态异常，已下线")
 					break
 

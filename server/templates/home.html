@@ -7,21 +7,34 @@
         <tr style="align: center; margin: auto; background-color: #99CCFF">
             <th width=15% style="text-align: center;">服务器</th>
             <th width=40% style="text-align: center;">系统版本</th>
-            <th width=10% style="text-align: center;">CPU核数</th>
-            <th width=10% style="text-align: center;">内存大小</th>
-            <th width=10% style="text-align: center;">磁盘大小</th>
+            <th width=10% style="text-align: center;">CPU/使用率</th>
+            <th width=10% style="text-align: center;">内存/使用率</th>
+            <th width=10% style="text-align: center;">磁盘/使用率</th>
             <th width=15% style="text-align: center;">带宽</th>
         </tr>
         {% for host in ip %}
             <tr align="center">
                 <td><a href="http://{{ ip[loop.index0] }}:{{ port[loop.index0] }}">{{ ip[loop.index0] }}</a></td>
                 <td>{{ system[loop.index0] }}</td>
-                <td>{{ cpu[loop.index0] }}核</td>
-                <td>{{ mem[loop.index0] }}G</td>
-                <td>{{ disk[loop.index0] }}</td>
+                {% if cpu_usage[loop.index0] < 80 %}
+                    <td>{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</td>
+                {% else %}
+                    <td style="background-color: #ff3333">{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</td>
+                {% endif %}
+                {% if mem_usage[loop.index0] < 80 %}
+                    <td>{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</td>
+                {% else %}
+                    <td style="background-color: #ff3333">{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</td>
+                {% endif %}
+                {% if disk_usage[loop.index0] < 80 %}
+                    <td>{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
+                {% else %}
+                    <td style="background-color: #ff3333">{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
+                {% endif %}
+                <td>{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
                 {% if net[loop.index0] == 1 %}
                     <td>None</td>
-                    {% else %}
+                {% else %}
                     <td>{{ net[loop.index0] }}Mb/s</td>
                 {% endif %}
             </tr>

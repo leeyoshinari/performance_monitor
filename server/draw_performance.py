@@ -43,6 +43,10 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             'rec': [],
             'trans': [],
             'nic': [],
+            'tcp': [],
+            'close_wait': [],
+            'time_wait': [],
+            'retrans': [],
             'disk': disk}
 
         res = {'code': 1, 'flag': 1, 'message': None}
@@ -61,7 +65,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             endTime = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
 
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
-            sql = f"select cpu, mem, jvm from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
+            sql = f"select cpu, mem, tcp, jvm, close_wait, time_wait from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'port'
@@ -69,7 +73,10 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['cpu_time'].append(data['time'])
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
+                    post_data['tcp'].append(data['tcp'])
                     post_data['jvm'].append(data['jvm'])
+                    post_data['close_wait'].append(data['close_wait'])
+                    post_data['time_wait'].append(data['time_wait'])
             else:
                 res['message'] = f'未查询到{port}端口的监控数据，请检查端口是否已监控，或者时间设置是否正确！'
                 res['code'] = 0
@@ -94,7 +101,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             disk_n = disk.replace('-', '')
             disk_r = disk_n + '_r'
             disk_w = disk_n + '_w'
-            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net, tcp, retrans from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
@@ -108,6 +115,8 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                     post_data['io'].append(data[disk_n])
                     post_data['disk_r'].append(data[disk_r])
                     post_data['disk_w'].append(data[disk_w])
+                    post_data['tcp'].append(data['tcp'])
+                    post_data['retrans'].append(data['retrans'])
 
                 post_data['io_time'] = post_data['cpu_time']
             else:
@@ -151,6 +160,10 @@ def draw(data):
     rec = data['rec']
     trans = data['trans']
     net = data['nic']
+    tcp = data['tcp']
+    close_wait = data['close_wait']
+    time_wait = data['time_wait']
+    retrans = data['retrans']
 
     length = len(cpu_time)
     io_length = len(io_time)
@@ -176,15 +189,16 @@ def draw(data):
     end_time = time.mktime(datetime.datetime.strptime(cpu_time[-1].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
 
     if types == 'system':
-        fig = plt.figure('figure', figsize=(20, 20))
-        ax1 = plt.subplot(4, 1, 1)
-        ax2 = plt.subplot(4, 1, 2)
-        ax3 = plt.subplot(4, 1, 3)
-        ax4 = plt.subplot(4, 1, 4)
+        fig = plt.figure('figure', figsize=(20, 25))
+        ax1 = plt.subplot(5, 1, 1)
+        ax2 = plt.subplot(5, 1, 2)
+        ax3 = plt.subplot(5, 1, 3)
+        ax4 = plt.subplot(5, 1, 4)
+        ax5 = plt.subplot(5, 1, 5)
 
         # 画CPU使用率
         plt.sca(ax1)
-        plt.plot(cpu, color='r', linewidth=0.3, label='CPU')
+        plt.plot(cpu, color='red', linewidth=0.3, label='CPU')
         plt.grid()
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
@@ -195,7 +209,7 @@ def draw(data):
 
         # 画内存使用大小
         plt.sca(ax2)
-        plt.plot(mem, color='r', linewidth=0.5, label='Memory')
+        plt.plot(mem, color='red', linewidth=0.5, label='Memory')
         plt.title('Free Memory(G), min:{:.2f}G, duration:{:.1f}h'.format(
             min(mem), (end_time - start_time) / 3600), size=12)
         plt.grid()
@@ -219,7 +233,7 @@ def draw(data):
 
         ax_twinx = ax3.twinx()
         plt.sca(ax_twinx)
-        plt.plot(io, color='r', linewidth=0.5, label='%util')
+        plt.plot(io, color='red', linewidth=0.5, label='%util')
         plt.legend(loc='upper right')
         plt.ylim(0, max(io))
 
@@ -231,7 +245,7 @@ def draw(data):
         plt.grid()
         plt.xlim(0, len(rec))
         plt.ylim(0, max(max(rec), max(trans)))
-        plt.title('NetWork, Rmax:{:.2f}Mb/s, Tmax:{:.2f}Mb/s, NetWork:{:.2f}%, duration:{:.1f}h'.format(
+        plt.title('NetWork, Rmax:{:.2f}Mb/s, Tmax:{:.2f}Mb/s, NetWork:{:.3f}%, duration:{:.1f}h'.format(
             max(rec), max(trans), max(net), (end_time - start_time) / 3600), size=12)
         plt.xticks(index, labels)
         plt.margins(0, 0)
@@ -242,14 +256,32 @@ def draw(data):
         plt.legend(loc='upper right')
         plt.ylim(0, max(net))
 
+        # 画TCP
+        plt.sca(ax5)
+        plt.plot(tcp, color='red', linewidth=0.5, label='TCP')
+        plt.grid()
+        plt.xlim(0, len(tcp))
+        plt.ylim(0, max(tcp))
+        plt.title('TCP, max:{}, Retrans:{:.3f}%, duration:{:.1f}h'.format(
+            max(tcp), max(retrans), (end_time - start_time) / 3600), size=12)
+        plt.xticks(index, labels)
+        plt.margins(0, 0)
+
+        ax_twinx = ax4.twinx()
+        plt.sca(ax_twinx)
+        plt.plot(retrans, color='blue', linewidth=0.5, label='%Retrans')
+        plt.legend(loc='upper right')
+        plt.ylim(0, max(retrans))
+
     else:
-        fig = plt.figure('figure', figsize=(20, 10))
-        ax1 = plt.subplot(2, 1, 1)
-        ax2 = plt.subplot(2, 1, 2)
+        fig = plt.figure('figure', figsize=(20, 15))
+        ax1 = plt.subplot(3, 1, 1)
+        ax2 = plt.subplot(3, 1, 2)
+        ax3 = plt.subplot(3, 1, 3)
 
         # 画CPU使用率
         plt.sca(ax1)
-        plt.plot(cpu, color='r', linewidth=0.3, label='CPU')
+        plt.plot(cpu, color='red', linewidth=0.3, label='CPU')
         plt.grid()
         plt.xlim(0, len(cpu))
         plt.ylim(0, 100)
@@ -260,13 +292,13 @@ def draw(data):
 
         # 画内存使用大小和jvm
         plt.sca(ax2)
-        plt.plot(mem, color='r', linewidth=0.5, label='Memory')
+        plt.plot(mem, color='red', linewidth=0.5, label='Memory')
 
         if sum(jvm) == 0:   # 如果没有jvm数据，则不画jvm
             plt.title('Memory(G), max:{:.2f}G, duration:{:.1f}h'.format(
                 max(mem), (end_time - start_time) / 3600), size=12)
         else:
-            plt.plot(jvm, color='b', linewidth=0.5, label='JVM')
+            plt.plot(jvm, color='blue', linewidth=0.5, label='JVM')
             plt.legend(loc='upper right')
             plt.title('Memory(G) max:{:.2f}G, JVM(G) max:{:.2f}G, duration:{:.1f}h'.format(
                 max(mem), max(jvm), (end_time - start_time) / 3600), size=12)
@@ -276,6 +308,25 @@ def draw(data):
         plt.ylim(0, max(max(mem), max(jvm)) + 1)
         plt.xticks(index, labels)
         plt.margins(0, 0)
+
+        # 画TCP
+        plt.sca(ax3)
+        plt.plot(time_wait, color='blue', linewidth=0.5, label='TIME_WAIT')
+        plt.plot(close_wait, color='orange', linewidth=0.5, label='CLOSE_WAIT')
+        plt.legend(loc='upper left')
+        plt.grid()
+        plt.xlim(0, len(tcp))
+        plt.ylim(0, max(max(time_wait), max(close_wait)))
+        plt.title('TCP max:{}, TIME_WAIT max:{}, CLOSE_WAIT max:{}, duration:{:.1f}h'.format(
+            max(tcp), max(time_wait), max(close_wait), (end_time - start_time) / 3600), size=12)
+        plt.xticks(index, labels)
+        plt.margins(0, 0)
+
+        ax_twinx = ax3.twinx()
+        plt.sca(ax_twinx)
+        plt.plot(tcp, color='red', linewidth=0.5, label='TCP')
+        plt.legend(loc='upper right')
+        plt.ylim(0, max(tcp))
 
     image_byte = BytesIO()
     fig.savefig(image_byte, format='png', bbox_inches='tight')     # 把图像保存成二进制
