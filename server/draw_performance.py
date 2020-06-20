@@ -64,6 +64,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             startTime = local2utc(start_time)
             endTime = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
 
+        s_time = time.time()
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
             sql = f"select cpu, mem, tcp, jvm, close_wait, time_wait from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
             datas = connection.query(sql)
@@ -123,11 +124,16 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                 res['message'] = '未查询到系统监控数据，请检查磁盘号，或者时间设置！'
                 res['code'] = 0
 
+        logger.info(f'查询数据库耗时：{time.time() - s_time}')
+        s_time = time.time()
         img = draw(post_data)  # 画图
         res.update(img)
+        logger.info(f'画图耗时：{time.time() - s_time}')
 
+        s_time = time.time()
         lines = get_lines(post_data)      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
+        logger.info(f'计算百分位数耗时：{time.time() - s_time}')
         del connection
         del post_data
         return res
@@ -259,6 +265,7 @@ def draw(data):
         # 画TCP
         plt.sca(ax5)
         plt.plot(tcp, color='red', linewidth=0.5, label='TCP')
+        plt.legend(loc='upper left')
         plt.grid()
         plt.xlim(0, len(tcp))
         plt.ylim(0, max(tcp))
@@ -267,7 +274,7 @@ def draw(data):
         plt.xticks(index, labels)
         plt.margins(0, 0)
 
-        ax_twinx = ax4.twinx()
+        ax_twinx = ax5.twinx()
         plt.sca(ax_twinx)
         plt.plot(retrans, color='blue', linewidth=0.5, label='%Retrans')
         plt.legend(loc='upper right')

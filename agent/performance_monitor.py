@@ -154,7 +154,7 @@ class PerMon(object):
         """
         self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')      # 更新开始监控时间
 
-        jvm = -1    # java服务的JVM内存数据初始化，主要用于非java服务的端口
+        jvm = 0.0    # java服务的JVM内存数据初始化，主要用于非java服务的端口
         run_error = 0      # 初始化执行监控命令失败的次数
         run_error_time = time.time()    # 初始化执行监控命令失败的时间
         port = self._msg['port'][index]
@@ -305,7 +305,6 @@ class PerMon(object):
                         clear_time = time.time()
                 except Exception as err:
                     logger.error(err)
-                    logger.error(traceback.format_exc())
 
             if time.time() - disk_start_time > 300:     # 每隔5分钟获取一次磁盘使用情况
                 disk_usage = self.get_used_disk_rate()
@@ -336,7 +335,7 @@ class PerMon(object):
                         line[0]['fields']['retrans'] = res['retrans']
                         self.client.write_points(line)    # 写cpu和内存到数据库
                         logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['disk_r']},{res['disk_w']},"
-                                    f"{res['rece']},{res['trans']},{res['network']}")
+                                    f"{res['rece']},{res['trans']},{res['network']}, {res['tcp']}, {res['retrans']}")
 
                         if len(self.last_cpu_io) > self.CPUDuration:
                             self.last_cpu_io.pop(0)
@@ -344,7 +343,7 @@ class PerMon(object):
                         self.last_cpu_io.append(res['cpu'])
                         cpu_usage = sum(self.last_cpu_io) / len(self.last_cpu_io)
                         post_data['cpu_usage'] = cpu_usage      # CPU使用率，带%号
-                        post_data['mem_usage'] = res['mem'] / self.total_mem    # 内存使用率，不带%号
+                        post_data['mem_usage'] = 1 - res['mem'] / self.total_mem    # 内存使用率，不带%号
 
                         if cpu_usage > self.maxCPU:
                             msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
@@ -496,8 +495,8 @@ class PerMon(object):
                         disk_line = disk_res[j].strip().split(' ')
                         disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
                         disk.update({disk_num: float(disk_line[-1])})      # 磁盘的IO
-                        disk_r.update({disk_num + '_r': float(disk_line[7])})     # 磁盘读 Mb/s
-                        disk_w.update({disk_num + '_w': float(disk_line[8])})     # 磁盘写 Mb/s
+                        disk_r.update({disk_num + '_r': float(disk_line[3])})     # 磁盘读 Mb/s
+                        disk_w.update({disk_num + '_w': float(disk_line[4])})     # 磁盘写 Mb/s
 
                     logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 
@@ -547,7 +546,7 @@ class PerMon(object):
         :return:
         """
         tcp = 0
-        Retrans_ratio = 0
+        Retrans_ratio = 0.0
         if self.isTCP:
             try:
                 result = os.popen('cat /proc/net/snmp |tr -s " "').readlines()
@@ -718,7 +717,7 @@ class PerMon(object):
         """
         used_disk_size = 0
         try:
-            result = os.popen('df -k |tr -s " "').readlines()
+            result = os.popen('df -m |tr -s " "').readlines()
             logger.debug(f'查询磁盘执行命令结果：{result}')
             for line in result:
                 res = line.strip().split(' ')

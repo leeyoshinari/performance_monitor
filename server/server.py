@@ -31,7 +31,8 @@ async def index(request):
 		'ip': master.slaves['ip'], 'port': master.slaves['port'], 'system': master.slaves['system'],
 		'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'disk': master.slaves['disk_size'],
 		'net': master.slaves['network_speed'], 'cpu_usage': master.slaves['cpu_usage'],
-		'mem_usage': master.slaves['mem_usage'] * 100, 'disk_usage': master.slaves['disk_usage'] * 100})
+		'mem_usage': list(map(lambda x: x * 100, master.slaves['mem_usage'])),
+		'disk_usage': list(map(lambda x: x * 100, master.slaves['disk_usage']))})
 
 
 async def start_monitor(request):

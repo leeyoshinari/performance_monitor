@@ -3,14 +3,14 @@
 {% block page_content %}
 <div class="page-header">
     <h3 align="center" style="margin-top: 66px">服务器监控列表（共监控{{ ip|count }}个服务器）</h3>
-    <table width="80%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
+    <table width="90%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
         <tr style="align: center; margin: auto; background-color: #99CCFF">
             <th width=15% style="text-align: center;">服务器</th>
-            <th width=40% style="text-align: center;">系统版本</th>
-            <th width=10% style="text-align: center;">CPU/使用率</th>
-            <th width=10% style="text-align: center;">内存/使用率</th>
-            <th width=10% style="text-align: center;">磁盘/使用率</th>
-            <th width=15% style="text-align: center;">带宽</th>
+            <th width=35% style="text-align: center;">系统版本</th>
+            <th width=12% style="text-align: center;">CPU/使用率</th>
+            <th width=13% style="text-align: center;">内存/使用率</th>
+            <th width=13% style="text-align: center;">磁盘/使用率</th>
+            <th width=12% style="text-align: center;">带宽</th>
         </tr>
         {% for host in ip %}
             <tr align="center">
@@ -24,14 +24,13 @@
                 {% if mem_usage[loop.index0] < 80 %}
                     <td>{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</td>
                 {% else %}
-                    <td style="background-color: #ff3333">{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</td>
+                    <td><strong style="font-weight: bold; color: #ff3333">{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</strong></td>
                 {% endif %}
                 {% if disk_usage[loop.index0] < 80 %}
                     <td>{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
                 {% else %}
-                    <td style="background-color: #ff3333">{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
+                    <td><strong style="font-weight: bold; color: #ff3333">{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</strong></td>
                 {% endif %}
-                <td>{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
                 {% if net[loop.index0] == 1 %}
                     <td>None</td>
                 {% else %}

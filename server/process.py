@@ -39,7 +39,7 @@ class Process(object):
 			self._slaves['cpu_usage'][ind] = value['cpu_usage']
 			self._slaves['mem_usage'][ind] = value['mem_usage']
 			self._slaves['disk_usage'][ind] = value['disk_usage']
-			self._slaves['time'][ind] = value['time']
+			self._slaves['time'][ind] = time.time()
 			logger.info(f'{ip}服务器已注册')
 		else:
 			self._slaves['ip'].append(value['host'])
@@ -47,8 +47,8 @@ class Process(object):
 			self._slaves['system'].append(value['system'])
 			self._slaves['cpu'].append(value['cpu'])
 			self._slaves['mem'].append(value['mem'])
-			self._slaves['time'].append(value['time'])
-			self._slaves['disk'].append(value['disk'].split(','))
+			self._slaves['time'].append(time.time())
+			self._slaves['disk'].append(value['disks'].split(','))
 			self._slaves['nic'].append(value['nic'])
 			self._slaves['disk_size'].append(value['disk_size'])
 			self._slaves['network_speed'].append(value['network_speed'])
