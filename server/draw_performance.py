@@ -65,12 +65,12 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
         s_time = time.time()
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
-            sql = f"select cpu, mem, tcp, jvm, close_wait, time_wait from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='{port}'"
+            sql = f"select cpu, mem, tcp, jvm, close_wait, time_wait from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='{port}' tz('Asia/Shanghai')"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'port'
                 for data in datas.get_points():
-                    post_data['cpu_time'].append(data['time'])
+                    post_data['cpu_time'].append(data['time'].split('.')[0].replace('T', ' '))
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
                     post_data['tcp'].append(data['tcp'])
@@ -83,13 +83,18 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
             if disk:  # 读取磁盘IO数据
                 disk_n = disk.replace('-', '')
-                sql = f"select {disk_n}, net from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='system'"
+                disk_r = disk_n + '_r'
+                disk_w = disk_n + '_w'
+                sql = f"select {disk_n}, {disk_r}, {disk_w}, rec, trans, net from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='system' tz('Asia/Shanghai')"
                 datas = connection.query(sql)
                 if datas:
                     for data in datas.get_points():
-                        post_data['io_time'].append(data['time'])
                         post_data['nic'].append(data['net'])
+                        post_data['rec'].append(data['rec'])
+                        post_data['trans'].append(data['trans'])
                         post_data['io'].append(data[disk_n])
+                        post_data['disk_r'].append(data[disk_r])
+                        post_data['disk_w'].append(data[disk_w])
                 else:
                     res['message'] = '未查询到监控数据，请检查磁盘号，或者时间设置！'
                     res['code'] = 0
@@ -101,12 +106,12 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             disk_n = disk.replace('-', '')
             disk_r = disk_n + '_r'
             disk_w = disk_n + '_w'
-            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net, tcp, retrans from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='system'"
+            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net, tcp, retrans from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='system' tz('Asia/Shanghai')"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
                 for data in datas.get_points():
-                    post_data['cpu_time'].append(data['time'])
+                    post_data['cpu_time'].append(data['time'].split('.')[0].replace('T', ' '))
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
                     post_data['rec'].append(data['rec'])

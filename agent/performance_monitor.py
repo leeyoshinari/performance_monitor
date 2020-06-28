@@ -162,8 +162,8 @@ class PerMon(object):
         is_run_jvm = self.is_java.get(str(port), 0)
 
         line = [{'measurement': self.IP,
+                 'tags': {'type': str(port)},
                  'fields': {
-                     'type': str(port),
                      'cpu': 0,
                      'mem': 0,
                      'jvm': 0,
@@ -251,8 +251,8 @@ class PerMon(object):
         echo = True     # 控制是否清理缓存标志
 
         line = [{'measurement': self.IP,
+                 'tags': {'type': 'system'},
                  'fields': {
-                     'type': 'system',
                      'cpu': 0.0,
                      'mem': 0.0,
                      'rec': 0.0,
@@ -549,8 +549,8 @@ class PerMon(object):
         Retrans_ratio = 0.0
         if self.isTCP:
             try:
-                result = os.popen('cat /proc/net/snmp |tr -s " "').readlines()
-                tcps = result[7].strip().split(' ')
+                result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
+                tcps = result[-1].strip().split(' ')
                 logger.debug(f'获取TCP数据为{tcps}')
                 tcp = int(tcps[9])      # 当前服务器TCP连接数
                 Retrans_ratio = (int(tcps[-4]) / int(tcps[-5])) * 100     # TCP重传率
