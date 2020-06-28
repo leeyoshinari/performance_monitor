@@ -55,18 +55,17 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
                                              cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
 
         if start_time and end_time:     # 如果存在开始时间和结束时间
-            startTime = local2utc(start_time)
-            endTime = local2utc(end_time)
+            pass
         elif start_time is None and end_time is None:   # 如果开始时间和结束时间都不存在，则使用默认时间，即查询所有数据
-            startTime = local2utc('2020-05-20 20:20:20')
-            endTime = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
+            start_time = local2utc('2020-05-20 20:20:20')
+            end_time = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
         else:   # 如果结束时间不存在，则使用当前时间
-            startTime = local2utc(start_time)
-            endTime = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
+            start_time = local2utc(start_time)
+            end_time = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
 
         s_time = time.time()
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
-            sql = f"select cpu, mem, tcp, jvm, close_wait, time_wait from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}'"
+            sql = f"select cpu, mem, tcp, jvm, close_wait, time_wait from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='{port}'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'port'
@@ -84,7 +83,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
 
             if disk:  # 读取磁盘IO数据
                 disk_n = disk.replace('-', '')
-                sql = f"select {disk_n}, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+                sql = f"select {disk_n}, net from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='system'"
                 datas = connection.query(sql)
                 if datas:
                     for data in datas.get_points():
@@ -102,7 +101,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             disk_n = disk.replace('-', '')
             disk_r = disk_n + '_r'
             disk_w = disk_n + '_w'
-            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net, tcp, retrans from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system'"
+            sql = f"select cpu, mem, {disk_n}, {disk_r}, {disk_w}, rec, trans, net, tcp, retrans from \"{host}\" where time>'{start_time}' and time<'{end_time}' and type='system'"
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
