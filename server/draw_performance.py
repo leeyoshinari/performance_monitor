@@ -49,7 +49,7 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
             'retrans': [],
             'disk': disk}
 
-        res = {'code': 1, 'flag': 1, 'message': None}
+        res = {'code': 1, 'flag': 1, 'message': '查询成功'}
 
         connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
                                              cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
@@ -57,11 +57,10 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         if start_time and end_time:     # 如果存在开始时间和结束时间
             pass
         elif start_time is None and end_time is None:   # 如果开始时间和结束时间都不存在，则使用默认时间，即查询所有数据
-            start_time = local2utc('2020-05-20 20:20:20')
-            end_time = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
+            start_time = '2020-05-20 20:20:20'
+            end_time = time.strftime('%Y-%m-%d %H:%M:%S')
         else:   # 如果结束时间不存在，则使用当前时间
-            start_time = local2utc(start_time)
-            end_time = local2utc(time.strftime('%Y-%m-%d %H:%M:%S'))
+            end_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
         s_time = time.time()
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
@@ -188,11 +187,11 @@ def draw(data):
     io_delta = io_length / 6    # x轴每个坐标间隔，IO
     for i in range(6):
         index.append(int(i * delta))
-        labels.append(utc2local(cpu_time[int(i * delta)]))
+        labels.append(cpu_time[int(i * delta)])
 
     # 添加最后一个时刻的数据
     index.append(length - 1)
-    labels.append(utc2local(cpu_time[length - 1]))
+    labels.append(cpu_time[length - 1])
 
     # 数据的开始时间和结束时间，用于计算图中展示数据的总时长
     start_time = time.mktime(datetime.datetime.strptime(cpu_time[0].split('.')[0], '%Y-%m-%dT%H:%M:%S').timetuple())
