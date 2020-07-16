@@ -23,7 +23,7 @@ class PerMon(object):
         self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
         self.sleepTime = cfg.getMonitor('sleepTime')
         self.maxCPU = cfg.getMonitor('maxCPU')
-        self.CPUDuration = cfg.getMonitor('CPUDuration')
+        self.CPUDuration = cfg.getMonitor('CPUDuration') / cfg.getMonitor('system_interval')
         self.isCPUAlert = cfg.getMonitor('isCPUAlert')
         self.minMem = cfg.getMonitor('minMem')
         self.isMemAlert = cfg.getMonitor('isMemAlert')
@@ -36,9 +36,9 @@ class PerMon(object):
         port_interval = cfg.getMonitor('port_interval')  # 每次执行监控命令的时间间隔
         self.system_interval = max(system_interval, 1)   # 设置的值如果小于1，则默认为1
         self.port_interval = max(port_interval, 1)
-        self.system_interval = self.system_interval - 1.05      # 0.05为程序运行、写库时间
+        self.system_interval = self.system_interval - 1.06      # 0.06为程序运行、写库时间
         self.system_interval = max(self.system_interval, 0)
-        self.port_interval = self.port_interval - 0.01       # 0.01为程序运行、写库时间
+        self.port_interval = self.port_interval - 0.195       # 0.195为程序运行、写库时间
 
         self.system_version = ''   # 系统版本
         self.cpu_info = ''
@@ -164,9 +164,9 @@ class PerMon(object):
         line = [{'measurement': self.IP,
                  'tags': {'type': str(port)},
                  'fields': {
-                     'cpu': 0,
-                     'mem': 0,
-                     'jvm': 0,
+                     'cpu': 0.0,
+                     'mem': 0.0,
+                     'jvm': 0.0,
                      'tcp': 0,
                      'close_wait': 0,
                      'time_wait': 0
@@ -372,9 +372,12 @@ class PerMon(object):
                             mem_flag = True
                             echo = True
 
+                    time.sleep(self.system_interval)
+
                 except Exception as err:
                     logger.error(err)
                     logger.error(traceback.format_exc())
+                    time.sleep(3)
             else:
                 time.sleep(3)
 
