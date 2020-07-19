@@ -99,14 +99,14 @@ class Process(object):
 					return response['data']
 				else:
 					logger.error(response['msg'])
-					return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
+					return [-1, -1, -1, -1, '-', -1]
 			else:
 				logger.error(f'获取{ip}服务器的{port}端口的gc数据的接口响应状态码为{res.status_code}')
-				return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
+				return [-1, -1, -1, -1, '-', -1]
 		except Exception as err:
 			logger.error(err)
 			logger.error(traceback.format_exc())
-			return {'ygc': -1, 'ygct': -1, 'fgc': -1, 'fgct': -1, 'fygc': -1, 'ffgc': -1}
+			return [-1, -1, -1, -1, '-', -1]
 
 	def get_monitor(self, host=None):
 		"""

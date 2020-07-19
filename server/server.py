@@ -175,8 +175,8 @@ async def plot_monitor(request):
 				res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 				if res['code'] == 0:
 					raise Exception(res['message'])
-				res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
-				if res['fgc'] == -1 and res['ygc'] == -1:
+				res.update({'gc': master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}')})
+				if res['gc'][0] == -1 and res['gc'][1] == -1:
 					res['flag'] = 0
 				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 
@@ -184,8 +184,8 @@ async def plot_monitor(request):
 				res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
 				if res['code'] == 0:
 					raise Exception(res['message'])
-				res.update(master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}'))
-				if res['fgc'] == -1 and res['ygc'] == -1:
+				res.update({'gc': master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}')})
+				if res['gc'][0] == -1 and res['gc'][1] == -1:
 					res['flag'] = 0
 				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 

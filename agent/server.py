@@ -147,9 +147,7 @@ async def get_gc(request):
 		logger.error(traceback.format_exc())
 		ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 
-	return web.json_response({
-		'code': 0, 'msg': '操作成功', 'data': {
-			'ygc': ygc, 'ygct': ygct, 'fgc': fgc, 'fgct': fgct, 'fygc': '-', 'ffgc': ffgc}})
+	return web.json_response({'code': 0, 'msg': '操作成功', 'data': [ygc, ygct, fgc, fgct, '-', ffgc]})
 
 
 async def main():
