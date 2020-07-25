@@ -137,13 +137,11 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         lines = get_lines(post_data)      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
         logger.info(f'计算百分位数耗时：{time.time() - s_time}')
-        del connection
-        del post_data
+        del connection, post_data
         return res
 
     except Exception as err:
-        del connection
-        del post_data
+        del connection, post_data
         logger.error(err)
         logger.error(traceback.format_exc())
         res['message'] = err

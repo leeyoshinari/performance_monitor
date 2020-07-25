@@ -3,7 +3,7 @@
 # Author: leeyoshinari
 
 import requests
-from logger import logger
+from logger import logger, handle_exception
 
 
 class Request(object):
@@ -28,25 +28,21 @@ class Request(object):
 		res = requests.post(url=url, json=json, headers=headers, timeout=timeout)
 		return res
 
+	@handle_exception()
 	def request(self, method, ip, port, interface, json=None, headers=None, timeout=None):
 		"""请求入口，目前仅支持get和post请求，其他请求可自行添加"""
 		if timeout is None:
 			timeout = 3
 
-		try:
-			if method == 'get':
-				res = self.get(ip, port, interface, timeout)
-			elif method == 'post':
-				res = self.post(ip, port, interface, json, headers, timeout)
-			else:
-				logger.error('暂不支持其他请求方式')
-				raise Exception('暂不支持其他请求方式')
+		if method == 'get':
+			res = self.get(ip, port, interface, timeout)
+		elif method == 'post':
+			res = self.post(ip, port, interface, json, headers, timeout)
+		else:
+			logger.error('暂不支持其他请求方式')
+			raise Exception('暂不支持其他请求方式')
 
-			return res
-
-		except Exception as err:
-			logger.error(err)
-			raise Exception(err)
+		return res
 
 	def __del__(self):
 		pass

@@ -4,6 +4,7 @@
 import os
 import re
 import time
+import json
 import queue
 import traceback
 import threading
@@ -11,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import influxdb
-from logger import logger, cfg
+from logger import logger, cfg, handle_exception
 
 
 class PerMon(object):
@@ -49,7 +50,7 @@ class PerMon(object):
         self.all_disk = []  # 磁盘号
         self.total_disk = 1  # 磁盘总大小，单位M
         self.total_disk_h = 0     # 磁盘总大小，以人可读的方式展示，单位T或G
-        self.network_speed = 0  # 服务器网卡带宽
+        self.network_speed = 1  # 服务器网卡带宽
 
         self.get_system_version()
         self.get_cpu_cores()
@@ -225,8 +226,7 @@ class PerMon(object):
                     run_error_time = time.time()    # 如果监控命令执行成功，则重置
                     run_error = 0      # 如果监控命令执行成功，则重置
 
-                except Exception as err:
-                    logger.error(err)
+                except Exception:
                     logger.error(traceback.format_exc())
                     time.sleep(self.sleepTime)
 
@@ -303,8 +303,8 @@ class PerMon(object):
                         logger.debug('正常清理停止监控的端口')
                         self.clear_port()
                         clear_time = time.time()
-                except Exception as err:
-                    logger.error(err)
+                except Exception:
+                    logger.error(traceback.format_exc())
 
             if time.time() - disk_start_time > 300:     # 每隔5分钟获取一次磁盘使用情况
                 disk_usage = self.get_used_disk_rate()
@@ -374,13 +374,13 @@ class PerMon(object):
 
                     time.sleep(self.system_interval)
 
-                except Exception as err:
-                    logger.error(err)
+                except Exception:
                     logger.error(traceback.format_exc())
                     time.sleep(3)
             else:
                 time.sleep(3)
 
+    @handle_exception(is_return=True, default_value=(None, None))
     def get_cpu_mem(self, pid):
         """
         获取进程的CPU使用率和内存使用大小
@@ -390,24 +390,20 @@ class PerMon(object):
         cpu = None
         mem = None
 
-        try:
-            # result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()
-            result = os.popen(f'top -n 1 -b |grep -P {pid} |tr -s " "').readlines()     # 执行命令
-            res = [ress.strip().split(' ') for ress in result]
-            logger.debug(f'查询进程{pid}的CPU使用率和内存结果为：{res}')
+        # result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()
+        result = os.popen(f'top -n 1 -b |grep -P {pid} |tr -s " "').readlines()     # 执行命令
+        res = [ress.strip().split(' ') for ress in result]
+        logger.debug(f'查询进程{pid}的CPU使用率和内存结果为：{res}')
 
-            for r in res:
-                if str(pid) == r[0]:
-                    ind = r.index(str(pid))
-                    cpu = float(r[ind + 8]) / self.cpu_cores      # CPU使用率
-                    mem = float(r[ind + 9]) * self.total_mem_100      # 内存占用大小
+        for r in res:
+            if str(pid) == r[0]:
+                ind = r.index(str(pid))
+                cpu = float(r[ind + 8]) / self.cpu_cores      # CPU使用率
+                mem = float(r[ind + 9]) * self.total_mem_100      # 内存占用大小
 
-        except Exception as err:
-            logger.error(err)
-            logger.error(traceback.format_exc())
+        return (cpu, mem)
 
-        return cpu, mem
-
+    @handle_exception(is_return=True, default_value=0)
     def get_jvm(self, port, pid):
         """
         获取JVM内存
@@ -415,41 +411,37 @@ class PerMon(object):
         :param pid: 进程号
         :return: jvm内存大小（G）
         """
-        mem = 0
-        try:
-            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行命令
-            res = result.strip().split(' ')
-            logger.debug(f'查询进程{pid}的JVM结果为：{res}')
-            mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算jvm
+        result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行命令
+        res = result.strip().split(' ')
+        logger.debug(f'查询进程{pid}的JVM结果为：{res}')
+        mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算jvm
 
-            # 已追加写的方式，将FGC次数和时间写到本地。当FGC频率过高时，发送邮件提醒
-            fgc = int(res[14])
-            if self.FGC[str(port)] < fgc:  # 如果FGC次数增加
-                self.FGC[str(port)] = fgc
-                self.FGC_time[str(port)].append(time.time())
-                if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
-                    frequency = self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][-2]
-                    if frequency < self.frequencyFGC:    # 如果FGC频率大于设置值，则发送邮件提醒
-                        msg = f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.'
-                        logger.warning(msg)
-                        if self.isJvmAlert:
-                            thread = threading.Thread(target=notification, args=(msg, ))
-                            thread.start()
+        # 已追加写的方式，将FGC次数和时间写到本地。当FGC频率过高时，发送邮件提醒
+        fgc = int(res[14])
+        if self.FGC[str(port)] < fgc:  # 如果FGC次数增加
+            self.FGC[str(port)] = fgc
+            self.FGC_time[str(port)].append(time.time())
+            if len(self.FGC_time[str(port)]) > 2:   # 计算FGC频率
+                frequency = self.FGC_time[str(port)][-1] - self.FGC_time[str(port)][-2]
+                if frequency < self.frequencyFGC:    # 如果FGC频率大于设置值，则发送邮件提醒
+                    msg = f'{self.IP}服务器上的{port}端口的Full GC频率为{frequency}.'
+                    logger.warning(msg)
+                    if self.isJvmAlert:
+                        thread = threading.Thread(target=notification, args=(msg, ))
+                        thread.start()
 
-                # 将FGC次数和时间写到日志
-                logger.warning(f"端口{port}第{self.FGC[str(port)]}次Full GC.")
+            # 将FGC次数和时间写到日志
+            logger.warning(f"端口{port}第{self.FGC[str(port)]}次Full GC.")
 
-            elif self.FGC[str(port)] > fgc:   # 如果FGC次数减小，说明可能重启，则重置
-                self.FGC[str(port)] = 0
+        elif self.FGC[str(port)] > fgc:   # 如果FGC次数减小，说明可能重启，则重置
+            self.FGC[str(port)] = 0
 
-            if self.FGC[str(port)] == 0:    # 如果FGC次数为0，则重置
-                self.FGC_time[str(port)] = []
-
-        except Exception as err:
-            logger.info(err)
+        if self.FGC[str(port)] == 0:    # 如果FGC次数为0，则重置
+            self.FGC_time[str(port)] = []
 
         return mem / 1024 / 1024
 
+    @handle_exception(is_return=True, default_value={'disk': {}, 'disk_r': {}, 'disk_w': {}, 'cpu': None, 'mem': None, 'rece': None, 'trans': None, 'network': None, 'tcp': None, 'retrans': None})
     def get_system_cpu_io_speed(self):
         """
         获取系统CPU使用率、剩余内存和磁盘IO、网速和网络使用率
@@ -461,69 +453,61 @@ class PerMon(object):
         disk_r = {}
         disk_w = {}
         cpu = None
-        mem = None
         bps1 = None
         bps2 = None
         rece = None
         trans = None
         network = None
-        tcp = None
-        Retrans_ratio = None
-        try:
-            if self.nic:
-                bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
-                logger.debug(f'第一次获取网速的结果：{bps1}')
+        if self.nic:
+            bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+            logger.debug(f'第一次获取网速的结果：{bps1}')
 
-            result = os.popen(f'iostat -x -m 1 2 |tr -s " "').readlines()    # 执行命令
-            logger.debug(f'获取磁盘IO结果：{result}')
+        result = os.popen(f'iostat -x -m 1 2 |tr -s " "').readlines()    # 执行命令
+        logger.debug(f'获取磁盘IO结果：{result}')
 
-            if self.nic:
-                bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
-                logger.debug(f'第二次获取网速的结果：{bps2}')
+        if self.nic:
+            bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+            logger.debug(f'第二次获取网速的结果：{bps2}')
 
-            result.pop(0)
-            disk_res = [l.strip() for l in result if len(l) > 5]
-            disk_res = disk_res[int(len(disk_res)/2)-1:]
+        result.pop(0)
+        disk_res = [l.strip() for l in result if len(l) > 5]
+        disk_res = disk_res[int(len(disk_res)/2)-1:]
 
-            for i in range(len(disk_res)):
-                if 'avg-cpu' in disk_res[i]:
-                    cpu_res = disk_res[i+1].strip().split(' ')      # CPU空闲率
-                    if len(cpu_res) > 3:
-                        cpu = 100 - float(cpu_res[-1])      # CPU使用率
-                        logger.debug(f'系统CPU使用率为：{cpu}%')
-                        continue
+        for i in range(len(disk_res)):
+            if 'avg-cpu' in disk_res[i]:
+                cpu_res = disk_res[i+1].strip().split(' ')      # CPU空闲率
+                if len(cpu_res) > 3:
+                    cpu = 100 - float(cpu_res[-1])      # CPU使用率
+                    logger.debug(f'系统CPU使用率为：{cpu}%')
+                    continue
 
-                if 'Device' in disk_res[i]:
-                    for j in range(i+1, len(disk_res)):     # 遍历所有磁盘
-                        disk_line = disk_res[j].strip().split(' ')
-                        disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
-                        disk.update({disk_num: float(disk_line[-1])})      # 磁盘的IO
-                        disk_r.update({disk_num + '_r': float(disk_line[5])})     # 磁盘读 Mb/s
-                        disk_w.update({disk_num + '_w': float(disk_line[6])})     # 磁盘写 Mb/s
+            if 'Device' in disk_res[i]:
+                for j in range(i+1, len(disk_res)):     # 遍历所有磁盘
+                    disk_line = disk_res[j].strip().split(' ')
+                    disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
+                    disk.update({disk_num: float(disk_line[-1])})      # 磁盘的IO
+                    disk_r.update({disk_num + '_r': float(disk_line[5])})     # 磁盘读 Mb/s
+                    disk_w.update({disk_num + '_w': float(disk_line[6])})     # 磁盘写 Mb/s
 
-                    logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
+                logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 
-                    break
+                break
 
-            result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]   # 执行命令，获取系统剩余内存
-            logger.debug(f'系统剩余内存为：{result}G')
-            mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+        result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]   # 执行命令，获取系统剩余内存
+        logger.debug(f'系统剩余内存为：{result}G')
+        mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
-            if bps1 and bps2:
-                data1 = bps1[0].split(':')[1].strip().split(' ')
-                data2 = bps2[0].split(':')[1].strip().split(' ')
-                rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
-                trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
-                # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000
-                # 800 = 8 * 100，为什么要乘以8，因为网口带宽除以8即为网口支持的最大速率
-                network = 800 * (rece + trans) / self.network_speed
-                logger.debug(f'系统网络带宽：收{rece}Mb/s，发{trans}Mb/s，带宽占比{network}%')
+        if bps1 and bps2:
+            data1 = bps1[0].split(':')[1].strip().split(' ')
+            data2 = bps2[0].split(':')[1].strip().split(' ')
+            rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
+            trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
+            # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000
+            # 800 = 8 * 100，为什么要乘以8，因为网口带宽除以8即为网口支持的最大速率
+            network = 800 * (rece + trans) / self.network_speed
+            logger.debug(f'系统网络带宽：收{rece}Mb/s，发{trans}Mb/s，带宽占比{network}%')
 
-            tcp, Retrans_ratio = self.get_tcp()
-
-        except Exception as err:
-            logger.error(err)
-            logger.error(traceback.format_exc())
+        tcp, Retrans_ratio = self.get_tcp()
 
         return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'cpu': cpu, 'mem': mem, 'rece': rece,
                 'trans': trans, 'network': network, 'tcp': tcp, 'retrans': Retrans_ratio}
@@ -543,6 +527,7 @@ class PerMon(object):
 
         return handles'''
 
+    @handle_exception(is_return=True, default_value=(0, 0.0))
     def get_tcp(self):
         """
         获取TCP数量，计算重传率
@@ -551,18 +536,15 @@ class PerMon(object):
         tcp = 0
         Retrans_ratio = 0.0
         if self.isTCP:
-            try:
-                result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
-                tcps = result[-1].strip().split(' ')
-                logger.debug(f'获取TCP数据为{tcps}')
-                tcp = int(tcps[9])      # 当前服务器TCP连接数
-                Retrans_ratio = (int(tcps[-4]) / int(tcps[-5])) * 100     # TCP重传率
-            except Exception as err:
-                logger.error(err)
-                logger.error(traceback.format_exc())
+            result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
+            tcps = result[-1].strip().split(' ')
+            logger.debug(f'获取TCP数据为{tcps}')
+            tcp = int(tcps[9])      # 当前服务器TCP连接数
+            Retrans_ratio = (int(tcps[-4]) / int(tcps[-5])) * 100     # TCP重传率
 
         return tcp, Retrans_ratio
 
+    @handle_exception(is_return=True, default_value={})
     def get_port_tcp(self, port):
         """
         获取端口的连接数
@@ -570,17 +552,11 @@ class PerMon(object):
         :return:
         """
         tcp_num = {}
-        try:
-            res = os.popen(f'netstat -ant |grep {port} |tr -s " "').read()
-            tcp_num.update({'tcp': res.count('tcp')})
-            tcp_num.update({'established': res.count('ESTABLISHED')})
-            tcp_num.update({'close_wait': res.count('CLOSE_WAIT')})
-            tcp_num.update({'time_wait': res.count('TIME_WAIT')})
-            
-        except Exception as err:
-            logger.error(err)
-            logger.error(traceback.format_exc())
-
+        res = os.popen(f'netstat -ant |grep {port} |tr -s " "').read()
+        tcp_num.update({'tcp': res.count('tcp')})
+        tcp_num.update({'established': res.count('ESTABLISHED')})
+        tcp_num.update({'close_wait': res.count('CLOSE_WAIT')})
+        tcp_num.update({'time_wait': res.count('TIME_WAIT')})
         return tcp_num
 
     def get_cpu_cores(self):
@@ -624,6 +600,7 @@ class PerMon(object):
         else:
             self.cpu_info = f'CPU核数为{self.cpu_cores}'
 
+    @handle_exception(is_return=True)
     def get_total_mem(self):
         """
         获取系统总内存
@@ -634,6 +611,7 @@ class PerMon(object):
         self.total_mem_100 = self.total_mem / 100
         logger.info(f'当前系统总内存为{self.total_mem}G')
 
+    @handle_exception(is_return=True)
     def get_disks(self):
         """
         获取系统所有磁盘号
@@ -649,6 +627,7 @@ class PerMon(object):
 
         logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
 
+    @handle_exception(is_return=True)
     def get_system_nic(self):
         """
         获取系统使用的网卡。
@@ -685,99 +664,87 @@ class PerMon(object):
         else:
             logger.error('当前服务器网卡未找到')
 
+    @handle_exception(is_return=True)
     def get_total_disk_size(self):
         """
         获取磁盘总大小
         :return:
         """
-        try:
-            result = os.popen('df -m |tr -s " "').readlines()
-            logger.debug(f'查询磁盘执行命令结果：{result}')
-            for line in result:
-                res = line.strip().split(' ')
-                if '/dev/' in res[0]:
-                    size = float(res[1])
-                    self.total_disk += size
-            logger.debug(f'当前磁盘大小为：{self.total_disk}M')
+        result = os.popen('df -m |tr -s " "').readlines()
+        logger.debug(f'查询磁盘执行命令结果：{result}')
+        for line in result:
+            res = line.strip().split(' ')
+            if '/dev/' in res[0]:
+                size = float(res[1])
+                self.total_disk += size
+        logger.debug(f'当前磁盘大小为：{self.total_disk}M')
 
-            self.total_disk_h = self.total_disk / 1024
-            if self.total_disk_h > 1024:
-                total = round(self.total_disk_h / 1024, 2)
-                self.total_disk_h = f'{total}T'
-            else:
-                total = round(self.total_disk_h, 2)
-                self.total_disk_h = f'{total}G'
-        except Exception as err:
-            logger.error(err)
-            logger.error(traceback.format_exc())
+        self.total_disk_h = self.total_disk / 1024
+        if self.total_disk_h > 1024:
+            total = round(self.total_disk_h / 1024, 2)
+            self.total_disk_h = f'{total}T'
+        else:
+            total = round(self.total_disk_h, 2)
+            self.total_disk_h = f'{total}G'
 
         logger.info(f'当前服务器磁盘总大小为{self.total_disk_h}')
 
+    @handle_exception(is_return=True, default_value=0)
     def get_used_disk_rate(self):
         """
         获取磁盘使用的大小
         :return:
         """
         used_disk_size = 0
-        try:
-            result = os.popen('df -m |tr -s " "').readlines()
-            logger.debug(f'查询磁盘执行命令结果：{result}')
-            for line in result:
-                res = line.strip().split(' ')
-                if '/dev/' in res[0]:
-                    size = float(res[2])
-                    used_disk_size += size
-            logger.info(f'当前磁盘已使用{used_disk_size}G')
-        except Exception as err:
-            logger.error(err)
-            logger.error(traceback.format_exc())
-
+        result = os.popen('df -m |tr -s " "').readlines()
+        logger.debug(f'查询磁盘执行命令结果：{result}')
+        for line in result:
+            res = line.strip().split(' ')
+            if '/dev/' in res[0]:
+                size = float(res[2])
+                used_disk_size += size
+        logger.info(f'当前磁盘已使用{used_disk_size}G')
         return used_disk_size / self.total_disk
 
+    @handle_exception(is_return=True)
     def get_system_net_speed(self):
         """
         获取系统的带宽，单位是 Mbs
         :return:
         """
         if self.nic:
-            try:
-                result = os.popen(f'ethtool {self.nic}').readlines()
-                logger.debug(f'查询网络带宽执行命令结果：{result}')
-                for line in result:
-                    if 'Speed' in line:
-                        logger.debug(f'当前网络带宽为：{line}')
-                        res = re.findall("(\d+)", line)
-                        speed = int(res[0])
-                        if 'G' in line:
-                            speed = speed * 1024
-                        if 'K' in line:
-                            speed = speed / 1024
+            result = os.popen(f'ethtool {self.nic}').readlines()
+            logger.debug(f'查询网络带宽执行命令结果：{result}')
+            for line in result:
+                if 'Speed' in line:
+                    logger.debug(f'当前网络带宽为：{line}')
+                    res = re.findall("(\d+)", line)
+                    speed = int(res[0])
+                    if 'G' in line:
+                        speed = speed * 1024
+                    if 'K' in line:
+                        speed = speed / 1024
 
-                        self.network_speed = speed
-                        break
-            except Exception as err:
-                logger.error(err)
-                self.network_speed = 1  # 如果没用获取到值，则带宽设置为1Mbs
+                    self.network_speed = speed
+                    break
 
             logger.info(f'当前服务器网口带宽为{self.network_speed}Mb/s')
 
+    @handle_exception(is_return=True)
     def get_system_version(self):
         """
         获取系统发行版本或内核版本
         :return:
         """
-        try:
-            result = os.popen('cat /etc/redhat-release').readlines()    # 获取系统发行版本
-            logger.debug(f'查询系统发行版本执行命令结果：{result}')
-            if result:
-                self.system_version = result[0].strip()
-            else:
-                result = os.popen('cat /proc/version').readlines()[0]   # 获取系统内核版本
-                logger.debug(f'查询系统内核版本执行命令结果：{result}')
-                res = re.findall("gcc.*\((.*?)\).*GCC", result.strip())
-                self.system_version = res[0]
-        except Exception as err:
-            logger.error(err)
+        result = os.popen('cat /etc/redhat-release').readlines()    # 获取系统发行版本
+        logger.debug(f'查询系统发行版本执行命令结果：{result}')
+        if result:
+            self.system_version = result[0].strip()
+        else:
+            result = os.popen('cat /proc/version').readlines()[0]   # 获取系统内核版本
+            logger.debug(f'查询系统内核版本执行命令结果：{result}')
+            res = re.findall("gcc.*\((.*?)\).*GCC", result.strip())
+            self.system_version = res[0]
 
         logger.info(f'当前系统发行/内核版本为{self.system_version}')
 
@@ -799,6 +766,7 @@ class PerMon(object):
             logger.info(err)
             self.is_java.update({str(port): 0})
 
+    @handle_exception(is_return=True)
     def clear_port(self):
         """
         清理系统存储的已经停止监控超过86400s的端口信息
@@ -819,8 +787,7 @@ class PerMon(object):
             self._msg['startTime'].pop(ll)
             self._msg['stopTime'].pop(ll)
 
-            del self.FGC[str(port)]
-            del self.FGC_time[str(port)]
+            del self.FGC[str(port)], self.FGC_time[str(port)]
 
             logger.info(f'清理端口{port}成功')
 
@@ -876,6 +843,7 @@ class PerMon(object):
         pass
 
 
+@handle_exception(is_return=True)
 def port_to_pid(port):
     """
     根据端口号查询进程号
@@ -883,23 +851,20 @@ def port_to_pid(port):
     :return: 进程号
     """
     pid = None
-    try:
-        result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()
-        logger.debug(f'{port}端口的进程结果为：{result}')
-        flag = f':{port}'
-        res = [line.strip() for line in result if flag in line]
-        logger.debug(res[0])
-        p = res[0].split(' ')
-        pp = p[3].split(':')[-1]
-        if str(port) == pp:
-            pid = p[p.index('LISTEN') + 1].split('/')[0]
-    except Exception as err:
-        logger.error(err)
-        logger.error(traceback.format_exc())
+    result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()
+    logger.debug(f'{port}端口的进程结果为：{result}')
+    flag = f':{port}'
+    res = [line.strip() for line in result if flag in line]
+    logger.debug(res[0])
+    p = res[0].split(' ')
+    pp = p[3].split(':')[-1]
+    if str(port) == pp:
+        pid = p[p.index('LISTEN') + 1].split('/')[0]
 
     return pid
 
 
+@handle_exception(is_return=True)
 def notification(msg):
     """
     发送邮件通知
@@ -912,20 +877,17 @@ def notification(msg):
         "Accept": "application/json, text/plain, */*",
         "Accept-Encoding": "gzip, deflate",
         "Content-Type": "application/json; charset=UTF-8"}
-
     post_data = {
         'host': cfg.getServer('host'),
         'msg': msg
     }
-
     logger.debug(f'发送邮件信息的内容：{msg}')
-
-    try:
-        res = requests.post(url=url, json=post_data, headers=header)
-        if res.status_code == 200:
+    res = requests.post(url=url, json=post_data, headers=header)
+    if res.status_code == 200:
+        response = json.loads(res.content.decode())
+        if response['code'] == 0:
             logger.info('邮件发送成功')
         else:
-            logger.error('邮件发送失败')
-    except Exception as err:
-        logger.error(f'邮件发送失败，失败详情：{err}')
-        logger.error(traceback.format_exc())
+            logger.error(response['msg'])
+    else:
+        logger.error('邮件发送失败')

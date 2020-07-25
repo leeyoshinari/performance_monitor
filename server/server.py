@@ -10,7 +10,7 @@ import jinja2
 import aiohttp_jinja2
 from aiohttp import web
 
-from logger import logger, cfg
+from logger import logger, cfg, handle_exception
 from process import Process
 from Email import sendEmail
 from request import Request
@@ -19,6 +19,23 @@ from draw_performance import draw_data_from_db
 
 master = Process()
 http = Request()
+
+
+@handle_exception(is_return=True, default_value='127.0.0.1')
+def get_ip():
+	"""
+	获取当前服务器IP地址
+	:return: IP
+	"""
+	result = os.popen("hostname -I |awk '{print $1}'").readlines()
+	logger.debug(result)
+	if result:
+		IP = result[0].strip()
+	else:
+		logger.warning('未获取到服务器IP地址')
+		IP = '127.0.0.1'
+
+	return IP
 
 
 async def index(request):
@@ -148,8 +165,7 @@ async def get_monitor(request):
 			logger.warning(f'从{ip}服务器获取监控列表异常，响应状态码为{res.status_code}。')
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 
-	except Exception as err:
-		logger.error(err)
+	except Exception:
 		logger.error(traceback.format_exc())
 		return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 
@@ -196,8 +212,7 @@ async def plot_monitor(request):
 				res['flag'] = 0
 				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
 
-		except Exception as err:
-			logger.error(err)
+		except Exception:
 			logger.error(traceback.format_exc())
 			return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
 	else:
@@ -217,8 +232,7 @@ async def get_port_disk(request):
 			disks = master.slaves['disk'][master.slaves['ip'].index(host)]
 			monitor_list = master.get_monitor(host=host)
 			return web.json_response({'code': 0, 'msg': '操作成功', 'data': {'disk': disks, 'port': monitor_list['port']}})
-		except Exception as err:
-			logger.error(err)
+		except Exception:
 			logger.error(traceback.format_exc())
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 	else:
@@ -233,8 +247,11 @@ async def notice(request):
 	"""
 	data = await request.json()
 	msg = data.get('msg')
-	sendEmail(msg)
-	return web.json_response({'code': 0, 'msg': '操作成功', 'data': None})
+	try:
+		sendEmail(msg)
+		return web.json_response({'code': 0, 'msg': '操作成功', 'data': None})
+	except Exception as err:
+		return web.json_response({'code': 1, 'msg': err, 'data': None})
 
 
 async def main():
@@ -256,7 +273,8 @@ async def main():
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
+	# site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
+	site = web.TCPSite(runner, get_ip(), cfg.getServer('port'))
 	await site.start()
 
 

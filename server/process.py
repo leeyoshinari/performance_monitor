@@ -3,10 +3,9 @@
 # @Author: leeyoshinari
 import time
 import json
-import traceback
 import threading
 import influxdb
-from logger import logger, cfg
+from logger import logger, cfg, handle_exception
 from request import Request
 
 
@@ -82,6 +81,7 @@ class Process(object):
 					logger.warning(f"客户端{ip}服务器状态异常，已下线")
 					break
 
+	@handle_exception(is_return=True, default_value=[-1, -1, -1, -1, '-', -1])
 	def get_gc(self, ip, port, interface):
 		"""
 		获取端口的垃圾回收数据，访问地址 http://ip:port/interface
@@ -90,40 +90,51 @@ class Process(object):
 		:param interface: 访问接口名称
 		:return:
 		"""
-		try:
-			res = self.request.request('get', ip, port, interface)
-			if res.status_code == 200:
-				response = json.loads(res.content.decode())
-				logger.debug(f'获取{ip}服务器的{port}端口的gc数据为{response}')
-				if response['code'] == 0:
-					return response['data']
-				else:
-					logger.error(response['msg'])
-					return [-1, -1, -1, -1, '-', -1]
+		res = self.request.request('get', ip, port, interface)
+		if res.status_code == 200:
+			response = json.loads(res.content.decode())
+			logger.debug(f'获取{ip}服务器的{port}端口的gc数据为{response}')
+			if response['code'] == 0:
+				return response['data']
 			else:
-				logger.error(f'获取{ip}服务器的{port}端口的gc数据的接口响应状态码为{res.status_code}')
+				logger.error(response['msg'])
 				return [-1, -1, -1, -1, '-', -1]
-		except Exception as err:
-			logger.error(err)
-			logger.error(traceback.format_exc())
+		else:
+			logger.error(f'获取{ip}服务器的{port}端口的gc数据的接口响应状态码为{res.status_code}')
 			return [-1, -1, -1, -1, '-', -1]
 
+	@handle_exception(is_return=True, default_value={'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []})
 	def get_monitor(self, host=None):
 		"""
 		获取监控端口列表接口
 		:return:
 		"""
 		monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
-		try:
-			if host:
+		if host:
+			post_data = {
+				'host': host,
+			}
+			port = self._slaves['port'][self._slaves['ip'].index(host)]
+			res = self.request.request('post', host, port, 'getMonitor', json=post_data)  # 通过url获取
+			if res.status_code == 200:
+				response = json.loads(res.content.decode())
+				logger.debug(f'{host}服务器获取监控列表接口返回值为{response}')
+				if response['code'] == 0:
+					# 拼接端口监控列表
+					monitor_list['host'] += response['data']['host']
+					monitor_list['port'] += response['data']['port']
+					monitor_list['pid'] += response['data']['pid']
+					monitor_list['isRun'] += response['data']['isRun']
+					monitor_list['startTime'] += response['data']['startTime']
+		else:
+			for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # 遍历所有客户端IP地址，获取端口监控列表
 				post_data = {
-					'host': host,
+					'host': ip,
 				}
-				port = self._slaves['port'][self._slaves['ip'].index(host)]
-				res = self.request.request('post', host, port, 'getMonitor', json=post_data)  # 通过url获取
+				res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
 				if res.status_code == 200:
 					response = json.loads(res.content.decode())
-					logger.debug(f'{host}服务器获取监控列表接口返回值为{response}')
+					logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
 					if response['code'] == 0:
 						# 拼接端口监控列表
 						monitor_list['host'] += response['data']['host']
@@ -131,25 +142,5 @@ class Process(object):
 						monitor_list['pid'] += response['data']['pid']
 						monitor_list['isRun'] += response['data']['isRun']
 						monitor_list['startTime'] += response['data']['startTime']
-			else:
-				for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # 遍历所有客户端IP地址，获取端口监控列表
-					post_data = {
-						'host': ip,
-					}
-					res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
-					if res.status_code == 200:
-						response = json.loads(res.content.decode())
-						logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
-						if response['code'] == 0:
-							# 拼接端口监控列表
-							monitor_list['host'] += response['data']['host']
-							monitor_list['port'] += response['data']['port']
-							monitor_list['pid'] += response['data']['pid']
-							monitor_list['isRun'] += response['data']['isRun']
-							monitor_list['startTime'] += response['data']['startTime']
-
-		except Exception as err:
-			logger.error(err)
-			logger.error(traceback.format_exc())
 
 		return monitor_list

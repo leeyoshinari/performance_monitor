@@ -8,10 +8,27 @@ import asyncio
 import traceback
 from aiohttp import web
 
-from logger import logger, cfg
+from logger import logger, cfg, handle_exception
 from performance_monitor import PerMon, port_to_pid
 
 permon = PerMon()
+
+
+@handle_exception(is_return=True, default_value='127.0.0.1')
+def get_ip():
+	"""
+	获取当前服务器IP地址
+	:return: IP
+	"""
+	result = os.popen("hostname -I |awk '{print $1}'").readlines()
+	logger.debug(result)
+	if result:
+		IP = result[0].strip()
+	else:
+		logger.warning('未获取到服务器IP地址')
+		IP = '127.0.0.1'
+
+	return IP
 
 
 async def index(request):
@@ -160,7 +177,8 @@ async def main():
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
+	# site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
+	site = web.TCPSite(runner, get_ip(), cfg.getServer('port'))
 	await site.start()
 
 
