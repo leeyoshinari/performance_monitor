@@ -137,11 +137,11 @@ def draw_data_from_db(host, port=None, pid=None, start_time=None, end_time=None,
         lines = get_lines(post_data)      # 计算百分位数，75%、90%、95%、99%
         res.update(lines)
         logger.info(f'计算百分位数耗时：{time.time() - s_time}')
-        del connection, post_data
+        del connection, post_data, datas
         return res
 
     except Exception as err:
-        del connection, post_data
+        del connection, post_data, datas
         logger.error(err)
         logger.error(traceback.format_exc())
         res['message'] = err
@@ -159,7 +159,7 @@ def draw(data):
     cpu = data['cpu']
     mem = data['mem']
     jvm = data['jvm']
-    io_time = data['io_time']
+    # io_time = data['io_time']
     io = data['io']
     disk = data['disk']
     disk_r = data['disk_r']
@@ -173,16 +173,16 @@ def draw(data):
     retrans = data['retrans']
 
     length = len(cpu_time)
-    io_length = len(io_time)
+    # io_length = len(io_time)
     net_length = len(net)
-    if min(length, io_length, net_length) < 7:  # 画图的最小刻度为7，故必须大于7个数据
+    if min(length, net_length) < 7:  # 画图的最小刻度为7，故必须大于7个数据
         logger.error('数据太少，请稍后再试')
         raise Exception('当前数据太少，请稍等10秒再试')
 
     index = []        # x轴坐标
     labels = []       # x轴刻度
     delta = length / 6      # x轴每个坐标间隔
-    io_delta = io_length / 6    # x轴每个坐标间隔，IO
+    # io_delta = io_length / 6    # x轴每个坐标间隔，IO
     for i in range(6):
         index.append(int(i * delta))
         labels.append(cpu_time[int(i * delta)])
