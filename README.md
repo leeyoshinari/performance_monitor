@@ -16,17 +16,18 @@
 #### 实现过程
 1、使用基于协程的http框架`aiohttp`<br>
 2、服务端前端使用`jinjia2`模板渲染<br>
-3、采用线程池+队列的方式实现同时监控多个端口<br>
-4、客户端每隔5s向服务端注册本机IP和端口<br>
-5、服务端每隔5s会查询所有已注册的客户端的状态<br>
-6、使用influxDB数据库存储监控数据；数据可设置自动过期时间<br>
+3、数据可视化采用`echarts`，可降低服务端压力<br>
+4、采用线程池+队列的方式实现同时监控多个端口<br>
+5、客户端每隔5s向服务端注册本机IP和端口<br>
+6、服务端每隔5s会查询所有已注册的客户端的状态<br>
+7、使用influxDB数据库存储监控数据；数据可设置自动过期时间<br>
 
 #### 项目分支
 | 分支 | 框架 | 特点 |
 | :----: | :----:| :---- |
-| [master分支](https://github.com/leeyoshinari/performance_monitor) | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用echarts画图，可降低服务端的压力 |
-| [matplotlib分支]() | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用matplotlib画图，可降低客户端（浏览器）的压力 |
-| [single分支]() | flask | 1、单机监控<br> 2、监控数据存放在日志中<br> 3、使用matplotlib画图 |
+| [master分支](https://github.com/leeyoshinari/performance_monitor) | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用echarts画图，可降低服务端的压力<br> 3、可视化的图形可交互 |
+| [matplotlib分支](https://github.com/leeyoshinari/performance_monitor/tree/matplotlib) | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用matplotlib画图，可降低客户端（浏览器）的压力 |
+| [single分支](https://github.com/leeyoshinari/performance_monitor/tree/single) | flask | 1、单机监控<br> 2、监控数据存放在日志中<br> 3、使用matplotlib画图 |
 
 ## 使用
 1. 克隆 performance_monitor
@@ -111,13 +112,12 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 
 3. 如需查看最新的操作文档，可在运行程序后，查看教程即可。
 
-4. 如果你对监控要求不高，可以使用单机版，其对第三方模块依赖较少。如需获取，请切换至`single`分支，或[点我](https://github.com/leeyoshinari/performance_monitor/tree/single)。
+4. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。
 
 ## Requirements
 1. aiohttp>=3.6.2
 2. aiohttp_jinja2>=1.2.0
 3. jinja2>=2.10.1
-4. matplotlib<=3.2.0
-5. influxdb>=5.2.3
-6. requests
-7. Python 3.7+
+4. influxdb>=5.2.3
+5. requests
+6. Python 3.7+

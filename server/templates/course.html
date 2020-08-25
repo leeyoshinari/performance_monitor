@@ -25,10 +25,11 @@
         <p>
             1、服务端后端使用基于协程的http框架<code>aiohttp</code><br>
             2、服务端前端使用<code>jinjia2</code>模板渲染<br>
-            3、采用线程池+队列的方式实现同时监控多个端口<br>
-            4、客户端每隔5s向服务端注册本机IP和端口，以及服务器信息<br>
-            5、服务端每隔5s会查询所有已注册的客户端的状态<br>
-            6、使用InfluxDB数据库存储监控数据；数据可设置自动过期时间
+            3、数据可视化采用<code>echarts</code>，可降低服务端压力<br>
+            4、采用线程池+队列的方式实现同时监控多个端口<br>
+            5、客户端每隔5s向服务端注册本机IP和端口，以及服务器信息<br>
+            6、服务端每隔5s会查询所有已注册的客户端的状态<br>
+            7、使用InfluxDB数据库存储监控数据；数据可设置自动过期时间
         </p>
     </ol>
     <h2>使用</h2>
@@ -128,7 +129,7 @@
     <h2>注意</h2>
     <ol>
         <li>服务器必须支持以下命令：<code>jstat</code>、<code>top</code>、<code>iostat</code>、<code>netstat</code>、<code>ps</code>、<code>top</code>，如不支持，请安装。</li>
-        <li>如果你对监控要求不高，可以使用单机版，其对第三方模块依赖较少。如需获取，请切换至<code>single</code>分支，或<a href="https://github.com/leeyoshinari/performance_monitor/tree/single">点我</a>。</li>
+        <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
     </ol>
 </div>
 {% endblock %}
