@@ -89,7 +89,6 @@ async def run_monitor(request):
 				'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': port, 'pid': None}})
 
 	except Exception as err:
-		logger.error(err)
 		logger.error(traceback.format_exc())
 		return web.json_response({
 			'code': 2, 'msg': err, 'data': {'host': cfg.getServer('host'), 'port': None, 'pid': None}})
@@ -159,8 +158,7 @@ async def get_gc(request):
 		else:
 			fgc = 'NaN'
 
-	except Exception as err:
-		logger.error(err)
+	except Exception:
 		logger.error(traceback.format_exc())
 		ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, -1, -1
 

@@ -69,7 +69,7 @@ async def visualize(request):
 	:param request:
 	:return:
 	"""
-	starttime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()-3600))
+	starttime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()-600))
 	endtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 	# 防止未监控时，访问页面报错
 	if master.slaves['ip']:
@@ -77,7 +77,7 @@ async def visualize(request):
 	else:
 		monitor_list = {'port': []}
 	return aiohttp_jinja2.render_template('visualize.html', request, context={'disks': master.slaves['disk'],
-		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime})
+		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime, 'row_name': ['75%', '90%', '95%', '99%']})
 
 
 async def course(request):
@@ -165,7 +165,8 @@ async def get_monitor(request):
 			logger.warning(f'从{ip}服务器获取监控列表异常，响应状态码为{res.status_code}。')
 			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 
-	except Exception:
+	except Exception as err:
+		logger.error(err)
 		logger.error(traceback.format_exc())
 		return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
 
@@ -186,33 +187,33 @@ async def plot_monitor(request):
 	disk = data.get('disk')         # 磁盘号
 	if host in master.slaves['ip']:
 		try:
-			row_name = ['75%', '90%', '95%', '99%']
 			if type_ == 'port':		# 如果选择端口，则可视化端口的CPU、内存，统计系统的IO和带宽
-				res = draw_data_from_db(host=host, port=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+				res = draw_data_from_db(host=host, port=port_pid, startTime=start_time, endTime=end_time, disk=disk)
 				if res['code'] == 0:
 					raise Exception(res['message'])
 				res.update({'gc': master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}')})
-				if res['gc'][0] == -1 and res['gc'][1] == -1:
+				if res['gc'][0] == -1 and res['gc'][2] == -1:
 					res['flag'] = 0
-				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
+				return web.json_response(res)
 
 			if type_ == 'pid':		# 如果选择进程号，则可视化端口的CPU、内存，统计系统的IO和带宽
-				res = draw_data_from_db(host=host, pid=port_pid, start_time=start_time, end_time=end_time, disk=disk)
+				res = draw_data_from_db(host=host, pid=port_pid, startTime=start_time, endTime=end_time, disk=disk)
 				if res['code'] == 0:
 					raise Exception(res['message'])
 				res.update({'gc': master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)], f'getGC/{port_pid}')})
-				if res['gc'][0] == -1 and res['gc'][1] == -1:
+				if res['gc'][0] == -1 and res['gc'][2] == -1:
 					res['flag'] = 0
-				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
+				return web.json_response(res)
 
 			if type_ == 'system':		# 如果选择系统，则可视化系统的CPU、内存、IO和带宽
-				res = draw_data_from_db(host=host, start_time=start_time, end_time=end_time, system=1, disk=disk)
+				res = draw_data_from_db(host=host, startTime=start_time, endTime=end_time, system=1, disk=disk)
 				if res['code'] == 0:
 					raise Exception(res['message'])
 				res['flag'] = 0
-				return aiohttp_jinja2.render_template('figure.html', request, context={'row_name': row_name, 'datas': res})
+				return web.json_response(res)
 
-		except Exception:
+		except Exception as err:
+			logger.error(err)
 			logger.error(traceback.format_exc())
 			return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
 	else:
@@ -232,9 +233,9 @@ async def get_port_disk(request):
 			disks = master.slaves['disk'][master.slaves['ip'].index(host)]
 			monitor_list = master.get_monitor(host=host)
 			return web.json_response({'code': 0, 'msg': '操作成功', 'data': {'disk': disks, 'port': monitor_list['port']}})
-		except Exception:
+		except Exception as err:
 			logger.error(traceback.format_exc())
-			return web.json_response({'code': 2, 'msg': "系统异常", 'data': None})
+			return web.json_response({'code': 2, 'msg': "系统异常", 'data': err})
 	else:
 		return web.json_response({'code': 1, 'msg': f"{host}服务器可能未注册", 'data': None})
 

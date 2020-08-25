@@ -21,6 +21,13 @@
 5、服务端每隔5s会查询所有已注册的客户端的状态<br>
 6、使用influxDB数据库存储监控数据；数据可设置自动过期时间<br>
 
+#### 项目分支
+| 分支 | 框架 | 特点 |
+| :----: | :----:| :---- |
+| [master分支](https://github.com/leeyoshinari/performance_monitor) | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用echarts画图，可降低服务端的压力 |
+| [matplotlib分支]() | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用matplotlib画图，可降低客户端（浏览器）的压力 |
+| [single分支]() | flask | 1、单机监控<br> 2、监控数据存放在日志中<br> 3、使用matplotlib画图 |
+
 ## 使用
 1. 克隆 performance_monitor
    ```shell

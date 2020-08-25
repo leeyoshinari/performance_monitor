@@ -1,7 +1,7 @@
 (function(){
     "use strict";
     $.Toast = function(message, type){
-        var defaultOptions = {
+        let defaultOptions = {
             appendTo: "body",
             stack: false,
             position_class: "toast-top-center",
@@ -17,13 +17,13 @@
             rtl:false
         };
 
-        var $element = null;
+        let $element = null;
 
-        var $options = $.extend(true, {}, defaultOptions, {});
+        let $options = $.extend(true, {}, defaultOptions, {});
 
-        var spacing = $options.spacing;
+        let spacing = $options.spacing;
 
-        var css = {
+        let css = {
             "position":($options.appendTo == "body") ? "fixed" : "absolute",
             "min-width":$options.width,
             "display":"none",
