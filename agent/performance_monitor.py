@@ -733,15 +733,20 @@ class PerMon(object):
         获取系统发行版本或内核版本
         :return:
         """
-        result = os.popen('cat /etc/redhat-release').readlines()    # 获取系统发行版本
-        logger.debug(f'查询系统发行版本执行命令结果：{result}')
-        if result:
+        try:
+            result = os.popen('cat /etc/redhat-release').readlines()    # 获取系统发行版本
+            logger.debug(f'查询系统发行版本执行命令结果：{result}')
             self.system_version = result[0].strip()
-        else:
+        except Exception as err:
+            logger.warning(err)
             result = os.popen('cat /proc/version').readlines()[0]   # 获取系统内核版本
             logger.debug(f'查询系统内核版本执行命令结果：{result}')
             res = re.findall("gcc.*\((.*?)\).*GCC", result.strip())
-            self.system_version = res[0]
+            if res:
+                self.system_version = res[0]
+            else:
+                res = re.findall("gcc.*\((.*?)\)", result.strip())
+                self.system_version = res[0]
 
         logger.info(f'当前系统发行/内核版本为{self.system_version}')
 
