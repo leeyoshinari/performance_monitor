@@ -119,7 +119,8 @@
             $.ajax({
                 type: 'post',
                 url: 'plotMonitor',
-                data: post_data,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(post_data),
                 dataType: "json",
                 success: function (data) {
                     if (data['code'] === 1) {

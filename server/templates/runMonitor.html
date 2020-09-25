@@ -70,7 +70,8 @@
             $.ajax({
                 type: 'post',
                 url: 'runMonitor',
-                data: startMonitor,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(startMonitor),
                 dataType: "json",
                 success: function (data) {
                     if (data['code'] === 0) {
@@ -112,7 +113,8 @@
             $.ajax({
                 type: 'post',
                 url: 'runMonitor',
-                data: startMonitor,
+                contentType: "application/json; charset=utf-8",
+                data: JSON.stringify(startMonitor),
                 dataType: "json",
                 success: function (data) {
                     if (data['code'] === 0) {

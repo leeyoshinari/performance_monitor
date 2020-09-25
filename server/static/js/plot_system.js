@@ -288,7 +288,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 gridIndex: 4,
                 name: 'TCP',
                 type: 'value',
-                max: findMax(tcp)
+                max: (findMax(tcp) * 1.02).toFixed(2)
             },
             {
                 gridIndex: 4,

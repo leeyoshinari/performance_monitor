@@ -258,7 +258,7 @@ async def notice(request):
 async def main():
 	app = web.Application()
 	aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))  # 将模板添加到搜索路径
-	app.router.add_static('/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'))  # 将静态文件添加到搜索路径
+	app.router.add_static('/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), append_version=True)  # 将静态文件添加到搜索路径
 
 	app.router.add_route('GET', '/', index)
 	app.router.add_route('GET', '/startMonitor', start_monitor)
