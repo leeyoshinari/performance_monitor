@@ -226,7 +226,7 @@ class PerMon(object):
                     run_error_time = time.time()    # 如果监控命令执行成功，则重置
                     run_error = 0      # 如果监控命令执行成功，则重置
 
-                except Exception:
+                except:
                     logger.error(traceback.format_exc())
                     time.sleep(self.sleepTime)
 
@@ -303,7 +303,7 @@ class PerMon(object):
                         logger.debug('正常清理停止监控的端口')
                         self.clear_port()
                         clear_time = time.time()
-                except Exception:
+                except:
                     logger.error(traceback.format_exc())
 
             if time.time() - disk_start_time > 300:     # 每隔5分钟获取一次磁盘使用情况
@@ -346,12 +346,14 @@ class PerMon(object):
                         post_data['mem_usage'] = 1 - res['mem'] / self.total_mem    # 内存使用率，不带%号
 
                         if cpu_usage > self.maxCPU:
-                            msg = f'当前CPU平均使用率大于{self.maxCPU}，CPU使用率过高。'
+                            msg = f'{self.IP} 当前CPU平均使用率为{cpu_usage}%，CPU使用率过高'
                             logger.warning(msg)
                             if self.isCPUAlert and cpu_flag:
                                 cpu_flag = False    # 标志符置为False，防止连续不断的发送邮件
                                 thread = threading.Thread(target=notification, args=(msg,))     # 开启线程发送邮件通知
                                 thread.start()
+                        else:
+                            cpu_flag = True     # 如果CPU正常，标识符重置为True
 
                         if res['mem'] <= self.minMem:
                             msg = f"{self.IP} 当前系统剩余内存为{res['mem']}G，内存过低"
@@ -368,11 +370,10 @@ class PerMon(object):
 
                         else:
                             # 如果内存正常，标识符重置为True
-                            cpu_flag = True
                             mem_flag = True
                             echo = True
 
-                except Exception:
+                except:
                     logger.error(traceback.format_exc())
             else:
                 time.sleep(3)
@@ -398,7 +399,7 @@ class PerMon(object):
                 cpu = float(r[ind + 8]) / self.cpu_cores      # CPU使用率
                 mem = float(r[ind + 9]) * self.total_mem_100      # 内存占用大小
 
-        return (cpu, mem)
+        return cpu, mem
 
     @handle_exception(is_return=True, default_value=0)
     def get_jvm(self, port, pid):
