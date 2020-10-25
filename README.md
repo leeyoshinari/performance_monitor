@@ -77,30 +77,30 @@ pyinstaller既可以将python脚本打包成Windows环境下的可执行文件�
 
 pyinstaller安装过程自行百度，下面直接进行打包：<br>
 
-1. 打包master<br>
+1. 打包server<br>
     (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
     (2)进入server文件夹，开始打包：<br>
     ```shell
-    pyinstaller server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request
+    pyinstaller -F server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request
     ```
     `打包过程可能提示缺少一些模块，请按照提示安装对应的模块`<br>
-    (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist/server`即可找到可执行文件`server`;<br>
-    (4)将配置文件`config.ini`拷贝到`dist/server`文件夹下，并修改配置文件；<br>
-    (5)将模板文件`templates`和静态文件`static`拷贝到`dist/server`文件夹下；<br>
-    (6)将`dist/server`整个文件夹拷贝到其他环境，启动server
+    (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist`即可找到可执行文件`server`;<br>
+    (4)将配置文件`config.ini`拷贝到`dist`文件夹下，并修改配置文件；<br>
+    (5)将模板文件`templates`和静态文件`static`拷贝到`dist`文件夹下；<br>
+    (6)将`dist`整个文件夹拷贝到其他环境，启动server
     ```shell
     nohup ./server &
     ```
 
-2. 打包slave<br>
+2. 打包agent<br>
     (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
     (2)进入agent文件夹，开始打包：<br>
     ```shell
-    pyinstaller server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config
+    pyinstaller -F server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config
     ```
-    (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist/server`即可找到可执行文件`server`;<br>
-    (4)将配置文件`config.ini`拷贝到`dist/server`文件夹下，并修改配置文件；<br>
-    (5)将`dist/server`整个文件夹拷贝到其他环境，启动server
+    (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist`即可找到可执行文件`server`;<br>
+    (4)将配置文件`config.ini`拷贝到`dist`文件夹下，并修改配置文件；<br>
+    (5)将`dist`整个文件夹拷贝到其他环境，启动server
     ```shell
     nohup ./server &
     ```

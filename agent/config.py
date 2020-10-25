@@ -31,6 +31,8 @@ class Config(object):
 	def getMonitor(self, key):
 		if key == 'minMem':
 			return self.cfg.getfloat('monitor', key, fallback=0)
+		elif key == 'timeSetting':
+			return self.cfg.get('monitor', key, fallback='05:20')
 		else:
 			return self.cfg.getint('monitor', key, fallback=0)
 

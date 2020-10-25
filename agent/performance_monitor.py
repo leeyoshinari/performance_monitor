@@ -19,7 +19,7 @@ class PerMon(object):
     def __init__(self):
         self.IP = cfg.getServer('host')
         self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
-        self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': [], 'stopTime': []}   # 端口号、进程号、监控状态、开始监控时间
+        self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.is_system = cfg.getMonitor('isMonSystem')             # 是否监控服务器的资源
         self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
         self.sleepTime = cfg.getMonitor('sleepTime')
@@ -32,6 +32,7 @@ class PerMon(object):
         self.isJvmAlert = cfg.getMonitor('isJvmAlert')
         self.echo = cfg.getMonitor('echo')
         self.isTCP = cfg.getMonitor('isTCP')
+        self.timeSetting = cfg.getMonitor('timeSetting')
 
         system_interval = cfg.getMonitor('system_interval')  # 每次执行监控命令的时间间隔
         port_interval = cfg.getMonitor('port_interval')  # 每次执行监控命令的时间间隔
@@ -85,7 +86,6 @@ class PerMon(object):
                 if self._msg['isRun'][index] == 0:  # 如果已经停止监控，则更新监控状态和开始监控时间
                     self._msg['isRun'][index] = value['is_run']
                     self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
-                    self._msg['stopTime'][index] = None
                     self.monitor_task.put((self.write_cpu_mem, index))  # 把监控的端口任务放入队列中
 
                     self.FGC[str(value['port'])] = 0    # 重置 FGC次数
@@ -96,14 +96,12 @@ class PerMon(object):
                 else:
                     self._msg['isRun'][index] = value['is_run']
                     self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
-                    self._msg['stopTime'][index] = None
             else:
                 self.is_java_server(value['port'])      # 判断端口是否是java服务
                 self._msg['pid'].append(value['pid'])   # 如果端口未监控过，则添加该端口相关数据
                 self._msg['port'].append(value['port'])
                 self._msg['isRun'].append(value['is_run'])
                 self._msg['startTime'].append(time.strftime('%Y-%m-%d %H:%M:%S'))
-                self._msg['stopTime'].append(None)
                 self.monitor_task.put((self.write_cpu_mem, len(self._msg['port'])-1))   # 把监控的端口任务放入队列中
 
                 self.FGC.update({str(value['port']): 0})    # 初始化 FGC 次数
@@ -190,7 +188,6 @@ class PerMon(object):
                             # 如果连续30分钟执行监控命令都失败，则停止监控
                             if time.time() - run_error_time > 1800:
                                 self._msg['isRun'][index] = 0
-                                self._msg['stopTime'][index] = time.time()
                                 logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
                                 break
 
@@ -200,7 +197,6 @@ class PerMon(object):
                             # 如果连续执行监控命令失败的次数大于设置值，则停止监控
                             if run_error > self.error_times:
                                 self._msg['isRun'][index] = 0
-                                self._msg['stopTime'][index] = time.time()
                                 logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
                                 break
 
@@ -236,7 +232,6 @@ class PerMon(object):
                 logger.info(f'{port}端口已经停止监控')
                 self.FGC[str(port)] = 0
                 self._msg['isRun'][index] = 0
-                self._msg['stopTime'][index] = time.time()
                 break
 
     def write_system_cpu_mem_and_register_clear(self, is_system):
@@ -289,7 +284,6 @@ class PerMon(object):
             'disk_usage': disk_usage,
             'disks': ','.join(self.all_disk)
         }
-        clear_time = time.time()
         start_time = time.time()
         disk_start_time = time.time()
 
@@ -298,11 +292,9 @@ class PerMon(object):
                 try:
                     res = requests.post(url=url, json=post_data, headers=header)
                     logger.info(f"客户端注册结果：{res.content.decode('unicode_escape')}")
-                    start_time = time.time()
-                    if time.time() - clear_time > 600:  # 每隔10分钟清理一次过期的端口
+                    if time.strftime('%H:%M') == self.timeSetting:  # 每天定时清理一次过期的端口
                         logger.debug('正常清理停止监控的端口')
                         self.clear_port()
-                        clear_time = time.time()
                 except:
                     logger.error(traceback.format_exc())
 
@@ -772,27 +764,32 @@ class PerMon(object):
     @handle_exception(is_return=True)
     def clear_port(self):
         """
-        清理系统存储的已经停止监控超过86400s的端口信息
+        清理系统存储的已经停止监控的端口信息
         :return:
         """
-        pop_list = []
-        for ind in range(len(self._msg['port'])):
-            if self._msg['isRun'][ind] == 0 and self._msg['stopTime'][ind]:
-                if time.time() - self._msg['stopTime'][ind] > 7200:
-                    pop_list.append(ind)
+        monitor_num = len(self._msg['port'])
 
-        logger.debug(f'清理过期停止监控端口：{pop_list}')
+        if monitor_num > 0:
+            port_list = self._msg
+            # 停止所有监控
+            for ind in range(monitor_num):
+                if self._msg['isRun'][ind] > 0:
+                    self._msg['isRun'][ind] = 0
 
-        for ll in pop_list:
-            port = self._msg['port'].pop(ll)
-            self._msg['pid'].pop(ll)
-            self._msg['isRun'].pop(ll)
-            self._msg['startTime'].pop(ll)
-            self._msg['stopTime'].pop(ll)
+            self.FGC = {}   # 清理GC次数
+            self.FGC_time = {}  # 清理GC时间
+            time.sleep(self.port_interval + 1)  # 等待所有端口监控停止
+            self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}
 
-            del self.FGC[str(port)], self.FGC_time[str(port)]
+            # 开始重新监控
+            for ind in range(len(port_list['port'])):
+                if port_list['isRun'][ind] > 0:
+                    self.start = {'port': port_list['port'][ind], 'pid': port_list['pid'][ind], 'is_run': 1}
 
-            logger.info(f'清理端口{port}成功')
+            del port_list
+            logger.info(f'清理过期停止监控端口成功')
+        else:
+            logger.info(f'未监控端口')
 
     def register_and_clear_port(self, flag=None):
         """
