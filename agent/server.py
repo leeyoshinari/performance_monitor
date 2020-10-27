@@ -7,29 +7,12 @@ import time
 import asyncio
 import traceback
 from aiohttp import web
-
-from logger import logger, cfg, handle_exception
+from common import get_ip
+from logger import logger, cfg
 from performance_monitor import PerMon, port_to_pid
 
 permon = PerMon()
-
-
-@handle_exception(is_return=True, default_value='127.0.0.1')
-def get_ip():
-	"""
-	获取当前服务器IP地址
-	:return: IP
-	"""
-	result = os.popen("hostname -I |awk '{print $1}'").readlines()
-	logger.debug(result)
-	if result:
-		IP = result[0].strip()
-	else:
-		logger.warning('未获取到服务器IP地址')
-		IP = '127.0.0.1'
-
-	return IP
-
+HOST = get_ip()
 
 async def index(request):
 	"""
@@ -54,7 +37,7 @@ async def run_monitor(request):
 		network = data.get('net')
 		is_run = data.get('isRun')
 
-		if host == cfg.getServer('host'):
+		if host == HOST:
 			if port:
 				pid = port_to_pid(port)     # 根据端口号查询进程号
 				if pid is None:
@@ -91,7 +74,7 @@ async def run_monitor(request):
 	except Exception as err:
 		logger.error(traceback.format_exc())
 		return web.json_response({
-			'code': 2, 'msg': err, 'data': {'host': cfg.getServer('host'), 'port': None, 'pid': None}})
+			'code': 2, 'msg': err, 'data': {'host': HOST, 'port': None, 'pid': None}})
 
 
 async def get_monitor(request):
@@ -102,7 +85,7 @@ async def get_monitor(request):
 	"""
 	data = await request.json()
 	host = data.get('host')
-	if host == cfg.getServer('host'):
+	if host == HOST:
 		msg = permon.start
 		if len(msg['port']) > 0:    # 是否监控过端口
 			data = {'host': [host]*len(msg['port'])}
@@ -176,7 +159,7 @@ async def main():
 	runner = web.AppRunner(app)
 	await runner.setup()
 	# site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
-	site = web.TCPSite(runner, get_ip(), cfg.getServer('port'))
+	site = web.TCPSite(runner, HOST, cfg.getServer('port'))
 	await site.start()
 
 

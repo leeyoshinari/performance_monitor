@@ -5,6 +5,7 @@ import os
 import re
 import time
 import json
+import copy
 import queue
 import traceback
 import threading
@@ -12,12 +13,13 @@ from concurrent.futures import ThreadPoolExecutor
 
 import requests
 import influxdb
-from logger import logger, cfg, handle_exception
+from common import handle_exception, get_ip
+from logger import logger, cfg
 
 
 class PerMon(object):
     def __init__(self):
-        self.IP = cfg.getServer('host')
+        self.IP = get_ip()
         self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.is_system = cfg.getMonitor('isMonSystem')             # 是否监控服务器的资源
@@ -767,12 +769,12 @@ class PerMon(object):
         清理系统存储的已经停止监控的端口信息
         :return:
         """
-        monitor_num = len(self._msg['port'])
+        stop_num = self._msg['isRun'].count(0)
 
-        if monitor_num > 0:
-            port_list = self._msg
+        if stop_num > 0:
+            port_list = copy.deepcopy(self._msg)
             # 停止所有监控
-            for ind in range(monitor_num):
+            for ind in range(len(self._msg['port'])):
                 if self._msg['isRun'][ind] > 0:
                     self._msg['isRun'][ind] = 0
 
@@ -789,7 +791,7 @@ class PerMon(object):
             del port_list
             logger.info(f'清理过期停止监控端口成功')
         else:
-            logger.info(f'未监控端口')
+            logger.info(f'没有停止监控的端口')
 
     def register_and_clear_port(self, flag=None):
         """
@@ -879,7 +881,7 @@ def notification(msg):
         "Content-Type": "application/json; charset=UTF-8"}
 
     post_data = {
-        'host': cfg.getServer('host'),
+        'host': get_ip(),
         'msg': msg
     }
 

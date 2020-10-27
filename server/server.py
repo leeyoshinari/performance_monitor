@@ -31,6 +31,7 @@ def get_ip():
 	logger.debug(result)
 	if result:
 		IP = result[0].strip()
+		logger.info(f'本机IP地址为：{IP}')
 	else:
 		logger.warning('未获取到服务器IP地址')
 		IP = '127.0.0.1'
