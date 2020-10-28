@@ -19,7 +19,7 @@
                 {% if cpu_usage[loop.index0] < 80 %}
                     <td>{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</td>
                 {% else %}
-                    <td style="background-color: #ff3333">{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</td>
+                    <td><strong style="font-weight: bold; color: #ff3333">{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</strong></td>
                 {% endif %}
                 {% if mem_usage[loop.index0] < 80 %}
                     <td>{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</td>

@@ -96,7 +96,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
     (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
     (2)进入agent文件夹，开始打包：<br>
     ```shell
-    pyinstaller -F server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config
+    pyinstaller -F server.py -p performance_monitor.py -p logger.py -p config.py -p common.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import common --hidden-import config
     ```
     (3)打包完成后，在当前路径下会生成dist文件夹，进入`dist`即可找到可执行文件`server`;<br>
     (4)将配置文件`config.ini`拷贝到`dist`文件夹下，并修改配置文件；<br>

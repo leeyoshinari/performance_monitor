@@ -179,6 +179,7 @@
         })
     }
 
+    let global_port = [];
     function show_port_disk() {
         let host = document.getElementById('host').value;
         let types = document.getElementById('type').value;
@@ -193,7 +194,8 @@
             success: function (data) {
                 if (data['code'] === 0){
                     if (types === 'port'){
-                        for (let i=0; i<data['data']['port'].length; i++){
+                        global_port = data['data']['port'];
+                        for (let i=0; i<global_port.length; i++){
                             portObj.options.add(new Option(data['data']['port'][i], data['data']['port'][i]));
                         }
                     }
@@ -211,12 +213,12 @@
 
     function clear_port() {
         let types = document.getElementById('type').value;
-        if (types === 'system') {
-            let portObj = document.getElementById('port');
-            portObj.options.length = 0;
-        }
-        else {
-            show_port_disk();
+        let portObj = document.getElementById('port');
+        portObj.options.length = 0;
+        if (types === 'port') {
+            for (let i=0; i<global_port.length; i++){
+                portObj.options.add(new Option(data['data']['port'][i], data['data']['port'][i]));
+            }
         }
     }
 
