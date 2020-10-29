@@ -8,7 +8,7 @@
             {% endfor %}
     </select>
     类型: <select id="type" style="width: 6%; height: 26px; margin-right: 20px;" onchange="clear_port()">
-        <option value="system">系统</option>
+        <option value="system" selected="selected">系统</option>
         <option value="port">端口</option>
     </select>
     端口号: <select id="port" style="width: 6%; height: 26px; margin-right: 20px;"></select>
@@ -119,8 +119,7 @@
             $.ajax({
                 type: 'post',
                 url: 'plotMonitor',
-                contentType: "application/json; charset=utf-8",
-                data: JSON.stringify(post_data),
+                data: post_data,
                 dataType: "json",
                 success: function (data) {
                     if (data['code'] === 1) {
@@ -182,9 +181,11 @@
     let global_port = [];
     function show_port_disk() {
         let host = document.getElementById('host').value;
-        let types = document.getElementById('type').value;
+        let types = document.getElementById('type');
         let portObj = document.getElementById('port');
         let diskObj = document.getElementById('disk');
+        types.options[0].selected = true;
+        types.options[1].selected = false;
         portObj.options.length = 0;
         diskObj.options.length = 0;
         $.ajax({
@@ -193,12 +194,7 @@
             dataType: "json",
             success: function (data) {
                 if (data['code'] === 0){
-                    if (types === 'port'){
-                        global_port = data['data']['port'];
-                        for (let i=0; i<global_port.length; i++){
-                            portObj.options.add(new Option(data['data']['port'][i], data['data']['port'][i]));
-                        }
-                    }
+                    global_port = data['data']['port'];
                     for (let i=0; i<data['data']['disk'].length; i++){
                         diskObj.options.add(new Option(data['data']['disk'][i], data['data']['disk'][i]));
                     }
@@ -212,12 +208,12 @@
     }
 
     function clear_port() {
-        let types = document.getElementById('type').value;
+        let types = document.getElementById('type');
         let portObj = document.getElementById('port');
         portObj.options.length = 0;
-        if (types === 'port') {
+        if (types.value === 'port') {
             for (let i=0; i<global_port.length; i++){
-                portObj.options.add(new Option(data['data']['port'][i], data['data']['port'][i]));
+                portObj.options.add(new Option(global_port[i], global_port[i]));
             }
         }
     }

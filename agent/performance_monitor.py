@@ -33,6 +33,8 @@ class PerMon(object):
         self.frequencyFGC = cfg.getMonitor('frequencyFGC')
         self.isJvmAlert = cfg.getMonitor('isJvmAlert')
         self.echo = cfg.getMonitor('echo')
+        self.isDiskAlert = cfg.getMonitor('isDiskAlert')
+        self.maxDiskUsage = cfg.getMonitor('maxDiskUsage') / 100
         self.isTCP = cfg.getMonitor('isTCP')
         self.timeSetting = cfg.getMonitor('timeSetting')
 
@@ -99,7 +101,6 @@ class PerMon(object):
                     self._msg['isRun'][index] = value['is_run']
                     self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
             else:
-                self.is_java_server(value['port'])      # 判断端口是否是java服务
                 self._msg['pid'].append(value['pid'])   # 如果端口未监控过，则添加该端口相关数据
                 self._msg['port'].append(value['port'])
                 self._msg['isRun'].append(value['is_run'])
@@ -111,6 +112,8 @@ class PerMon(object):
 
                 if self.monitor_task.qsize() > 0:   # 如果队列不为空，则监控状态置为2，排队中
                     self._msg['isRun'][-1] = 2
+
+            self.is_java_server(value['port'])  # 判断端口是否是java服务
         else:
             raise Exception('参数异常')
 
@@ -246,6 +249,7 @@ class PerMon(object):
         cpu_flag = True     # 控制CPU过高时是否邮件通知标志
         mem_flag = True     # 控制内存过低时是否邮件通知标志
         echo = True     # 控制是否清理缓存标志
+        disk_flag = True    # 控制磁盘空间使用率过高时是否邮件通知标志
 
         line = [{'measurement': self.IP,
                  'tags': {'type': 'system'},
@@ -294,6 +298,7 @@ class PerMon(object):
                 try:
                     res = requests.post(url=url, json=post_data, headers=header)
                     logger.info(f"客户端注册结果：{res.content.decode('unicode_escape')}")
+                    start_time = time.time()
                     if time.strftime('%H:%M') == self.timeSetting:  # 每天定时清理一次过期的端口
                         logger.debug('正常清理停止监控的端口')
                         self.clear_port()
@@ -305,6 +310,16 @@ class PerMon(object):
                 if disk_usage:
                     post_data['disk_usage'] = disk_usage    # 磁盘使用率，不带%号
                     disk_start_time = time.time()
+
+                    if self.maxDiskUsage < disk_usage:
+                        msg = f"{self.IP} 当前系统磁盘空间使用率为{disk_usage/100:.2f}%，请注意磁盘空间"
+                        logger.warning(msg)
+                        if self.isDiskAlert and disk_flag:
+                            disk_flag = False  # 标志符置为False，防止连续不断的发送邮件
+                            thread = threading.Thread(target=notification, args=(msg,))  # 开启线程发送邮件通知
+                            thread.start()
+                    else:
+                        disk_flag = True
 
             if self.is_system:     # 开始监控
                 try:
@@ -695,7 +710,7 @@ class PerMon(object):
             if '/dev/' in res[0]:
                 size = float(res[2])
                 used_disk_size += size
-        logger.info(f'当前磁盘已使用{used_disk_size}G')
+        logger.info(f'当前磁盘已使用{used_disk_size}M')
         return used_disk_size / self.total_disk
 
     @handle_exception(is_return=True)
@@ -780,6 +795,7 @@ class PerMon(object):
 
             self.FGC = {}   # 清理GC次数
             self.FGC_time = {}  # 清理GC时间
+            self.is_java = {}
             time.sleep(self.port_interval + 1)  # 等待所有端口监控停止
             self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}
 

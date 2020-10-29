@@ -102,13 +102,13 @@
                 (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
                 (2)进入server文件夹，开始打包：
             </p>
-            <pre><code>pyinstaller server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request</code></pre>
+            <pre><code>pyinstaller -F server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request</code></pre>
             <p>
                 <code>打包过程可能提示缺少一些模块，请按照提示安装对应的模块</code><br>
-                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist/server</code>即可找到可执行文件<code>server</code>;<br>
-                (4)将配置文件<code>config.ini</code>拷贝到<code>dist/server</code>文件夹下，并修改配置文件；<br>
-                (5)将模板文件<code>templates</code>和静态文件<code>static</code>拷贝到<code>dist/server</code>文件夹下；<br>
-                (6)将<code>dist/server</code>整个文件夹拷贝到其他环境，启动server
+                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist</code>即可找到可执行文件<code>server</code>;<br>
+                (4)将配置文件<code>config.ini</code>拷贝到<code>dist</code>文件夹下，并修改配置文件；<br>
+                (5)将模板文件<code>templates</code>和静态文件<code>static</code>拷贝到<code>dist</code>文件夹下；<br>
+                (6)将<code>dist</code>整个文件夹拷贝到其他环境，启动server
             </p>
             <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
         </li>
@@ -117,11 +117,11 @@
                 (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
                 (2)进入agent文件夹，开始打包：
             </p>
-            <pre><code>pyinstaller server.py -p performance_monitor.py -p logger.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import config</code></pre>
+            <pre><code>pyinstaller -F server.py -p performance_monitor.py -p logger.py -p common.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import common --hidden-import config</code></pre>
             <p>
-                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist/server</code>即可找到可执行文件<code>server</code>;<br>
-                (4)将配置文件<code>config.ini</code>拷贝到<code>dist/server</code>文件夹下，并修改配置文件；<br>
-                (5)将<code>dist/server</code>整个文件夹拷贝到其他环境，启动server
+                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist</code>即可找到可执行文件<code>server</code>;<br>
+                (4)将配置文件<code>config.ini</code>拷贝到<code>dist</code>文件夹下，并修改配置文件；<br>
+                (5)将<code>dist</code>整个文件夹拷贝到其他环境，启动server
             </p>
             <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
         </li>
