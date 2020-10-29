@@ -327,7 +327,7 @@ class PerMon(object):
 
                     if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
                         for k, v in res['disk'].items():
-                            line[0]['fields'][k] = min(v, 100)     # 写磁盘IO数据到数据库
+                            line[0]['fields'][k] = min(v, 100.0)     # 写磁盘IO数据到数据库
 
                         for k, v in res['disk_r'].items():
                             line[0]['fields'][k] = v
