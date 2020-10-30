@@ -70,8 +70,7 @@
             $.ajax({
                 type: 'post',
                 url: 'runMonitor',
-                contentType: "application/json; charset=utf-8",
-                data: JSON.stringify(startMonitor),
+                data: startMonitor,
                 dataType: "json",
                 success: function (data) {
                     if (data['code'] === 0) {

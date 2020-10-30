@@ -23,7 +23,7 @@ class PerMon(object):
         self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.is_system = cfg.getMonitor('isMonSystem')             # 是否监控服务器的资源
-        self.error_times = cfg.getMonitor('errorTimes')   # 执行命令失败次数
+        self.error_duration = cfg.getMonitor('errorDuration')   # 执行命令失败次数
         self.sleepTime = cfg.getMonitor('sleepTime')
         self.maxCPU = cfg.getMonitor('maxCPU')
         self.CPUDuration = cfg.getMonitor('CPUDuration')
@@ -159,7 +159,6 @@ class PerMon(object):
         self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')      # 更新开始监控时间
 
         jvm = 0.0    # java服务的JVM内存数据初始化，主要用于非java服务的端口
-        run_error = 0      # 初始化执行监控命令失败的次数
         run_error_time = time.time()    # 初始化执行监控命令失败的时间
         port = self._msg['port'][index]
         pid = self._msg['pid'][index]
@@ -184,31 +183,19 @@ class PerMon(object):
 
                     if cpu is None:     # 如果CPU使用率未获取到，说明监控命令执行异常
                         logger.warning(f'获取cpu数据异常，异常pid为{pid}')
-                        if port:    # 如果端口号存在
-                            pid = port_to_pid(port)  # 根据端口号查询进程号
-                            if pid:     # 如果进程号存在，则更新进程号
-                                self._msg['pid'][index] = pid
-                                self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                        pid = port_to_pid(port)  # 根据端口号查询进程号
+                        if pid:     # 如果进程号存在，则更新进程号
+                            self._msg['pid'][index] = pid
+                            self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
 
-                            # 如果连续30分钟执行监控命令都失败，则停止监控
-                            if time.time() - run_error_time > 1800:
-                                self._msg['isRun'][index] = 0
-                                logger.error(f'{port}端口连续1800s执行监控命令都失败，已停止监控')
-                                break
+                        # 如果连续执行监控命令都失败，则停止监控
+                        if time.time() - run_error_time > self.error_duration:
+                            self._msg['isRun'][index] = 0
+                            logger.error(f'{port}端口连续{self.error_duration}s执行监控命令都失败，已停止监控')
+                            break
 
-                            time.sleep(self.sleepTime)
-                            continue
-                        else:   # 如果没有端口号，说明监控的直接是进程号
-                            # 如果连续执行监控命令失败的次数大于设置值，则停止监控
-                            if run_error > self.error_times:
-                                self._msg['isRun'][index] = 0
-                                logger.error(f'{pid}进程连续{run_error}次执行监控命令失败，已停止监控')
-                                break
-
-                            run_error += 1  # 执行命令失败次数加1
-                            logger.error(f'当前{pid}进程执行监控命令失败次数为{run_error}.')
-                            time.sleep(self.sleepTime)
-                            continue
+                        time.sleep(self.sleepTime)
+                        continue
 
                     line[0]['fields']['cpu'] = cpu
                     line[0]['fields']['mem'] = mem
@@ -225,7 +212,6 @@ class PerMon(object):
                     self.client.write_points(line)    # 写数据到数据库
                     logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
                     run_error_time = time.time()    # 如果监控命令执行成功，则重置
-                    run_error = 0      # 如果监控命令执行成功，则重置
 
                 except:
                     logger.error(traceback.format_exc())
@@ -796,7 +782,7 @@ class PerMon(object):
             self.FGC = {}   # 清理GC次数
             self.FGC_time = {}  # 清理GC时间
             self.is_java = {}
-            time.sleep(self.port_interval + 1)  # 等待所有端口监控停止
+            time.sleep(self.port_interval + 5)  # 等待所有端口监控停止
             self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}
 
             # 开始重新监控
