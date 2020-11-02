@@ -81,6 +81,7 @@
 
 {% block myjs %}
 <script type="text/javascript">
+    let global_port = [];
     $("#MonitorList").click(function () {
         plot();
     });
@@ -178,7 +179,6 @@
         })
     }
 
-    let global_port = [];
     function show_port_disk() {
         let host = document.getElementById('host').value;
         let types = document.getElementById('type');
@@ -218,6 +218,7 @@
         }
     }
 
+    window.onload = show_port_disk();
     window.onload = plot();
 </script>
 {% endblock %}

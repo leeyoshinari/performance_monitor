@@ -127,19 +127,19 @@ async def get_gc(request):
 
 		# 历史gc数据
 		fgc_history = permon.FGC[port]
-		fgc_time_history = permon.FGC_time[port][-2:]
+		fgc_time_history = permon.FGC_time[port]
 		if fgc > 0:
 			if fgc == fgc_history:
 				if len(fgc_time_history) > 1:
-					ffgc = round(time.time() - fgc_time_history[0], 2)
+					ffgc = round(time.time() - fgc_time_history[-2], 2)
 				else:
 					result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]  # 查询该进程运行时间
 					runtime = int(result.strip())
 					ffgc = round(runtime / fgc, 2)
 			else:
-				ffgc = round(time.time() - fgc_time_history[1], 2)
+				ffgc = round(time.time() - fgc_time_history[-1], 2)
 		else:
-			fgc = 'NaN'
+			fgc = -1
 
 	except Exception:
 		logger.error(traceback.format_exc())

@@ -409,7 +409,7 @@ class PerMon(object):
         logger.debug(f'查询进程{pid}的JVM结果为：{res}')
         mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # 计算jvm
 
-        # 已追加写的方式，将FGC次数和时间写到本地。当FGC频率过高时，发送邮件提醒
+        # 当FGC频率过高时，发送邮件提醒
         fgc = int(res[14])
         if self.FGC[str(port)] < fgc:  # 如果FGC次数增加
             self.FGC[str(port)] = fgc
@@ -755,13 +755,13 @@ class PerMon(object):
         try:
             result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]  # 执行命令
             res = result.strip().split(' ')
-            logger.debug(f'查询进程{pid}的JVM结果为：{res}')
+            logger.info(f'查询进程{pid}的JVM结果为：{res}')
             _ = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])  # 计算jvm
 
             self.is_java.update({str(port): 1})
 
         except Exception as err:
-            logger.info(err)
+            logger.warning(err)
             self.is_java.update({str(port): 0})
 
     @handle_exception(is_return=True)
@@ -864,6 +864,7 @@ def port_to_pid(port):
     pp = p[3].split(':')[-1]
     if str(port) == pp:
         pid = p[p.index('LISTEN') + 1].split('/')[0]
+        logger.info(f'端口 {port} 的进程号为 {pid}.')
 
     return pid
 

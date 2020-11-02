@@ -81,7 +81,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
             }
         },
 
-        color: ['red', 'red', 'red', 'blue', 'orange'],
+        color: ['red', 'red', 'orange', 'blue', 'red'],
         legend: [
             {
                 data: ['CPU使用率'],
@@ -96,7 +96,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 icon: 'line'
             },
             {
-                data: ['TCP', 'TIME_WAIT', 'CLOSE_WAIT'],
+                data: ['CLOSE_WAIT', 'TIME_WAIT', 'TCP'],
                 x: 'center',
                 y: 725,
                 icon: 'line'
@@ -270,9 +270,9 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
 
     if (is_jvm === 1){
         option['title'][1].text = '内存(G), 最大值: ' + findMax(mem).toFixed(2) + 'G; JVM(G), 最大值: ' + findMax(jvm).toFixed(2) + 'G, 时间: ' + duration;
+        option['color'] = ['red', 'red', 'blue', 'orange', 'blue', 'red'];
         option['legend'][1].data = ['内存', 'JVM内存'];
         option['series'][2].data = jvm;
-        option['color'] = ['red', 'red', 'blue', 'red', 'blue', 'orange'];
     }
 
     myChart.clear();
