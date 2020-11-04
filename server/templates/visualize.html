@@ -218,7 +218,6 @@
         }
     }
 
-    window.onload = show_port_disk();
-    window.onload = plot();
+    window.onload = function () {plot(); show_port_disk();}
 </script>
 {% endblock %}
