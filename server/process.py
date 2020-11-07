@@ -131,16 +131,20 @@ class Process(object):
 				post_data = {
 					'host': ip,
 				}
-				res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
-				if res.status_code == 200:
-					response = json.loads(res.content.decode())
-					logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
-					if response['code'] == 0:
-						# 拼接端口监控列表
-						monitor_list['host'] += response['data']['host']
-						monitor_list['port'] += response['data']['port']
-						monitor_list['pid'] += response['data']['pid']
-						monitor_list['isRun'] += response['data']['isRun']
-						monitor_list['startTime'] += response['data']['startTime']
+				try:
+					res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
+					if res.status_code == 200:
+						response = json.loads(res.content.decode())
+						logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
+						if response['code'] == 0:
+							# 拼接端口监控列表
+							monitor_list['host'] += response['data']['host']
+							monitor_list['port'] += response['data']['port']
+							monitor_list['pid'] += response['data']['pid']
+							monitor_list['isRun'] += response['data']['isRun']
+							monitor_list['startTime'] += response['data']['startTime']
+				except Exception as err:
+					logger.error(err)
+					continue
 
 		return monitor_list

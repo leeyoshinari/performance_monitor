@@ -48,8 +48,8 @@
             <p>部署InfluxDB数据库。CentOS安装过程如下：</p>
             <p>
                 （1）下载并安装<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.0.x86_64.rpm</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>yum localinstall influxdb-1.8.0.x86_64.rpm</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>yum localinstall influxdb-1.8.3.x86_64.rpm</code> <br>
                 （2）启动<br>
                     &ensp;&ensp;&ensp;&ensp;<code>systemctl enable influxdb</code> <br>
                     &ensp;&ensp;&ensp;&ensp;<code>systemctl start influxdb</code> <br>
@@ -59,7 +59,9 @@
                     &ensp;&ensp;&ensp;&ensp;重启 <br>
                 （4）创建数据库<br>
                     &ensp;&ensp;&ensp;&ensp;<code>create database test</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;Influxdb数据库权限默认关闭，如需设置用户名和密码，可修改配置文件中的第259行“auth-enabled = true”，然后创建用户并授权给指定用户<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>use test</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>create user root with password '123456'</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>grant all privileges on test to root</code> <br>
             </p>
         </li>
         <li>

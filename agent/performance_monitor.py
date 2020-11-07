@@ -42,9 +42,9 @@ class PerMon(object):
         port_interval = cfg.getMonitor('port_interval')  # 每次执行监控命令的时间间隔
         self.system_interval = max(system_interval, 1)   # 设置的值如果小于1，则默认为1
         self.port_interval = max(port_interval, 1)
-        self.system_interval = self.system_interval - 1.05      # 0.05为程序运行、写库时间
+        self.system_interval = self.system_interval - 1.1      # 程序运行、写库时间
         self.system_interval = max(self.system_interval, 0)
-        self.port_interval = self.port_interval - 0.01       # 0.01为程序运行、写库时间
+        self.port_interval = self.port_interval - 0.02       # 0.02为程序运行、写库时间
 
         self.system_version = ''   # 系统版本
         self.cpu_info = ''
@@ -370,6 +370,8 @@ class PerMon(object):
 
                 except:
                     logger.error(traceback.format_exc())
+
+                time.sleep(self.system_interval)
             else:
                 time.sleep(3)
 
