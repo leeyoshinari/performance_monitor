@@ -84,6 +84,7 @@ class PerMon(object):
     @start.setter
     def start(self, value):
         if value['port']:
+            self.is_java_server(value['port'])  # 判断端口是否是java服务
             if value['port'] in self._msg['port']:  # 如果端口已经监控过，则更新相关数据
                 index = self._msg['port'].index(value['port'])
                 self._msg['pid'][index] = value['pid']
@@ -113,7 +114,6 @@ class PerMon(object):
                 if self.monitor_task.qsize() > 0:   # 如果队列不为空，则监控状态置为2，排队中
                     self._msg['isRun'][-1] = 2
 
-            self.is_java_server(value['port'])  # 判断端口是否是java服务
         else:
             raise Exception('参数异常')
 

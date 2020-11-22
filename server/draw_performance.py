@@ -61,7 +61,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
             if datas:
                 post_data['types'] = 'port'
                 for data in datas.get_points():
-                    post_data['cpu_time'].append(data['time'].split('.')[0].replace('T', ' '))
+                    post_data['cpu_time'].append(data['time'][:19].replace('T', ' '))
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
                     post_data['tcp'].append(data['tcp'])
@@ -104,7 +104,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
             if datas:
                 post_data['types'] = 'system'
                 for data in datas.get_points():
-                    post_data['cpu_time'].append(data['time'].split('.')[0].replace('T', ' '))
+                    post_data['cpu_time'].append(data['time'][:19].replace('T', ' '))
                     post_data['cpu'].append(data['cpu'])
                     post_data['mem'].append(data['mem'])
                     post_data['rec'].append(data['rec'])
