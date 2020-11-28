@@ -25,16 +25,20 @@ http = Request()
 def get_ip():
 	"""
 	获取当前服务器IP地址
+	先读取配置文件中的 IP 地址，如果没有配置，则自动获取本机 IP 地址，避免 hostname -I 获取不到真实的 IP 地址
 	:return: IP
 	"""
-	result = os.popen("hostname -I |awk '{print $1}'").readlines()
-	logger.debug(result)
-	if result:
-		IP = result[0].strip()
-		logger.info(f'本机IP地址为：{IP}')
+	if cfg.getServer('host'):
+		IP = cfg.getServer('host')
 	else:
-		logger.warning('未获取到服务器IP地址')
-		IP = '127.0.0.1'
+		result = os.popen("hostname -I |awk '{print $1}'").readlines()
+		logger.debug(result)
+		if result:
+			IP = result[0].strip()
+			logger.info(f'本机IP地址为：{IP}')
+		else:
+			logger.warning('未获取到服务器IP地址')
+			IP = '127.0.0.1'
 
 	return IP
 
@@ -275,7 +279,6 @@ async def main():
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	# site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
 	site = web.TCPSite(runner, get_ip(), cfg.getServer('port'))
 	await site.start()
 

@@ -12,7 +12,7 @@ from logger import logger, cfg
 from performance_monitor import PerMon, port_to_pid
 
 permon = PerMon()
-HOST = get_ip()
+HOST = cfg.getServer('host') if cfg.getServer('host') else get_ip()
 
 async def index(request):
 	"""
@@ -158,7 +158,6 @@ async def main():
 
 	runner = web.AppRunner(app)
 	await runner.setup()
-	# site = web.TCPSite(runner, cfg.getServer('host'), cfg.getServer('port'))
 	site = web.TCPSite(runner, HOST, cfg.getServer('port'))
 	await site.start()
 

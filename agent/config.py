@@ -11,7 +11,7 @@ class Config(object):
 		self.cfg.read('config.ini', encoding='utf-8')
 
 	def getServer(self, key):
-		if key == 'threadPool':
+		if key == 'threadPool' or key == 'nicSpeed':
 			return self.cfg.getint('server', key, fallback=0)
 		else:
 			return self.cfg.get('server', key, fallback=None)

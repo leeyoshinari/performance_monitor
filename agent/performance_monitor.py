@@ -55,7 +55,7 @@ class PerMon(object):
         self.all_disk = []  # 磁盘号
         self.total_disk = 1  # 磁盘总大小，单位M
         self.total_disk_h = 0     # 磁盘总大小，以人可读的方式展示，单位T或G
-        self.network_speed = 1  # 服务器网卡带宽
+        self.network_speed = cfg.getServer('nicSpeed')  # 服务器网卡带宽
 
         self.get_system_version()
         self.get_cpu_cores()
@@ -606,21 +606,24 @@ class PerMon(object):
         self.total_mem_100 = self.total_mem / 100
         logger.info(f'当前系统总内存为{self.total_mem}G')
 
-    @handle_exception(is_return=True)
+    @handle_exception()
     def get_disks(self):
         """
         获取系统所有磁盘号
         :return:
         """
         result = os.popen(f'iostat -x -k |tr -s " "').readlines()
-        disk_res = [l.strip() for l in result if len(l) > 5]
-        for i in range(len(disk_res)):
-            if 'Device' in disk_res[i]:
-                for j in range(i + 1, len(disk_res)):
-                    disk_line = disk_res[j].strip().split(' ')
-                    self.all_disk.append(disk_line[0])
+        if result:
+            disk_res = [l.strip() for l in result if len(l) > 5]
+            for i in range(len(disk_res)):
+                if 'Device' in disk_res[i]:
+                    for j in range(i + 1, len(disk_res)):
+                        disk_line = disk_res[j].strip().split(' ')
+                        self.all_disk.append(disk_line[0])
 
-        logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
+            logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
+        else:
+            raise Exception('服务器不支持iostat命令，请安装。')
 
     @handle_exception(is_return=True)
     def get_system_nic(self):
