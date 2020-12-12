@@ -4,18 +4,18 @@
         <meta charset="UTF-8">
         <title>服务器资源监控</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link href="../static/favicon.ico" rel="shortcut icon" type="image/x-icon">
+        <link href="../{{ server_context }}/static/favicon.ico" rel="shortcut icon" type="image/x-icon">
 
-        <link href="../static/css/bootstrap.css" rel="stylesheet">
-        <link href="../static/css/toast.style.css" rel="stylesheet">
+        <link href="../{{ server_context }}/static/css/bootstrap.css" rel="stylesheet">
+        <link href="../{{ server_context }}/static/css/toast.style.css" rel="stylesheet">
 
         {% block scripts %}
-        <script src="../static/js/echarts.js"></script>
-        <script src="../static/js/jquery.js"></script>
-        <script src="../static/js/bootstrap.js"></script>
-        <script src="../static/js/toast.script.js"></script>
-        <script src="../static/js/plot_port.js"></script>
-        <script src="../static/js/plot_system.js"></script>
+        <script src="../{{ server_context }}/static/js/echarts.js"></script>
+        <script src="../{{ server_context }}/static/js/jquery.js"></script>
+        <script src="../{{ server_context }}/static/js/bootstrap.js"></script>
+        <script src="../{{ server_context }}/static/js/toast.script.js"></script>
+        <script src="../{{ server_context }}/static/js/plot_port.js"></script>
+        <script src="../{{ server_context }}/static/js/plot_system.js"></script>
         {% endblock %}
     </head>
 
@@ -25,22 +25,22 @@
                 <div class="navbar navbar-inverse" role="navigation">
                     <div class="container">
                         <div class="navbar-header">
-                            <a class="navbar-brand" href="/">
+                            <a class="navbar-brand" href="/{{ server_context }}">
                                 主页
                             </a>
                         </div>
                         <div class="navbar-left">
-                            <a class="navbar-brand" href="/startMonitor">
+                            <a class="navbar-brand" href="/{{ server_context }}/startMonitor">
                                 开始监控
                             </a>
                         </div>
                         <div class="navbar-left">
-                            <a class="navbar-brand" href="/Visualize">
+                            <a class="navbar-brand" href="/{{ server_context }}/Visualize">
                                 结果可视化
                             </a>
                         </div>
                         <div class="navbar-left">
-                            <a class="navbar-brand" href="/course">
+                            <a class="navbar-brand" href="/{{ server_context }}/course">
                                 教程
                             </a>
                         </div>

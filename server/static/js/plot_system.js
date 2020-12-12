@@ -1,4 +1,4 @@
-function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, disk_w, net, rec, trans, tcp, retrans) {
+function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_available, IO, disk_r, disk_w, disk_d, net, rec, trans, tcp, retrans) {
     // 以下是使用快速排序算法排序
     /*let cpu_sorted = quickSort(cpu);
     let IO_sorted = quickSort(IO);
@@ -10,17 +10,21 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
 
     // 以下是使用默认的排序方法，冒泡排序
     let cpu_sorted = [...cpu];
+    let iowait_sorted = [...iowait];
     let IO_sorted = [...IO];
     let disk_r_sorted = [...disk_r];
     let disk_w_sorted = [...disk_w];
+    //let disk_d_sorted = [...disk_d];
     let net_sorted = [...net];
     let rec_sorted = [...rec];
     let trans_sorted = [...trans];
 
     cpu_sorted.sort(function (a, b) {return a - b});
+    iowait_sorted.sort(function (a, b) {return a - b});
     IO_sorted.sort(function (a, b) {return a - b});
     disk_r_sorted.sort(function (a, b) {return a - b});
     disk_w_sorted.sort(function (a, b) {return a - b});
+    //disk_d_sorted.sort(function (a, b) {return a - b});
     net_sorted.sort(function (a, b) {return a - b});
     rec_sorted.sort(function (a, b) {return a - b});
     trans_sorted.sort(function (a, b) {return a - b});
@@ -42,7 +46,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
     option = {
         title: [
             {
-                text: 'CPU(%), 最大值: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 时间: ' + duration,
+                text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line CPU: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 90%Line IOWait: ' + iowait_sorted[parseInt(0.9 * iowait_sorted.length)].toFixed(2) + '%, Duration: ' + duration,
                 x: 'center',
                 y: 5,
                 textStyle: {
@@ -50,7 +54,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 }
             },
             {
-                text: '剩余内存(G), 最小值: ' + findMin(mem).toFixed(2) + 'G, 时间: ' + duration,
+                text: 'Memory(G), Min Available: ' + findMin(mem_available).toFixed(2) + 'G, Min Free: ' + findMin(mem).toFixed(2) + 'G, Duration: ' + duration,
                 x: 'center',
                 y: 350,
                 textStyle: {
@@ -58,7 +62,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 }
             },
             {
-                text: 'IO, IO最大值: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, 读磁盘最大值: ' + disk_r_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 写磁盘最大值: ' + disk_w_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 时间: ' + duration,
+                text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + disk_r_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + disk_w_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration,
                 x: 'center',
                 y: 700,
                 textStyle: {
@@ -66,7 +70,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 }
             },
             {
-                text: '带宽, 带宽最大值: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, 接收速率最大值: ' + rec_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 发送速率最大值: ' + trans_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 时间: ' + duration,
+                text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Max Rec: ' + rec_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Trans: ' + trans_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration,
                 x: 'center',
                 y: 1050,
                 textStyle: {
@@ -74,7 +78,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 }
             },
             {
-                text: 'TCP, TCP连接数最大值: ' + findMax(tcp) + ', TCP重传率最大值: '+ findMax(retrans).toFixed(2) + '%, 时间: ' + duration,
+                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans).toFixed(2) + '%, Duration: ' + duration,
                 x: 'center',
                 y: 1400,
                 textStyle: {
@@ -123,16 +127,16 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
             }
         },
 
-        color: ['red', 'red', 'blue', 'orange', 'red', 'orange', 'red', 'red', 'blue'],
+        color: ['red', 'blue', 'red', 'blue', 'blue', 'orange', 'red', 'orange', 'red', 'red', 'blue'],
         legend: [
             {
-                data: ['CPU使用率'],
+                data: ['CPU', 'IOWait'],
                 x: 'center',
                 y: 25,
                 icon: 'line'
             },
             {
-                data: ['内存'],
+                data: ['Available', 'Free'],
                 x: 'center',
                 y: 375,
                 icon: 'line'
@@ -150,7 +154,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 icon: 'line'
             },
             {
-                data: ['TCP连接数', 'TCP重传率'],
+                data: ['TCP', 'TCP Retrans'],
                 x: 'center',
                 y: 1425,
                 icon: 'line'
@@ -255,14 +259,14 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
             {gridIndex: 0},
             {
                 gridIndex: 1,
-                name: '内存(G)',
+                name: 'Memory(G)',
                 type: 'value',
-                max: (findMax(mem) + 1).toFixed(2)
+                max: Math.max(findMax(mem) + 1, findMax(mem_available) + 1).toFixed(2)
             },
             {gridIndex: 1},
             {
                 gridIndex: 2,
-                name: '读写速度(Mb/s)',
+                name: 'Speed(Mb/s)',
                 type: 'value',
                 max: Math.max(disk_r_sorted.slice(-1)[0], disk_w_sorted.slice(-1)[0]).toFixed(2)
             },
@@ -274,7 +278,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
             },
             {
                 gridIndex: 3,
-                name: '网速(Mb/s)',
+                name: 'Speed(Mb/s)',
                 type: 'value',
                 max: Math.max(rec_sorted.slice(-1)[0], trans_sorted.slice(-1)[0]).toFixed(2)
             },
@@ -292,14 +296,14 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
             },
             {
                 gridIndex: 4,
-                name: 'TCP重传率(%)',
+                name: 'TCP Retrans(%)',
                 type: 'value',
                 max: (findMax(retrans) * 1.2).toFixed(2)
             }
         ],
         series: [
             {
-                name: 'CPU使用率',
+                name: 'CPU',
                 type: 'line',
                 xAxisIndex: 0,
                 yAxisIndex: 0,
@@ -310,9 +314,21 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 },
                 data: cpu
             },
+            {
+                name: 'IOWait',
+                type: 'line',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'blue'
+                },
+                data: iowait
+            },
 
             {
-                name: '内存',
+                name: 'Available',
                 type: 'line',
                 xAxisIndex: 1,
                 yAxisIndex: 2,
@@ -320,6 +336,18 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 lineStyle: {
                     width: 1,
                     color: 'red'
+                },
+                data: mem_available
+            },
+            {
+                name: 'Free',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 2,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'blue'
                 },
                 data: mem
             },
@@ -396,7 +424,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 data: net
             },
             {
-                name: 'TCP连接数',
+                name: 'TCP',
                 type: 'line',
                 xAxisIndex: 4,
                 yAxisIndex: 8,
@@ -408,7 +436,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
                 data: tcp
             },
             {
-                name: 'TCP重传率',
+                name: 'TCP Retrans',
                 type: 'line',
                 xAxisIndex: 4,
                 yAxisIndex: 9,
@@ -458,11 +486,13 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
         let start_index = myChart.getOption().dataZoom[0].startValue;
         let end_index = myChart.getOption().dataZoom[0].endValue;
         let mem_zoom = mem.slice(start_index, end_index);
+        let mem_a_zoom = mem_available.slice(start_index, end_index);
         let tcp_zoom = tcp.slice(start_index, end_index);
         let retrans_zoom = retrans.slice(start_index, end_index);
 
         // 以下是使用默认的排序方法，冒泡排序
         let cpu_sorted = cpu.slice(start_index, end_index);
+        let iowait_sorted = iowait.slice(start_index, end_index);
         let IO_sorted = IO.slice(start_index, end_index);
         let disk_r_sorted = disk_r.slice(start_index, end_index);
         let disk_w_sorted = disk_w.slice(start_index, end_index);
@@ -470,6 +500,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
         let trans_sorted = trans.slice(start_index, end_index);
         let net_sorted = net.slice(start_index, end_index);
         cpu_sorted.sort(function (a, b) {return a - b});
+        iowait_sorted.sort(function (a, b) {return a - b});
         IO_sorted.sort(function (a, b) {return a - b});
         disk_r_sorted.sort(function (a, b) {return a - b});
         disk_w_sorted.sort(function (a, b) {return a - b});
@@ -501,11 +532,11 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, mem, IO, disk_r, d
         }
         myChart.setOption({
             title: [
-                {text: 'CPU(%), 最大值: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 时间: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
-                {text: '内存(G), 最大值: ' + findMax(mem_zoom).toFixed(2) + 'G, 时间: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                {text: 'IO, IO最大值: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, 读磁盘最大值: ' + disk_r_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 写磁盘最大值: ' + disk_w_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 时间: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
-                {text: '带宽, 带宽最大值: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, 接收速率最大值: ' + rec_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 发送速率最大值: ' + trans_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, 时间: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
-                {text: 'TCP, TCP连接数最大值: ' + findMax(tcp_zoom) + ', TCP重传率最大值: '+ findMax(retrans_zoom).toFixed(2) + '%, 时间: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}}]});
+                {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line CPU: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 90%Line IOWait: ' + iowait_sorted[parseInt(0.9 * iowait_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
+                {text: 'Memory(G), Min Available:: ' + findMin(mem_a_zoom).toFixed(2) + 'G, Min Free:: ' + findMin(mem_zoom).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
+                {text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + disk_r_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + disk_w_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                {text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Max Rec: ' + rec_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Trans: ' + trans_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
+                {text: 'TCP, Max TCP: ' + findMax(tcp_zoom) + ', TCP Retrans: '+ findMax(retrans_zoom).toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}}]});
 
         tables1.rows[1].cells[1].innerHTML = cpu_sorted[parseInt(0.75 * cpu_sorted.length)].toFixed(2);
         tables1.rows[2].cells[1].innerHTML = cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2);

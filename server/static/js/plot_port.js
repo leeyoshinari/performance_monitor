@@ -1,14 +1,17 @@
-function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_wait, close_wait, is_jvm, IO, net) {
+function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, tcp, time_wait, close_wait, is_jvm, iodelay, rkbs, wkbs, net) {
     // 以下是使用快速排序算法排序
     /*let cpu_sorted = quickSort(cpu);
     let IO_sorted = quickSort(IO);
 	let net_sorted = quickSort(net);*/
 	// 以下是使用默认的排序方法，冒泡排序
 	let cpu_sorted = [...cpu];
-    let IO_sorted = [...IO];
+	//let wait_cpu_sorted = [...wait_cpu];
+    let iodelay_sorted = [...iodelay];
+    let rkbs_sorted = [...rkbs];
+    let wkbs_sorted = [...wkbs];
     let net_sorted = [...net];
     cpu_sorted.sort(function (a, b) {return a - b});
-    IO_sorted.sort(function (a, b) {return a - b});
+    iodelay_sorted.sort(function (a, b) {return a - b});
     net_sorted.sort(function (a, b) {return a - b});
 	// 以上是冒泡排序方法
 
@@ -28,7 +31,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
     option = {
         title: [
             {
-                text: 'CPU(%), 最大值: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 时间: ' + duration,
+                text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, Duration: ' + duration,
                 x: 'center',
                 y: 5,
                 textStyle: {
@@ -36,7 +39,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 },
             },
             {
-                text: '内存(G), 最大值: ' + findMax(mem).toFixed(2) + 'G, 时间: ' + duration,
+                text: 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G, Duration: ' + duration,
                 x: 'center',
                 y: 350,
                 textStyle: {
@@ -44,9 +47,17 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 },
             },
             {
-                text: 'TCP, TCP最大值: ' + findMax(tcp).toFixed(2) + ', 时间: ' + duration,
+                text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration,
                 x: 'center',
                 y: 700,
+                textStyle: {
+                    fontSize: 13
+                }
+            },
+            {
+                text: 'TCP, TCP: ' + findMax(tcp).toFixed(2) + ', Duration: ' + duration,
+                x: 'center',
+                y: 1050,
                 textStyle: {
                     fontSize: 13,
                 },
@@ -71,6 +82,12 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 right: '5%',
                 top: 750,
                 height: 250
+            },
+            {
+                left: '5%',
+                right: '5%',
+                top: 1100,
+                height: 250
             }
         ],
 
@@ -81,37 +98,43 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
             }
         },
 
-        color: ['red', 'red', 'blue', 'orange', 'blue', 'red'],
+        color: ['red', 'blue', 'red', 'blue', 'orange', 'blue', 'red', 'orange', 'blue', 'red'],
         legend: [
             {
-                data: ['CPU使用率'],
+                data: ['CPU', 'Wait_CPU'],
                 x: 'center',
                 y: 25,
                 icon: 'line'
             },
             {
-                data: ['内存'],
+                data: ['Memory'],
                 x: 'center',
                 y: 375,
                 icon: 'line'
             },
             {
-                data: ['CLOSE_WAIT', 'TIME_WAIT', 'TCP'],
+                data: ['rMb/s', 'wMb/s', 'IO_Delay'],
                 x: 'center',
                 y: 725,
+                icon: 'line'
+            },
+            {
+                data: ['CLOSE_WAIT', 'TIME_WAIT', 'TCP'],
+                x: 'center',
+                y: 1075,
                 icon: 'line'
             }
         ],
 
         dataZoom: [
             {
-                xAxisIndex: [0, 1, 2],
+                xAxisIndex: [0, 1, 2, 3],
                 type: 'inside',
                 startValue: 0,
                 endValue: cpu.length
             },
             {
-                xAxisIndex: [0, 1, 2],
+                xAxisIndex: [0, 1, 2, 3],
                 type: 'slider',
                 startValue: 0,
                 endValue: cpu.length
@@ -160,6 +183,20 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                     interval: 'auto',
                     showMaxLabel: true
                 }
+            },
+            {
+                gridIndex: 3,
+                type: 'category',
+                boundaryGap: false,
+                data: x_label,
+                axisTick: {
+                    alignWithLabel: true,
+                    interval: 'auto'
+                },
+                axisLabel: {
+                    interval: 'auto',
+                    showMaxLabel: true
+                }
             }
         ],
 
@@ -173,19 +210,31 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
             {gridIndex: 0},
             {
                 gridIndex: 1,
-                name: '内存(G)',
+                name: 'Memory(G)',
                 type: 'value',
                 max: (findMax(mem) + 1).toFixed(2)
             },
             {gridIndex: 1},
             {
                 gridIndex: 2,
+                name: 'Speed(Mb/s)',
+                type: 'value',
+                max: Math.max(rkbs_sorted.slice(-1)[0], wkbs_sorted.slice(-1)[0]).toFixed(2)
+            },
+            {
+                gridIndex: 2,
+                name: 'IO_Delay(%)',
+                type: 'value',
+                max: iodelay_sorted.slice(-1)[0].toFixed(2)
+            },
+            {
+                gridIndex: 3,
                 name: 'TCP',
                 type: 'value',
                 max: Math.max(findMax(time_wait), findMax(close_wait)).toFixed(2)
             },
             {
-                gridIndex: 2,
+                gridIndex: 3,
                 name: 'TCP',
                 type: 'value',
                 max: findMax(tcp).toFixed(2),
@@ -193,7 +242,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
         ],
         series: [
             {
-                name: 'CPU使用率',
+                name: 'CPU',
                 type: 'line',
                 xAxisIndex: 0,
                 yAxisIndex: 0,
@@ -204,9 +253,20 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 },
                 data: cpu
             },
-
             {
-                name: '内存',
+                name: 'Wait_CPU',
+                type: 'line',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'blue'
+                },
+                data: wait_cpu
+            },
+            {
+                name: 'Memory',
                 type: 'line',
                 xAxisIndex: 1,
                 yAxisIndex: 2,
@@ -218,7 +278,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 data: mem
             },
             {
-                name: 'JVM内存',
+                name: 'JVM',
                 type: 'line',
                 xAxisIndex: 1,
                 yAxisIndex: 2,
@@ -230,10 +290,46 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
                 data: []
             },
             {
-                name: 'CLOSE_WAIT',
+                name: 'rMb/s',
                 type: 'line',
                 xAxisIndex: 2,
                 yAxisIndex: 4,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'orange'
+                },
+                data: rkbs
+            },
+            {
+                name: 'wMb/s',
+                type: 'line',
+                xAxisIndex: 2,
+                yAxisIndex: 4,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'blue'
+                },
+                data: wkbs
+            },
+            {
+                name: 'IO_Delay',
+                type: 'line',
+                xAxisIndex: 2,
+                yAxisIndex: 5,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'red'
+                },
+                data: iodelay
+            },
+            {
+                name: 'CLOSE_WAIT',
+                type: 'line',
+                xAxisIndex: 3,
+                yAxisIndex: 6,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -244,8 +340,8 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
             {
                 name: 'TIME_WAIT',
                 type: 'line',
-                xAxisIndex: 2,
-                yAxisIndex: 4,
+                xAxisIndex: 3,
+                yAxisIndex: 6,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -256,8 +352,8 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
             {
                 name: 'TCP',
                 type: 'line',
-                xAxisIndex: 2,
-                yAxisIndex: 5,
+                xAxisIndex: 3,
+                yAxisIndex: 7,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -269,8 +365,8 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
     };
 
     if (is_jvm === 1){
-        option['title'][1].text = '内存(G), 最大值: ' + findMax(mem).toFixed(2) + 'G; JVM(G), 最大值: ' + findMax(jvm).toFixed(2) + 'G, 时间: ' + duration;
-        option['legend'][1].data = ['内存', 'JVM内存'];
+        option['title'][1].text = 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G; JVM(G), Max: ' + findMax(jvm).toFixed(2) + 'G, Duration: ' + duration;
+        option['legend'][1].data = ['Memory', 'JVM'];
         option['series'][2].data = jvm;
     }
 
@@ -281,10 +377,18 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
     tables1.rows[2].cells[1].innerHTML = cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2);
     tables1.rows[3].cells[1].innerHTML = cpu_sorted[parseInt(0.95 * cpu_sorted.length)].toFixed(2);
     tables1.rows[4].cells[1].innerHTML = cpu_sorted[parseInt(0.99 * cpu_sorted.length)].toFixed(2);
-    tables1.rows[1].cells[4].innerHTML = IO_sorted[parseInt(0.75 * IO_sorted.length)].toFixed(2);
-    tables1.rows[2].cells[4].innerHTML = IO_sorted[parseInt(0.9 * IO_sorted.length)].toFixed(2);
-    tables1.rows[3].cells[4].innerHTML = IO_sorted[parseInt(0.95 * IO_sorted.length)].toFixed(2);
-    tables1.rows[4].cells[4].innerHTML = IO_sorted[parseInt(0.99 * IO_sorted.length)].toFixed(2);
+    tables1.rows[1].cells[2].innerHTML = rkbs_sorted[parseInt(0.75 * rkbs_sorted.length)].toFixed(2);
+    tables1.rows[2].cells[2].innerHTML = rkbs_sorted[parseInt(0.9 * rkbs_sorted.length)].toFixed(2);
+    tables1.rows[3].cells[2].innerHTML = rkbs_sorted[parseInt(0.95 * rkbs_sorted.length)].toFixed(2);
+    tables1.rows[4].cells[2].innerHTML = rkbs_sorted[parseInt(0.99 * rkbs_sorted.length)].toFixed(2);
+    tables1.rows[1].cells[3].innerHTML = wkbs_sorted[parseInt(0.75 * wkbs_sorted.length)].toFixed(2);
+    tables1.rows[2].cells[3].innerHTML = wkbs_sorted[parseInt(0.9 * wkbs_sorted.length)].toFixed(2);
+    tables1.rows[3].cells[3].innerHTML = wkbs_sorted[parseInt(0.95 * wkbs_sorted.length)].toFixed(2);
+    tables1.rows[4].cells[3].innerHTML = wkbs_sorted[parseInt(0.99 * wkbs_sorted.length)].toFixed(2);
+    tables1.rows[1].cells[4].innerHTML = iodelay_sorted[parseInt(0.75 * iodelay_sorted.length)].toFixed(2);
+    tables1.rows[2].cells[4].innerHTML = iodelay_sorted[parseInt(0.9 * iodelay_sorted.length)].toFixed(2);
+    tables1.rows[3].cells[4].innerHTML = iodelay_sorted[parseInt(0.95 * iodelay_sorted.length)].toFixed(2);
+    tables1.rows[4].cells[4].innerHTML = iodelay_sorted[parseInt(0.99 * iodelay_sorted.length)].toFixed(2);
     tables1.rows[1].cells[7].innerHTML = net_sorted[parseInt(0.75 * net_sorted.length)].toFixed(2);
     tables1.rows[2].cells[7].innerHTML = net_sorted[parseInt(0.9 * net_sorted.length)].toFixed(2);
     tables1.rows[3].cells[7].innerHTML = net_sorted[parseInt(0.95 * net_sorted.length)].toFixed(2);
@@ -295,10 +399,14 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
         
 		// 以下是使用默认的排序方法，冒泡排序
         let cpu_sorted = cpu.slice(start_index, end_index);
-        let IO_sorted = IO.slice(start_index, end_index);
+        let iodelay_sorted = iodelay.slice(start_index, end_index);
+        let rkbs_sorted = rkbs_sorted.slice(start_index, end_index);
+        let wkbs_sorted = wkbs_sorted.slice(start_index, end_index);
         let net_sorted = net.slice(start_index, end_index);
         cpu_sorted.sort();
-        IO_sorted.sort();
+        iodelay_sorted.sort();
+        rkbs_sorted.sort();
+        wkbs_sorted.sort();
         net_sorted.sort();
 		// 以上是冒泡排序方法
 		
@@ -323,26 +431,36 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, mem, jvm, tcp, time_
         if (is_jvm === 1){
             myChart.setOption({
             title: [
-                {text: 'CPU(%), 最大值: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 时间: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
-                {text: '内存(G), 最大值: ' + findMax(mem).toFixed(2) + 'G; JVM(G), 最大值: ' + findMax(jvm).toFixed(2) + 'G, 时间: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                {text: 'TCP, TCP最大值: ' + findMax(tcp).toFixed(2) + ', 时间: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}}
+                {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
+                {text: 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G; JVM(G), Max: ' + findMax(jvm).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
+                {text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                {text: 'TCP, TCP: ' + findMax(tcp).toFixed(2) + ', Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}}
             ]});
         } else {
             myChart.setOption({
                 title: [
-                    {text: 'CPU(%), 最大值: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 时间: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
-                    {text: '内存(G), 最大值: ' + findMax(mem).toFixed(2) + 'G, 时间: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                    {text: 'TCP, TCP最大值: ' + findMax(tcp).toFixed(2) + ', 时间: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}}
+                    {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
+                    {text: 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
+                    {text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                    {text: 'TCP, TCP: ' + findMax(tcp).toFixed(2) + ', Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}}
                 ]});}
 
         tables1.rows[1].cells[1].innerHTML = cpu_sorted[parseInt(0.75 * cpu_sorted.length)].toFixed(2);
         tables1.rows[2].cells[1].innerHTML = cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2);
         tables1.rows[3].cells[1].innerHTML = cpu_sorted[parseInt(0.95 * cpu_sorted.length)].toFixed(2);
         tables1.rows[4].cells[1].innerHTML = cpu_sorted[parseInt(0.99 * cpu_sorted.length)].toFixed(2);
-        tables1.rows[1].cells[4].innerHTML = IO_sorted[parseInt(0.75 * IO_sorted.length)].toFixed(2);
-        tables1.rows[2].cells[4].innerHTML = IO_sorted[parseInt(0.9 * IO_sorted.length)].toFixed(2);
-        tables1.rows[3].cells[4].innerHTML = IO_sorted[parseInt(0.95 * IO_sorted.length)].toFixed(2);
-        tables1.rows[4].cells[4].innerHTML = IO_sorted[parseInt(0.99 * IO_sorted.length)].toFixed(2);
+        tables1.rows[1].cells[2].innerHTML = rkbs_sorted[parseInt(0.75 * rkbs_sorted.length)].toFixed(2);
+        tables1.rows[2].cells[2].innerHTML = rkbs_sorted[parseInt(0.9 * rkbs_sorted.length)].toFixed(2);
+        tables1.rows[3].cells[2].innerHTML = rkbs_sorted[parseInt(0.95 * rkbs_sorted.length)].toFixed(2);
+        tables1.rows[4].cells[2].innerHTML = rkbs_sorted[parseInt(0.99 * rkbs_sorted.length)].toFixed(2);
+        tables1.rows[1].cells[3].innerHTML = wkbs_sorted[parseInt(0.75 * wkbs_sorted.length)].toFixed(2);
+        tables1.rows[2].cells[3].innerHTML = wkbs_sorted[parseInt(0.9 * wkbs_sorted.length)].toFixed(2);
+        tables1.rows[3].cells[3].innerHTML = wkbs_sorted[parseInt(0.95 * wkbs_sorted.length)].toFixed(2);
+        tables1.rows[4].cells[3].innerHTML = wkbs_sorted[parseInt(0.99 * wkbs_sorted.length)].toFixed(2);
+        tables1.rows[1].cells[4].innerHTML = iodelay_sorted[parseInt(0.75 * iodelay_sorted.length)].toFixed(2);
+        tables1.rows[2].cells[4].innerHTML = iodelay_sorted[parseInt(0.9 * iodelay_sorted.length)].toFixed(2);
+        tables1.rows[3].cells[4].innerHTML = iodelay_sorted[parseInt(0.95 * iodelay_sorted.length)].toFixed(2);
+        tables1.rows[4].cells[4].innerHTML = iodelay_sorted[parseInt(0.99 * iodelay_sorted.length)].toFixed(2);
         tables1.rows[1].cells[7].innerHTML = net_sorted[parseInt(0.75 * net_sorted.length)].toFixed(2);
         tables1.rows[2].cells[7].innerHTML = net_sorted[parseInt(0.9 * net_sorted.length)].toFixed(2);
         tables1.rows[3].cells[7].innerHTML = net_sorted[parseInt(0.95 * net_sorted.length)].toFixed(2);

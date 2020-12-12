@@ -11,7 +11,7 @@ class Config(object):
 		self.cfg.read('config.ini', encoding='utf-8')
 
 	def getServer(self, key):
-		return self.cfg.get('server', key, fallback=None)
+		return self.cfg.get('server', key, fallback='')
 
 	def getInflux(self, key):
 		if key == 'expiryTime':
@@ -31,6 +31,9 @@ class Config(object):
 			return [a.strip() for a in emails.split(',')]
 		else:
 			return self.cfg.get('email', key, fallback=None)
+
+	def getMonitor(self, key):
+		return self.cfg.getint('monitor', key, fallback=80)
 
 	def __del__(self):
 		pass

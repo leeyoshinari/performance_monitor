@@ -19,6 +19,7 @@ from logger import logger, cfg
 
 class PerMon(object):
     def __init__(self):
+        self.check_sysstat_version()
         self.IP = get_ip()
         self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # 端口号、进程号、监控状态、开始监控时间
@@ -44,7 +45,8 @@ class PerMon(object):
         self.port_interval = max(port_interval, 1)
         self.system_interval = self.system_interval - 1.1      # 程序运行、写库时间
         self.system_interval = max(self.system_interval, 0)
-        self.port_interval = self.port_interval - 0.02       # 0.02为程序运行、写库时间
+        self.port_interval = self.port_interval - 1.02       # 程序运行、写库时间
+        self.port_interval = max(self.port_interval, 0)
 
         self.system_version = ''   # 系统版本
         self.cpu_info = ''
@@ -152,7 +154,7 @@ class PerMon(object):
 
     def write_cpu_mem(self, index):
         """
-        监控端口的CPU使用率、占用内存大小和jvm变化（Java应用）
+        监控端口的CPU使用率、占用内存大小和jvm变化（Java应用）、进程磁盘读写
         :param index: 监控端口的下标索引
         :return:
         """
@@ -168,8 +170,12 @@ class PerMon(object):
                  'tags': {'type': str(port)},
                  'fields': {
                      'cpu': 0.0,
+                     'wait_cpu': 0.0,
                      'mem': 0.0,
                      'jvm': 0.0,
+                     'rKbs': 0.0,
+                     'wKbs': 0.0,
+                     'iodelay': 0.0,
                      'tcp': 0,
                      'close_wait': 0,
                      'time_wait': 0
@@ -179,9 +185,9 @@ class PerMon(object):
             if self._msg['isRun'][index] > 0:   # 开始监控
                 self._msg['isRun'][index] = 1   # 重置端口监控状态为监控中
                 try:
-                    cpu, mem = self.get_cpu_mem(pid)    # 获取CPU使用率和占用内存大小
+                    pid_info = self.get_pid_cpu_mem_io(pid)    # 获取CPU使用率和占用内存大小
 
-                    if cpu is None:     # 如果CPU使用率未获取到，说明监控命令执行异常
+                    if not pid_info:     # 如果CPU使用率未获取到，说明监控命令执行异常
                         logger.warning(f'获取cpu数据异常，异常pid为{pid}')
                         pid = port_to_pid(port)  # 根据端口号查询进程号
                         if pid:     # 如果进程号存在，则更新进程号
@@ -197,8 +203,12 @@ class PerMon(object):
                         time.sleep(self.sleepTime)
                         continue
 
-                    line[0]['fields']['cpu'] = cpu
-                    line[0]['fields']['mem'] = mem
+                    line[0]['fields']['cpu'] = pid_info['cpu']
+                    line[0]['fields']['wait_cpu'] = pid_info['wait_cpu']
+                    line[0]['fields']['mem'] = pid_info['mem']
+                    line[0]['fields']['rKbs'] = pid_info['kB_rd']
+                    line[0]['fields']['wKbs'] = pid_info['kB_wr']
+                    line[0]['fields']['iodelay'] = pid_info['iodelay']
 
                     tcp_num = self.get_port_tcp(port)
                     line[0]['fields']['tcp'] = tcp_num.get('tcp', 0)
@@ -210,7 +220,7 @@ class PerMon(object):
                         line[0]['fields']['jvm'] = jvm
 
                     self.client.write_points(line)    # 写数据到数据库
-                    logger.info(f'cpu_and_mem: port_{port},pid_{pid},{cpu},{mem},{jvm}')
+                    logger.info(f'cpu_and_mem: port_{port},pid_{pid},{pid_info},{jvm}')
                     run_error_time = time.time()    # 如果监控命令执行成功，则重置
 
                 except:
@@ -241,7 +251,9 @@ class PerMon(object):
                  'tags': {'type': 'system'},
                  'fields': {
                      'cpu': 0.0,
+                     'iowait': 0.0,
                      'mem': 0.0,
+                     'mem_available': 0.0,
                      'rec': 0.0,
                      'trans': 0.0,
                      'net': 0.0,
@@ -254,6 +266,7 @@ class PerMon(object):
             line[0]['fields'].update({disk_n: 0.0})
             line[0]['fields'].update({disk_n + '_r': 0.0})
             line[0]['fields'].update({disk_n + '_w': 0.0})
+            line[0]['fields'].update({disk_n + '_d': 0.0})
 
         disk_usage = self.get_used_disk_rate()
         # 注册本机参数
@@ -321,8 +334,13 @@ class PerMon(object):
                         for k, v in res['disk_w'].items():
                             line[0]['fields'][k] = v
 
+                        for k, v in res['disk_d'].items():
+                            line[0]['fields'][k] = v
+
                         line[0]['fields']['cpu'] = res['cpu']
+                        line[0]['fields']['iowait'] = res['iowait']
                         line[0]['fields']['mem'] = res['mem']
+                        line[0]['fields']['mem_available'] = res['mem_available']
                         line[0]['fields']['rec'] = res['rece']
                         line[0]['fields']['trans'] = res['trans']
                         line[0]['fields']['net'] = res['network']
@@ -398,6 +416,42 @@ class PerMon(object):
 
         return cpu, mem
 
+    @handle_exception(is_return=True, default_value=[])
+    def get_pid_cpu_mem_io(self, pid):
+        """
+            获取进程的CPU使用率和内存使用大小
+            :param pid: 进程号
+            :return: CPU使用率（%）、内存占用大小（G）、磁盘读写（kB/s）
+        """
+        pid_info = {'kB_rd': 0.0, 'kB_wr': 0.0, 'iodelay': 0.0, 'VSZ': 0.0, 'RSS': 0.0, 'mem': 0.0, 'usr_cpu': 0.0,
+                    'system_cpu': 0.0, 'guest_cpu': 0.0, 'wait_cpu': 0.0, 'cpu': 0.0}
+
+        res = os.popen(f'pidstat -u -r -d -p {pid} 1 1 |tr -s " "').readlines()[::-1][:9]
+
+        if res:
+            for i in range(len(res)):
+                if 'iodelay' in res[i]:
+                    io = res[i - 1].split(' ')
+                    pid_info['kB_rd'] = float(io[3]) / 1024    # 每秒从磁盘读取的MB
+                    pid_info['kB_wr'] = float(io[4]) / 1024   # 每秒写入磁盘MB
+                    pid_info['iodelay'] = float(io[6])  # I/O 的延迟（单位是时钟周期）
+                if 'MEM' in res[i]:
+                    memory = res[i - 1].split(' ')
+                    pid_info['VSZ'] = float(memory[5]) / 1024   # 虚拟内存
+                    pid_info['RSS'] = float(memory[6]) / 1024   # 物理内存
+                    pid_info['mem'] = float(memory[7])          # 物理内存使用率
+                if 'CPU' in res[i]:
+                    cpu_res = res[i - 1].split(' ')
+                    pid_info['usr_cpu'] = float(cpu_res[3])         # 用户空间的cpu使用率
+                    pid_info['system_cpu'] = float(cpu_res[4])      # 内核空间的cpu使用率
+                    pid_info['guest_cpu'] = float(cpu_res[5])       # 进程在虚拟机占用cpu使用率
+                    pid_info['wait_cpu'] = float(cpu_res[6])        # 等待上下文切换的cpu使用率
+                    pid_info['cpu'] = float(cpu_res[7])         # 总的cpu使用率
+
+            return pid_info
+        else:
+            return res
+
     @handle_exception(is_return=True, default_value=0)
     def get_jvm(self, port, pid):
         """
@@ -436,7 +490,7 @@ class PerMon(object):
 
         return mem / 1024 / 1024
 
-    @handle_exception(is_return=True, default_value={'disk': {}, 'disk_r': {}, 'disk_w': {}, 'cpu': None, 'mem': None, 'rece': None, 'trans': None, 'network': None, 'tcp': None, 'retrans': None})
+    @handle_exception(is_return=True, default_value={})
     def get_system_cpu_io_speed(self):
         """
         获取系统CPU使用率、剩余内存和磁盘IO、网速和网络使用率
@@ -447,7 +501,11 @@ class PerMon(object):
         disk = {}
         disk_r = {}
         disk_w = {}
+        disk_d = {}
         cpu = None
+        iowait = None
+        mem = None
+        mem_available = None
         bps1 = None
         bps2 = None
         rece = None
@@ -473,6 +531,7 @@ class PerMon(object):
                 cpu_res = disk_res[i+1].strip().split(' ')      # CPU空闲率
                 if len(cpu_res) > 3:
                     cpu = 100 - float(cpu_res[-1])      # CPU使用率
+                    iowait = float(cpu_res[-3])
                     logger.debug(f'系统CPU使用率为：{cpu}%')
                     continue
 
@@ -481,31 +540,37 @@ class PerMon(object):
                     disk_line = disk_res[j].strip().split(' ')
                     disk_num = disk_line[0].replace('-', '')    # replace的原因是因为influxdb查询时，无法识别'-'
                     disk.update({disk_num: float(disk_line[-1])})      # 磁盘的IO
-                    disk_r.update({disk_num + '_r': float(disk_line[5])})     # 磁盘读 Mb/s
-                    disk_w.update({disk_num + '_w': float(disk_line[6])})     # 磁盘写 Mb/s
+                    disk_r.update({disk_num + '_r': float(disk_line[2])})     # 磁盘读 Mb/s
+                    disk_w.update({disk_num + '_w': float(disk_line[8])})     # 磁盘写 Mb/s
+                    disk_d.update({disk_num + '_d': float(disk_line[14])})     # 磁盘丢 Mb/s
 
                 logger.debug(f'当前获取的磁盘数据：IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 
                 break
 
-        result = os.popen('cat /proc/meminfo| grep MemFree| uniq').readlines()[0]   # 执行命令，获取系统剩余内存
-        logger.debug(f'系统剩余内存为：{result}G')
-        mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+        result = os.popen('cat /proc/meminfo |grep -E "MemAvailable|MemFree"|tr -s " "').readlines()   # 执行命令，获取系统剩余内存
+        logger.debug(f'系统剩余内存为：{result}')
+        for res in result:
+            if 'MemFree' in res:
+                mem = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+            if 'MemAvailable' in res:
+                mem_available = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
 
         if bps1 and bps2:
             data1 = bps1[0].split(':')[1].strip().split(' ')
             data2 = bps2[0].split(':')[1].strip().split(' ')
             rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
             trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
-            # 如果没有获取到网口带宽数据，默认为1Mb/s；如果是千兆网口，可直接将结果除以1000
+            # 如果没有获取到网口带宽数据，默认为配置文件中的值；
             # 800 = 8 * 100，为什么要乘以8，因为网口带宽除以8即为网口支持的最大速率
             network = 800 * (rece + trans) / self.network_speed
             logger.debug(f'系统网络带宽：收{rece}Mb/s，发{trans}Mb/s，带宽占比{network}%')
 
         tcp, Retrans_ratio = self.get_tcp()
 
-        return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'cpu': cpu, 'mem': mem, 'rece': rece,
-                'trans': trans, 'network': network, 'tcp': tcp, 'retrans': Retrans_ratio}
+        return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'disk_d': disk_d, 'cpu': cpu, 'iowait': iowait,
+                'mem': mem, 'mem_available': mem_available, 'rece': rece, 'trans': trans, 'network': network,
+                'tcp': tcp, 'retrans': Retrans_ratio}
 
     '''def get_handle(pid):
         """
@@ -768,6 +833,19 @@ class PerMon(object):
         except Exception as err:
             logger.warning(err)
             self.is_java.update({str(port): 0})
+
+    def check_sysstat_version(self):
+        """
+        检查 sysstat 版本，因为不同版本输出的内容可能不一样
+        """
+        try:
+            version = os.popen("iostat -V |grep ersion |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
+            v = int(version.strip())
+            if v < 12:
+                raise Exception('当前sysstat版本过低，请升级到最新版本，下载地址：http://sebastien.godard.pagesperso-orange.fr/download.html')
+        except IndexError:
+            logger.error(traceback.format_exc())
+            raise Exception('请安装最新版本的sysstat，下载地址：http://sebastien.godard.pagesperso-orange.fr/download.html')
 
     @handle_exception(is_return=True)
     def clear_port(self):

@@ -1,8 +1,8 @@
 # performace_monitor
 ## 介绍
 #### 已完成如下功能<br>
-1、监控整个服务器的CPU使用率、剩余内存大小、磁盘IO、网络带宽和TCP连接数<br>
-2、监控指定端口的CPU使用率、内存占用大小和TCP连接数<br>
+1、监控整个服务器的CPU使用率、内存使用、磁盘IO、网络带宽和TCP连接数<br>
+2、监控指定端口的CPU使用率、内存占用大小、磁盘读写和TCP连接数<br>
 3、针对java应用，可以监控jvm大小和垃圾回收情况；当Full GC频率过高时，可发送邮件提醒<br>
 4、系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
 5、可随时启动/停止监控指定端口<br>
@@ -107,13 +107,15 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
     ```
 
 ## 注意
-1. 服务器必须支持以下命令：`jstat`、`top`、`iostat`、`netstat`、`ps`、`top`，如不支持，请安装。
+1. 服务器必须支持以下命令：`jstat`、`iostat`、`netstat`、`ps`，如不支持，请安装。
 
-2. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)。
+2. sysstat的版本必须是12+，目前测试过12的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html)
 
-3. 如需查看最新的操作文档，可在运行程序后，查看教程即可。
+3. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)。
 
-4. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。
+4. 如需查看最新的操作文档，可在运行程序后，查看教程即可。
+
+5. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。
 
 ## Requirements
 1. aiohttp>=3.6.2

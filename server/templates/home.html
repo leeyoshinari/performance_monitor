@@ -16,17 +16,17 @@
             <tr align="center">
                 <td><a href="http://{{ ip[loop.index0] }}:{{ port[loop.index0] }}">{{ ip[loop.index0] }}</a></td>
                 <td>{{ system[loop.index0] }}</td>
-                {% if cpu_usage[loop.index0] < 80 %}
+                {% if cpu_usage[loop.index0] < max_cpu %}
                     <td>{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</td>
                 {% else %}
                     <td><strong style="font-weight: bold; color: #ff3333">{{ cpu[loop.index0] }}核/{{ cpu_usage[loop.index0]|round(2) }}%</strong></td>
                 {% endif %}
-                {% if mem_usage[loop.index0] < 80 %}
+                {% if mem_usage[loop.index0] < max_mem %}
                     <td>{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</td>
                 {% else %}
                     <td><strong style="font-weight: bold; color: #ff3333">{{ mem[loop.index0] }}G/{{ mem_usage[loop.index0]|round(2) }}%</strong></td>
                 {% endif %}
-                {% if disk_usage[loop.index0] < 80 %}
+                {% if disk_usage[loop.index0] < max_disk %}
                     <td>{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</td>
                 {% else %}
                     <td><strong style="font-weight: bold; color: #ff3333">{{ disk[loop.index0] }}/{{ disk_usage[loop.index0]|round(2) }}%</strong></td>

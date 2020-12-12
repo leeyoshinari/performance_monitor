@@ -54,7 +54,9 @@ async def index(request):
 		'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'disk': master.slaves['disk_size'],
 		'net': master.slaves['network_speed'], 'cpu_usage': master.slaves['cpu_usage'],
 		'mem_usage': list(map(lambda x: x * 100, master.slaves['mem_usage'])),
-		'disk_usage': list(map(lambda x: x * 100, master.slaves['disk_usage']))})
+		'disk_usage': list(map(lambda x: x * 100, master.slaves['disk_usage'])), 'max_cpu': cfg.getMonitor('maxCPU'),
+		'max_mem': cfg.getMonitor('maxMem'), 'max_disk': cfg.getMonitor('maxDisk'), 'server_context': cfg.getServer('server_context')
+	})
 
 
 async def start_monitor(request):
@@ -65,7 +67,9 @@ async def start_monitor(request):
 	"""
 	monitor_list = master.get_monitor()
 	return aiohttp_jinja2.render_template('runMonitor.html', request, context={
-		'ip': master.slaves['ip'], 'foos': monitor_list, 'run_status': ['已停止', '监控中', '排队中']})
+		'ip': master.slaves['ip'], 'foos': monitor_list, 'run_status': ['已停止', '监控中', '排队中'],
+		'server_context': cfg.getServer('server_context')
+	})
 
 
 async def visualize(request):
@@ -82,7 +86,8 @@ async def visualize(request):
 	else:
 		monitor_list = {'port': []}
 	return aiohttp_jinja2.render_template('visualize.html', request, context={'disks': master.slaves['disk'],
-		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime, 'row_name': ['75%', '90%', '95%', '99%']})
+		'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime, 'endtime': endtime,
+		'row_name': ['75%', '90%', '95%', '99%'], 'server_context': cfg.getServer('server_context')})
 
 
 async def course(request):
@@ -91,7 +96,7 @@ async def course(request):
 	:param request:
 	:return:
 	"""
-	return aiohttp_jinja2.render_template('course.html', request, context={})
+	return aiohttp_jinja2.render_template('course.html', request, context={'server_context': cfg.getServer('server_context')})
 
 
 async def registers(request):
@@ -220,10 +225,10 @@ async def plot_monitor(request):
 		except Exception as err:
 			logger.error(err)
 			logger.error(traceback.format_exc())
-			return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err})
+			return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err, 'server_context': cfg.getServer('server_context')})
 	else:
 		logger.error(f'{host}服务器可能未注册')
-		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': f'{host}服务器可能未注册'})
+		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': f'{host}服务器可能未注册', 'server_context': cfg.getServer('server_context')})
 
 
 async def get_port_disk(request):
@@ -263,18 +268,18 @@ async def notice(request):
 async def main():
 	app = web.Application()
 	aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))  # 将模板添加到搜索路径
-	app.router.add_static('/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), append_version=True)  # 将静态文件添加到搜索路径
+	app.router.add_static(f'/{cfg.getServer("server_context")}/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), append_version=True)  # 将静态文件添加到搜索路径
 
-	app.router.add_route('GET', '/', index)
-	app.router.add_route('GET', '/startMonitor', start_monitor)
-	app.router.add_route('GET', '/getMonitor/{host}', get_monitor)
-	app.router.add_route('GET', '/Visualize', visualize)
-	app.router.add_route('GET', '/course', course)
-	app.router.add_route('GET', '/getPortAndDisk/{host}', get_port_disk)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/', index)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/startMonitor', start_monitor)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/getMonitor/{{host}}', get_monitor)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/Visualize', visualize)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/course', course)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/getPortAndDisk/{{host}}', get_port_disk)
 
 	app.router.add_route('POST', '/Register', registers)
-	app.router.add_route('POST', '/runMonitor', run_monitor)
-	app.router.add_route('POST', '/plotMonitor', plot_monitor)
+	app.router.add_route('POST', f'/{cfg.getServer("server_context")}/runMonitor', run_monitor)
+	app.router.add_route('POST', f'/{cfg.getServer("server_context")}/plotMonitor', plot_monitor)
 	app.router.add_route('POST', '/Notification', notice)
 
 	runner = web.AppRunner(app)
