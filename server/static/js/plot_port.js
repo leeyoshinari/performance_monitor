@@ -11,6 +11,8 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
     let wkbs_sorted = [...wkbs];
     let net_sorted = [...net];
     cpu_sorted.sort(function (a, b) {return a - b});
+    rkbs_sorted.sort(function (a, b) {return a - b});
+    wkbs_sorted.sort(function (a, b) {return a - b});
     iodelay_sorted.sort(function (a, b) {return a - b});
     net_sorted.sort(function (a, b) {return a - b});
 	// 以上是冒泡排序方法
@@ -367,7 +369,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
     if (is_jvm === 1){
         option['title'][1].text = 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G; JVM(G), Max: ' + findMax(jvm).toFixed(2) + 'G, Duration: ' + duration;
         option['legend'][1].data = ['Memory', 'JVM'];
-        option['series'][2].data = jvm;
+        option['series'][3].data = jvm;
     }
 
     myChart.clear();

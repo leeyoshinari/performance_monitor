@@ -439,7 +439,7 @@ class PerMon(object):
                     memory = res[i - 1].split(' ')
                     pid_info['VSZ'] = float(memory[5]) / 1024   # 虚拟内存
                     pid_info['RSS'] = float(memory[6]) / 1024   # 物理内存
-                    pid_info['mem'] = float(memory[7])          # 物理内存使用率
+                    pid_info['mem'] = float(memory[7]) * self.total_mem          # 物理内存使用率
                 if 'CPU' in res[i]:
                     cpu_res = res[i - 1].split(' ')
                     pid_info['usr_cpu'] = float(cpu_res[3])         # 用户空间的cpu使用率
@@ -839,12 +839,14 @@ class PerMon(object):
         检查 sysstat 版本，因为不同版本输出的内容可能不一样
         """
         try:
-            version = os.popen("iostat -V |grep ersion |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
+            version = os.popen("iostat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
             v = int(version.strip())
             if v < 12:
+                logger.error('当前sysstat版本过低，请升级到最新版本，下载地址：http://sebastien.godard.pagesperso-orange.fr/download.html')
                 raise Exception('当前sysstat版本过低，请升级到最新版本，下载地址：http://sebastien.godard.pagesperso-orange.fr/download.html')
         except IndexError:
             logger.error(traceback.format_exc())
+            logger.error('请安装最新版本的sysstat，下载地址：http://sebastien.godard.pagesperso-orange.fr/download.html')
             raise Exception('请安装最新版本的sysstat，下载地址：http://sebastien.godard.pagesperso-orange.fr/download.html')
 
     @handle_exception(is_return=True)

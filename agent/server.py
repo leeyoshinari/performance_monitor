@@ -21,7 +21,10 @@ async def index(request):
 	:return:
 	"""
 	return web.Response(
-		body=f'当前服务器系统版本为{permon.system_version}，{permon.cpu_info}，总内存为{permon.total_mem}G，使用的网卡为{permon.nic}，系统带宽为{permon.network_speed}Mb/s，共有{len(permon.all_disk)}个磁盘，磁盘总大小为{permon.total_disk_h}，磁盘号分别为{"、".join(permon.all_disk)}。')
+		body=f'当前服务器系统版本为{permon.system_version}，{permon.cpu_info}，总内存为{permon.total_mem}G，'
+			 f'使用的网卡为{permon.nic}，系统带宽为{permon.network_speed}Mb/s，共有{len(permon.all_disk)}个磁盘，'
+			 f'磁盘总大小为{permon.total_disk_h}，磁盘号分别为{"、".join(permon.all_disk)}。如需停止监控客户端，'
+			 f'请访问 http://{HOST}:{cfg.getServer("port")}/stop')
 
 
 async def run_monitor(request):
@@ -148,10 +151,20 @@ async def get_gc(request):
 	return web.json_response({'code': 0, 'msg': '操作成功', 'data': [ygc, ygct, fgc, fgct, '-', ffgc]})
 
 
+async def stop_monitor(request):
+	pid = port_to_pid(cfg.getServer('port'))
+	if pid:
+		res = os.popen(f'kill -9 {pid}')
+		return web.Response(body='监控客户端停止成功！')
+	else:
+		return web.Response(body='监控客户端未运行！')
+
+
 async def main():
 	app = web.Application()
 
 	app.router.add_route('GET', '/', index)
+	app.router.add_route('GET', '/stop', stop_monitor)
 	app.router.add_route('POST', '/runMonitor', run_monitor)
 	app.router.add_route('POST', '/getMonitor', get_monitor)
 	app.router.add_route('GET', '/getGC/{port}', get_gc)

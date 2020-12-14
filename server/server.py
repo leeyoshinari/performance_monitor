@@ -270,7 +270,7 @@ async def main():
 	aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))  # 将模板添加到搜索路径
 	app.router.add_static(f'/{cfg.getServer("server_context")}/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), append_version=True)  # 将静态文件添加到搜索路径
 
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/', index)
+	app.router.add_route('GET', f'/{cfg.getServer("server_context")}', index)
 	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/startMonitor', start_monitor)
 	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/getMonitor/{{host}}', get_monitor)
 	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/Visualize', visualize)
