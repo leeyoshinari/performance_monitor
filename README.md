@@ -1,8 +1,8 @@
 # performace_monitor
 ## 介绍
 #### 已完成如下功能<br>
-1、监控整个服务器的CPU使用率、内存使用、磁盘IO、网络带宽和TCP连接数<br>
-2、监控指定端口的CPU使用率、内存占用大小、磁盘读写和TCP连接数<br>
+1、监控整个服务器的CPU使用率、io wait、内存使用、磁盘IO、网络带宽和TCP连接数<br>
+2、监控指定端口的CPU使用率、上下文切换、内存占用大小、磁盘读写和TCP连接数<br>
 3、针对java应用，可以监控jvm大小和垃圾回收情况；当Full GC频率过高时，可发送邮件提醒<br>
 4、系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
 5、可随时启动/停止监控指定端口<br>
@@ -49,6 +49,7 @@
     （3）修改配置<br>
          `vim /etc/influxdb/influxdb.conf` <br>
          第256行左右，修改端口：`bind-address = ":8086"` <br>
+         第265行左右，不打印日志：`log-enabled = false` <br>
          重启 <br>
     （4）创建数据库<br>
         `create database test` <br>
