@@ -7,8 +7,8 @@
     <h4>已完成如下功能<br></h4>
     <ol>
         <p>
-            1、监控整个服务器的CPU使用率、剩余内存大小、磁盘IO、网络带宽和TCP连接数<br>
-            2、监控指定端口的CPU使用率、内存占用大小和TCP连接数<br>
+            1、监控整个服务器的CPU使用率、io wait、内存大小、磁盘IO、网络带宽和TCP连接数<br>
+            2、监控指定端口的CPU使用率、上下文切换、内存占用大小、磁盘读写速率和TCP连接数<br>
             3、针对java应用，可以监控jvm大小和垃圾回收情况；当Full GC频率过高时，可发送邮件提醒<br>
             4、当系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
             5、可随时启动/停止监控指定端口<br>
@@ -73,21 +73,21 @@
             <p>页面访问<br><br>
                 （1）客户端启动后，输入<code>http://ip:port</code>
                 可以看到页面显示服务器的系统、CPU、内存、磁盘号和网络等信息<br>
-                <img width="100%" src="/{{ server_context }}/static/slave.jpg" alt="在这里插入图片描述">
+                <img width="100%" src="{{ server_context }}/static/slave.jpg" alt="在这里插入图片描述">
             </p><br>
             <p>（2）服务端启动后，输入<code>http://ip:port</code>
                 可以看到首页，页面展示已经注册的客户端的IP、系统、CPU、内存、磁盘、带宽等数据<br>
-                <img width="100%" src="/{{ server_context }}/static/home.jpg" alt="在这里插入图片描述"><br>
+                <img width="100%" src="{{ server_context }}/static/home.jpg" alt="在这里插入图片描述"><br>
                 &ensp;&ensp;&ensp;&ensp;点击列表中的IP，即可以看到客户端服务器的一些信息。
             </p><br>
             <p>（3）服务端启动后，输入<code>http://ip:port/startMonitor</code>
                 可以看到监控页面，显示当前已经监控的所有端口<br>
                 &ensp;&ensp;&ensp;&ensp;点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前服务器已经监控的端口<br>
-                <img width="100%" src="/{{ server_context }}/static/monitor.jpg" alt="在这里插入图片描述">
+                <img width="100%" src="{{ server_context }}/static/monitor.jpg" alt="在这里插入图片描述">
             </p><br>
             <p>（4）服务端启动后，输入<code>http://ip:port/Visualize</code>
                 可以看到可视化页面；点击画图按钮，即可将指定服务器上的系统或端口的监控数据可视化<br>
-                <img width="100%" src="/{{ server_context }}/static/visual.jpg" alt="在这里插入图片描述"><br>
+                <img width="100%" src="{{ server_context }}/static/visual.jpg" alt="在这里插入图片描述"><br>
                 &ensp;&ensp;&ensp;&ensp;1.在主机下拉列表中选择不同的IP，即可可视化不同IP的监控数据；<br>
                 &ensp;&ensp;&ensp;&ensp;2.如果类型选择<code>系统</code>，如上图所示，依次是系统CPU使用率（最大值和平均值）、系统剩余内存（最小值）、系统指定磁盘的读、写和IO（最大值）、系统网络收发及带宽使用率（最大值）；<code>百分位数表格</code>中统计的是系统的CPU、IO和带宽的百分位数；<br>
                 &ensp;&ensp;&ensp;&ensp;3.如果类型选择<code>端口</code>，需要选择端口，可视化的图和上图类似，依次是端口的CPU使用率（最大值和平均值）、端口的内存（最大值）和JVM（最大值，仅java应用）；<code>百分位数表格</code>中统计的是端口CPU、系统磁盘IO和系统带宽的百分位数；<code>垃圾回收表格</code>中统计的是应用GC信息（仅java应用），如没有该表格，说明不是java服务；<br>
@@ -131,7 +131,8 @@
     </ol>
     <h2>注意</h2>
     <ol>
-        <li>服务器必须支持以下命令：<code>jstat</code>、<code>top</code>、<code>iostat</code>、<code>netstat</code>、<code>ps</code>、<code>top</code>，如不支持，请安装。</li>
+        <li>服务器必须支持以下命令：<code>jstat</code>、<code>iostat</code>、<code>netstat</code>，如不支持，请安装。</li>
+        <li>服务器上的sysstat必须是新版本，当前测试使用的版本是12，如不支持，请<a href="http://sebastien.godard.pagesperso-orange.fr/download.html">下载安装</a>。</li>
         <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
     </ol>
 </div>

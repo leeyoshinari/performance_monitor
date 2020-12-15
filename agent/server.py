@@ -155,6 +155,7 @@ async def stop_monitor(request):
 	pid = port_to_pid(cfg.getServer('port'))
 	if pid:
 		res = os.popen(f'kill -9 {pid}')
+		logger.info('监控客户端停止成功！')
 		return web.Response(body='监控客户端停止成功！')
 	else:
 		return web.Response(body='监控客户端未运行！')

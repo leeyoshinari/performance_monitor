@@ -268,18 +268,19 @@ async def notice(request):
 async def main():
 	app = web.Application()
 	aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))  # 将模板添加到搜索路径
-	app.router.add_static(f'/{cfg.getServer("server_context")}/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), append_version=True)  # 将静态文件添加到搜索路径
+	app.router.add_static(f'{cfg.getServer("server_context")}/static/', path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), append_version=True)  # 将静态文件添加到搜索路径
 
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}', index)
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/startMonitor', start_monitor)
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/getMonitor/{{host}}', get_monitor)
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/Visualize', visualize)
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/course', course)
-	app.router.add_route('GET', f'/{cfg.getServer("server_context")}/getPortAndDisk/{{host}}', get_port_disk)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}', index)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}/home', index)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}/startMonitor', start_monitor)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}/getMonitor/{{host}}', get_monitor)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}/Visualize', visualize)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}/course', course)
+	app.router.add_route('GET', f'{cfg.getServer("server_context")}/getPortAndDisk/{{host}}', get_port_disk)
 
 	app.router.add_route('POST', '/Register', registers)
-	app.router.add_route('POST', f'/{cfg.getServer("server_context")}/runMonitor', run_monitor)
-	app.router.add_route('POST', f'/{cfg.getServer("server_context")}/plotMonitor', plot_monitor)
+	app.router.add_route('POST', f'{cfg.getServer("server_context")}/runMonitor', run_monitor)
+	app.router.add_route('POST', f'{cfg.getServer("server_context")}/plotMonitor', plot_monitor)
 	app.router.add_route('POST', '/Notification', notice)
 
 	runner = web.AppRunner(app)
