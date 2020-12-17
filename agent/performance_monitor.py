@@ -437,16 +437,16 @@ class PerMon(object):
                     pid_info['iodelay'] = float(io[6])  # I/O 的延迟（单位是时钟周期）
                 if 'MEM' in res[i]:
                     memory = res[i - 1].split(' ')
-                    pid_info['VSZ'] = float(memory[5]) / 1024   # 虚拟内存
-                    pid_info['RSS'] = float(memory[6]) / 1024   # 物理内存
-                    pid_info['mem'] = float(memory[7]) * self.total_mem          # 物理内存使用率
+                    # pid_info['VSZ'] = float(memory[5]) / 1024   # 虚拟内存
+                    # pid_info['RSS'] = float(memory[6]) / 1024   # 物理内存
+                    pid_info['mem'] = float(memory[7]) * self.total_mem_100          # 物理内存使用率
                 if 'CPU' in res[i]:
                     cpu_res = res[i - 1].split(' ')
-                    pid_info['usr_cpu'] = float(cpu_res[3])         # 用户空间的cpu使用率
-                    pid_info['system_cpu'] = float(cpu_res[4])      # 内核空间的cpu使用率
-                    pid_info['guest_cpu'] = float(cpu_res[5])       # 进程在虚拟机占用cpu使用率
-                    pid_info['wait_cpu'] = float(cpu_res[6])        # 等待上下文切换的cpu使用率
-                    pid_info['cpu'] = float(cpu_res[7])         # 总的cpu使用率
+                    # pid_info['usr_cpu'] = float(cpu_res[3]) / self.cpu_cores         # 用户空间的cpu使用率
+                    # pid_info['system_cpu'] = float(cpu_res[4]) / self.cpu_cores      # 内核空间的cpu使用率
+                    # pid_info['guest_cpu'] = float(cpu_res[5]) / self.cpu_cores       # 进程在虚拟机占用cpu使用率
+                    pid_info['wait_cpu'] = float(cpu_res[6]) / self.cpu_cores        # 等待上下文切换的cpu使用率
+                    pid_info['cpu'] = float(cpu_res[7]) / self.cpu_cores         # 总的cpu使用率
 
             return pid_info
         else:
