@@ -688,7 +688,7 @@ class PerMon(object):
 
             logger.info(f'当前系统共有{len(self.all_disk)}个磁盘，磁盘号分别为{"、".join(self.all_disk)}')
         else:
-            raise Exception('服务器不支持iostat命令，请安装。')
+            raise Exception('服务器不支持iostat命令，请安装sysstat。')
 
     @handle_exception(is_return=True)
     def get_system_nic(self):

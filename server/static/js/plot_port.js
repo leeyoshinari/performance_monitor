@@ -402,8 +402,8 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
 		// 以下是使用默认的排序方法，冒泡排序
         let cpu_sorted = cpu.slice(start_index, end_index);
         let iodelay_sorted = iodelay.slice(start_index, end_index);
-        let rkbs_sorted = rkbs_sorted.slice(start_index, end_index);
-        let wkbs_sorted = wkbs_sorted.slice(start_index, end_index);
+        let rkbs_sorted = rkbs.slice(start_index, end_index);
+        let wkbs_sorted = wkbs.slice(start_index, end_index);
         let net_sorted = net.slice(start_index, end_index);
         cpu_sorted.sort();
         iodelay_sorted.sort();
