@@ -225,10 +225,10 @@ async def plot_monitor(request):
 		except Exception as err:
 			logger.error(err)
 			logger.error(traceback.format_exc())
-			return aiohttp_jinja2.render_template('warn.html', request, context={'msg': err, 'server_context': cfg.getServer('server_context')})
+			return web.json_response({'code': 0, 'message': str(err)})
 	else:
 		logger.error(f'{host}服务器可能未注册')
-		return aiohttp_jinja2.render_template('warn.html', request, context={'msg': f'{host}服务器可能未注册', 'server_context': cfg.getServer('server_context')})
+		return web.json_response({'code': 0, 'message': f'{host}服务器可能未注册'})
 
 
 async def get_port_disk(request):
