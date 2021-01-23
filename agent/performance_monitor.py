@@ -223,7 +223,7 @@ class PerMon(object):
                     logger.info(f'cpu_and_mem: port_{port},pid_{pid},{pid_info},{jvm}')
                     run_error_time = time.time()    # 如果监控命令执行成功，则重置
 
-                except:
+                except(Exception):
                     logger.error(traceback.format_exc())
                     time.sleep(self.sleepTime)
 
@@ -301,7 +301,7 @@ class PerMon(object):
                     if time.strftime('%H:%M') == self.timeSetting:  # 每天定时清理一次过期的端口
                         logger.debug('正常清理停止监控的端口')
                         self.clear_port()
-                except:
+                except(Exception):
                     logger.error(traceback.format_exc())
 
             if time.time() - disk_start_time > 300:     # 每隔5分钟获取一次磁盘使用情况
@@ -347,8 +347,9 @@ class PerMon(object):
                         line[0]['fields']['tcp'] = res['tcp']
                         line[0]['fields']['retrans'] = res['retrans']
                         self.client.write_points(line)    # 写cpu和内存到数据库
-                        logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['disk_r']},{res['disk_w']},"
-                                    f"{res['rece']},{res['trans']},{res['network']}, {res['tcp']}, {res['retrans']}")
+                        logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['disk_r']},"
+                                    f"{res['disk_w']},{res['rece']},{res['trans']},{res['network']}, "
+                                    f"{res['tcp']}, {res['retrans']}")
 
                         if len(self.last_cpu_io) > self.CPUDuration:
                             self.last_cpu_io.pop(0)
@@ -386,7 +387,7 @@ class PerMon(object):
                             mem_flag = True
                             echo = True
 
-                except:
+                except(Exception):
                     logger.error(traceback.format_exc())
 
                 time.sleep(self.system_interval)
@@ -515,7 +516,7 @@ class PerMon(object):
             bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
             logger.debug(f'第一次获取网速的结果：{bps1}')
 
-        result = os.popen(f'iostat -x -m 1 2 |tr -s " "').readlines()    # 执行命令
+        result = os.popen('iostat -x -m 1 2 |tr -s " "').readlines()    # 执行命令
         logger.debug(f'获取磁盘IO结果：{result}')
 
         if self.nic:
@@ -523,7 +524,7 @@ class PerMon(object):
             logger.debug(f'第二次获取网速的结果：{bps2}')
 
         result.pop(0)
-        disk_res = [l.strip() for l in result if len(l) > 5]
+        disk_res = [line.strip() for line in result if len(line) > 5]
         disk_res = disk_res[int(len(disk_res)/2)-1:]
 
         for i in range(len(disk_res)):
@@ -677,9 +678,9 @@ class PerMon(object):
         获取系统所有磁盘号
         :return:
         """
-        result = os.popen(f'iostat -x -k |tr -s " "').readlines()
+        result = os.popen('iostat -x -k |tr -s " "').readlines()
         if result:
-            disk_res = [l.strip() for l in result if len(l) > 5]
+            disk_res = [line.strip() for line in result if len(line) > 5]
             for i in range(len(disk_res)):
                 if 'Device' in disk_res[i]:
                     for j in range(i + 1, len(disk_res)):
@@ -781,7 +782,7 @@ class PerMon(object):
             for line in result:
                 if 'Speed' in line:
                     logger.debug(f'当前网络带宽为：{line}')
-                    res = re.findall("(\d+)", line)
+                    res = re.findall(r"(\d+)", line)
                     speed = int(res[0])
                     if 'G' in line:
                         speed = speed * 1024
@@ -807,11 +808,11 @@ class PerMon(object):
             logger.warning(err)
             result = os.popen('cat /proc/version').readlines()[0]   # 获取系统内核版本
             logger.debug(f'查询系统内核版本执行命令结果：{result}')
-            res = re.findall("gcc.*\((.*?)\).*GCC", result.strip())
+            res = re.findall(r"gcc.*\((.*?)\).*GCC", result.strip())
             if res:
                 self.system_version = res[0]
             else:
-                res = re.findall("gcc.*\((.*?)\)", result.strip())
+                res = re.findall(r"gcc.*\((.*?)\)", result.strip())
                 self.system_version = res[0]
 
         logger.info(f'当前系统发行/内核版本为{self.system_version}')
@@ -876,9 +877,9 @@ class PerMon(object):
                     self.start = {'port': port_list['port'][ind], 'pid': port_list['pid'][ind], 'is_run': 1}
 
             del port_list
-            logger.info(f'清理过期停止监控端口成功')
+            logger.info('清理过期停止监控端口成功')
         else:
-            logger.info(f'没有停止监控的端口')
+            logger.info('没有停止监控的端口')
 
     def register_and_clear_port(self, flag=None):
         """

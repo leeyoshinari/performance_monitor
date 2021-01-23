@@ -20,34 +20,34 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
     :param disk: 磁盘号，查看指定磁盘号的IO，可选参数
     :return:
     """
+    post_data = {
+        'types': 'system',
+        'cpu_time': [],
+        'cpu': [],
+        'iowait': [],
+        'mem': [],
+        'mem_available': [],
+        'jvm': [],
+        'io_time': [],
+        'io': [],
+        'disk_r': [],
+        'disk_w': [],
+        'disk_d': [],
+        'rec': [],
+        'trans': [],
+        'nic': [],
+        'tcp': [],
+        'close_wait': [],
+        'time_wait': [],
+        'retrans': [],
+        'disk': disk}
+
+    res = {'code': 1, 'flag': 1, 'message': '查询成功'}
+
+    connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
+                                         cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
+
     try:
-        post_data = {
-            'types': 'system',
-            'cpu_time': [],
-            'cpu': [],
-            'iowait': [],
-            'mem': [],
-            'mem_available': [],
-            'jvm': [],
-            'io_time': [],
-            'io': [],
-            'disk_r': [],
-            'disk_w': [],
-            'disk_d': [],
-            'rec': [],
-            'trans': [],
-            'nic': [],
-            'tcp': [],
-            'close_wait': [],
-            'time_wait': [],
-            'retrans': [],
-            'disk': disk}
-
-        res = {'code': 1, 'flag': 1, 'message': '查询成功'}
-
-        connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
-                                             cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
-
         if startTime and endTime:     # 如果存在开始时间和结束时间
             pass
         elif startTime is None and endTime is None:   # 如果开始时间和结束时间都不存在，则使用默认时间，即查询所有数据
@@ -58,7 +58,8 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
 
         s_time = time.time()
         if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
-            sql = f"select cpu, wait_cpu, mem, tcp, jvm, rKbs, wKbs, iodelay, close_wait, time_wait from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='{port}' tz('Asia/Shanghai')"
+            sql = f"select cpu, wait_cpu, mem, tcp, jvm, rKbs, wKbs, iodelay, close_wait, time_wait from \"{host}\" " \
+                  f"where time>'{startTime}' and time<'{endTime}' and type='{port}' tz('Asia/Shanghai')"
             logger.info(f'执行sql：{sql}')
             datas = connection.query(sql)
             if datas:
@@ -80,7 +81,8 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                 res['code'] = 0
 
             if disk:  # 读取磁盘IO数据
-                sql = f"select rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system' tz('Asia/Shanghai')"
+                sql = f"select rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and " \
+                      f"type='system' tz('Asia/Shanghai')"
                 logger.info(f'执行sql：{sql}')
                 datas = connection.query(sql)
                 for data in datas.get_points():
@@ -96,7 +98,9 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
             disk_r = disk_n + '_r'
             disk_w = disk_n + '_w'
             disk_d = disk_n + '_d'
-            sql = f"select cpu, iowait, mem, mem_available, {disk_n}, {disk_r}, {disk_w}, {disk_d}, rec, trans, net, tcp, retrans from \"{host}\" where time>'{startTime}' and time<'{endTime}' and type='system' tz('Asia/Shanghai')"
+            sql = f"select cpu, iowait, mem, mem_available, {disk_n}, {disk_r}, {disk_w}, {disk_d}, rec, trans, " \
+                  f"net, tcp, retrans from \"{host}\" where time>'{startTime}' and time<'{endTime}' and " \
+                  f"type='system' tz('Asia/Shanghai')"
             logger.info(f'执行sql：{sql}')
             datas = connection.query(sql)
             if datas:
@@ -128,15 +132,14 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
         # lines = get_lines(post_data)      # 计算百分位数，75%、90%、95%、99%
         # res.update(lines)
         # logger.info(f'计算百分位数耗时：{time.time() - s_time}')
-        del connection, post_data
-        return res
 
     except Exception as err:
-        del connection, post_data
         logger.error(traceback.format_exc())
-        res['message'] = err
+        res['message'] = str(err)
         res['code'] = 0
-        return res
+
+    del connection, post_data
+    return res
 
 
 def get_lines(datas):
