@@ -24,13 +24,15 @@ class PerMon(object):
         self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # 端口号、进程号、监控状态、开始监控时间
         self.is_system = cfg.getMonitor('isMonSystem')             # 是否监控服务器的资源
-        self.error_duration = cfg.getMonitor('errorDuration')   # 执行命令失败次数
+        self.error_times = cfg.getMonitor('errorTimes')      # 执行命令失败次数
         self.sleepTime = cfg.getMonitor('sleepTime')
         self.maxCPU = cfg.getMonitor('maxCPU')
         self.CPUDuration = cfg.getMonitor('CPUDuration')
         self.isCPUAlert = cfg.getMonitor('isCPUAlert')
         self.minMem = cfg.getMonitor('minMem')
         self.isMemAlert = cfg.getMonitor('isMemAlert')
+        self.isPidAlert = cfg.getMonitor('isPidAlert')
+        self.errorTimesOfPid = cfg.getMonitor('errorTimesOfPid')
         self.frequencyFGC = cfg.getMonitor('frequencyFGC')
         self.isJvmAlert = cfg.getMonitor('isJvmAlert')
         self.echo = cfg.getMonitor('echo')
@@ -163,7 +165,7 @@ class PerMon(object):
         self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')      # 更新开始监控时间
 
         jvm = 0.0    # java服务的JVM内存数据初始化，主要用于非java服务的端口
-        run_error_time = time.time()    # 初始化执行监控命令失败的时间
+        run_error_times = 0    # 初始化执行监控命令失败的次数
         port = self._msg['port'][index]
         pid = self._msg['pid'][index]
         is_run_jvm = self.is_java.get(str(port), 0)
@@ -195,12 +197,24 @@ class PerMon(object):
                         if pid:     # 如果进程号存在，则更新进程号
                             self._msg['pid'][index] = pid
                             self._msg['startTime'][index] = time.strftime('%Y-%m-%d %H:%M:%S')
+                        else:
+                            run_error_times += 1
 
                         # 如果连续执行监控命令都失败，则停止监控
-                        if time.time() - run_error_time > self.error_duration:
+                        if run_error_times > self.error_times:
                             self._msg['isRun'][index] = 0
-                            logger.error(f'{port}端口连续{self.error_duration}s执行监控命令都失败，已停止监控')
+                            logger.error(f'{port}端口连续{self.error_times * self.sleepTime}s执行监控命令都失败，已停止监控')
+                            time.sleep(1)
                             break
+
+                        if self.isPidAlert:
+                            if run_error_times > self.errorTimesOfPid:
+                                msg = f'{self.IP} 服务器的 {port} 端口连续{self.errorTimesOfPid * self.sleepTime}s执行监控命令失败，已停止监控'
+                                logger.warning(msg)
+                                thread = threading.Thread(target=notification, args=(msg,))  # 开启线程发送邮件通知
+                                thread.start()
+                                time.sleep(1)
+                                break
 
                         time.sleep(self.sleepTime)
                         continue
@@ -223,7 +237,7 @@ class PerMon(object):
 
                     self.client.write_points(line)    # 写数据到数据库
                     logger.info(f'cpu_and_mem: port_{port},pid_{pid},{pid_info},{jvm}')
-                    run_error_time = time.time()    # 如果监控命令执行成功，则重置
+                    run_error_times = 0    # 如果监控命令执行成功，则重置
 
                 except(Exception):
                     logger.error(traceback.format_exc())
