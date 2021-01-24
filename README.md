@@ -7,12 +7,13 @@
 4、系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
 5、可随时启动/停止监控指定端口<br>
 6、当端口重启后，可自动重新监控<br>
-7、可直接在服务端停止客户端进程<br>
-8、可按照指定时间段可视化监控结果<br>
-9、自动按照百分位数计算出CPU、磁盘IO和带宽的数据<br>
-10、数据采样频率最高可达约1次/s，可设置任意采样频率<br>
-11、为保证监控结果准确性，直接使用Linux系统命令获取数据，且可视化时未做任何曲线拟合处理<br>
-12、可同时管理监控多台服务器<br>
+7、支持运维监控，端口停止后，可发送邮件提醒<br>
+8、可直接在服务端停止客户端<br>
+9、可按照指定时间段可视化监控结果<br>
+10、自动按照百分位数计算出CPU、磁盘IO和带宽的数据<br>
+11、数据采样频率最高可达约1次/s，可设置任意采样频率<br>
+12、可直接在页面查看服务器当前资源（CPU、内存、磁盘）使用情况<br>
+13、可同时管理监控多台服务器<br>
 
 #### 实现过程
 1、使用基于协程的http框架`aiohttp`<br>
@@ -22,6 +23,7 @@
 5、客户端每隔8s向服务端注册本机IP和端口<br>
 6、服务端每隔10s会查询所有已注册的客户端的状态<br>
 7、使用influxDB数据库存储监控数据；数据可设置自动过期时间<br>
+8、为保证监控结果准确性，直接使用Linux系统命令获取数据，且可视化时未做任何曲线拟合处理<br>
 
 #### 项目分支
 | 分支 | 框架 | 特点 |
@@ -66,13 +68,13 @@
    （1）从机（客户端）启动后，输入`http://ip:port`可以看到页面显示服务器的CPU核数、总内存和磁盘号<br>
    ![slave home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/slave.jpg)
    
-   （2）主机（服务端）启动后，输入`http://ip:port`可以看到首页，页面展示已经注册的从机（客户端）的IP和注册时间<br>
+   （2）主机（服务端）启动后，输入`http://ip:port/上下文`可以看到首页，页面展示已经注册的从机（客户端）的IP和注册时间<br>
    ![master home](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/home.jpg)
    
-   （3）主机（服务端）启动后，输入`http://ip:port/startMonitor`可以看到监控页面；点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前已经监控的端口<br>
+   （3）点击开始监控，可以看到监控页面；点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前已经监控的端口<br>
    ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/monitor.jpg)
    
-   （4）主机（服务端）启动后，输入`http://ip:port/Visualize`可以看到可视化页面；点击画图按钮，即可将指定服务器上的指定端口的监控数据可视化<br>
+   （4）点击结果可视化，可以看到可视化页面；点击画图按钮，即可将指定服务器上的指定端口的监控数据可视化<br>
    ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/master/static/visual.jpg)
    
 ## 打包
@@ -107,6 +109,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
     ```shell
     nohup ./server &
     ```
+   `由于agent需要在待监控的服务器上运行，在CentOS系统X86架构的服务器上打包完成的可执行文件，只能运行在CentOS系统X86架构的服务器上；其他系统和架构的服务器需要重新打包。`<br>
 
 ## 注意
 1. 服务器必须支持以下命令：`jstat`、`iostat`、`netstat`，如不支持，请安装。
@@ -119,6 +122,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 
 5. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。
 
+6. 当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统`CentOS`、`Ubuntu`、`中标麒麟`、`银河麒麟`，支持`X86`和`ARM`架构。
 ## Requirements
 1. aiohttp>=3.6.2
 2. aiohttp_jinja2>=1.2.0

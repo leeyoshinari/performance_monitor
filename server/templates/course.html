@@ -13,12 +13,13 @@
             4、当系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
             5、可随时启动/停止监控指定端口<br>
             6、当端口重启后，可自动重新监控<br>
-            7、可直接在服务端停止客户端进程<br>
-            8、可按照指定时间段可视化监控结果<br>
-            9、自动按照百分位数计算出CPU、磁盘IO和带宽的数据<br>
-            10、数据采样频率最高可达约1次/s，可设置任意采样频率<br>
-            11、为保证监控结果准确性，直接使用Linux系统命令获取数据，且可视化时未做任何曲线拟合处理<br>
-            12、可同时管理监控多台服务器
+            7、支持运维监控，端口停止后，可发送邮件提醒<br>
+            8、可直接在服务端停止客户端<br>
+            9、可按照指定时间段可视化监控结果<br>
+            10、自动按照百分位数计算出CPU、磁盘IO和带宽的数据<br>
+            11、数据采样频率最高可达约1次/s，可设置任意采样频率<br>
+            12、可直接在页面查看服务器当前资源（CPU、内存、磁盘）使用情况<br>
+            13、可同时管理监控多台服务器<br>
         </p>
     </ol>
     <h4>实现过程</h4>
@@ -28,9 +29,10 @@
             2、服务端前端使用<code>jinjia2</code>模板渲染<br>
             3、数据可视化采用<code>echarts</code>，可降低服务端压力<br>
             4、采用线程池+队列的方式实现同时监控多个端口<br>
-            5、客户端每隔5s向服务端注册本机IP和端口，以及服务器信息<br>
-            6、服务端每隔5s会查询所有已注册的客户端的状态<br>
-            7、使用InfluxDB数据库存储监控数据；数据可设置自动过期时间
+            5、客户端每隔8s向服务端注册本机IP和端口，以及服务器信息<br>
+            6、服务端每隔10s会查询所有已注册的客户端的状态<br>
+            7、使用InfluxDB数据库存储监控数据；数据可设置自动过期时间<br>
+            8、为保证监控结果准确性，直接使用Linux系统命令获取数据，且可视化时未做任何曲线拟合处理
         </p>
     </ol>
     <h2>使用</h2>
@@ -76,18 +78,16 @@
                 可以看到页面显示服务器的系统、CPU、内存、磁盘号和网络等信息<br>
                 <img width="100%" src="{{ server_context }}/static/slave.jpg" alt="在这里插入图片描述">
             </p><br>
-            <p>（2）服务端启动后，输入<code>http://ip:port</code>
-                可以看到首页，页面展示已经注册的客户端的IP、系统、CPU、内存、磁盘、带宽等数据<br>
+            <p>（2）服务端启动后，输入<code>http://ip:port/上下文</code>
+                进入首页，页面展示已经监控的服务器的IP、系统、CPU、内存、磁盘、带宽等数据<br>
                 <img width="100%" src="{{ server_context }}/static/home.jpg" alt="在这里插入图片描述"><br>
                 &ensp;&ensp;&ensp;&ensp;点击列表中的IP，即可以看到客户端服务器的一些信息。
             </p><br>
-            <p>（3）服务端启动后，输入<code>http://ip:port/startMonitor</code>
-                可以看到监控页面，显示当前已经监控的所有端口<br>
+            <p>（3）点击开始监控，显示当前已经监控的所有端口<br>
                 &ensp;&ensp;&ensp;&ensp;点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前服务器已经监控的端口<br>
                 <img width="100%" src="{{ server_context }}/static/monitor.jpg" alt="在这里插入图片描述">
             </p><br>
-            <p>（4）服务端启动后，输入<code>http://ip:port/Visualize</code>
-                可以看到可视化页面；点击画图按钮，即可将指定服务器上的系统或端口的监控数据可视化<br>
+            <p>（4）点击结果可视化，可以看到可视化页面；点击画图按钮，即可将指定服务器上的系统或端口的监控数据可视化<br>
                 <img width="100%" src="{{ server_context }}/static/visual.jpg" alt="在这里插入图片描述"><br>
                 &ensp;&ensp;&ensp;&ensp;1.在主机下拉列表中选择不同的IP，即可可视化不同IP的监控数据；<br>
                 &ensp;&ensp;&ensp;&ensp;2.如果类型选择<code>系统</code>，如上图所示，依次是系统CPU使用率（最大值和平均值）、系统剩余内存（最小值）、系统指定磁盘的读、写和IO（最大值）、系统网络收发及带宽使用率（最大值）；<code>百分位数表格</code>中统计的是系统的CPU、IO和带宽的百分位数；<br>
@@ -128,6 +128,7 @@
                 (5)将<code>dist</code>整个文件夹拷贝到其他环境，启动server
             </p>
             <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
+            <code>由于agent需要在待监控的服务器上运行，在CentOS系统X86架构的服务器上打包完成的可执行文件，只能运行在CentOS系统X86架构的服务器上；其他系统和架构的服务器需要重新打包</code>
         </li>
     </ol>
     <h2>注意</h2>
@@ -135,6 +136,7 @@
         <li>服务器必须支持以下命令：<code>jstat</code>、<code>iostat</code>、<code>netstat</code>，如不支持，请安装。</li>
         <li>服务器上的sysstat必须是新版本，当前测试使用的版本是12，如不支持，请<a href="http://sebastien.godard.pagesperso-orange.fr/download.html">下载安装</a>。</li>
         <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
+        <li>当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统<code>CentOS</code>、<code>Ubuntu</code>、<code>中标麒麟</code>、<code>银河麒麟</code>，支持<code>X86</code>和<code>ARM</code>架构。</li>
     </ol>
 </div>
 {% endblock %}
