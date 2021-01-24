@@ -50,7 +50,9 @@ class PerMon(object):
 
         self.system_version = ''   # 系统版本
         self.cpu_info = ''
+        self.cpu_usage = 0.0    # CPU使用率
         self.cpu_cores = 0  # CPU核数
+        self.mem_usage = 0.0    # 内存使用率
         self.total_mem = 0  # 总内存，单位G
         self.total_mem_100 = 0  # 总内存，单位100*G，主要用于求内存占比，减少运算量
         self.nic = ''   # 系统正在使用的网卡
@@ -146,10 +148,10 @@ class PerMon(object):
         开始监控
         :return:
         """
-        for i in range(self.thread_pool + 1):
+        for i in range(self.thread_pool + 2):
             self.executor.submit(self.worker)   # 启动线程池监控任务
 
-        # self.monitor_task.put((self.register_and_clear_port, 1))    # 将注册和清理任务放入队列中
+        self.monitor_task.put((self.register_agent, True))    # 将注册和清理任务放入队列中
         self.monitor_task.put((self.write_system_cpu_mem_and_register_clear, 1))   # 将监控系统的任务放入队列中
 
     def write_cpu_mem(self, index):
@@ -245,8 +247,6 @@ class PerMon(object):
         cpu_flag = True     # 控制CPU过高时是否邮件通知标志
         mem_flag = True     # 控制内存过低时是否邮件通知标志
         echo = True     # 控制是否清理缓存标志
-        disk_flag = True    # 控制磁盘空间使用率过高时是否邮件通知标志
-
         line = [{'measurement': self.IP,
                  'tags': {'type': 'system'},
                  'fields': {
@@ -268,58 +268,7 @@ class PerMon(object):
             line[0]['fields'].update({disk_n + '_w': 0.0})
             line[0]['fields'].update({disk_n + '_d': 0.0})
 
-        disk_usage = self.get_used_disk_rate()
-        # 注册本机参数
-        url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
-        header = {
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Encoding": "gzip, deflate",
-            "Content-Type": "application/json; charset=UTF-8"}
-        post_data = {
-            'host': self.IP,
-            'port': cfg.getServer('port'),
-            'system': self.system_version,
-            'cpu': self.cpu_cores,
-            'cpu_usage': 0.0,
-            'nic': self.nic,
-            'network_speed': self.network_speed,
-            'mem': round(self.total_mem, 2),
-            'mem_usage': 0.0,
-            'disk_size': self.total_disk_h,
-            'disk_usage': disk_usage,
-            'disks': ','.join(self.all_disk)
-        }
-        start_time = time.time()
-        disk_start_time = time.time()
-
         while True:
-            if time.time() - start_time > 5:    # 每隔5秒注册本机
-                try:
-                    res = requests.post(url=url, json=post_data, headers=header)
-                    logger.info(f"客户端注册结果：{res.content.decode('unicode_escape')}")
-                    start_time = time.time()
-                    if time.strftime('%H:%M') == self.timeSetting:  # 每天定时清理一次过期的端口
-                        logger.debug('正常清理停止监控的端口')
-                        self.clear_port()
-                except(Exception):
-                    logger.error(traceback.format_exc())
-
-            if time.time() - disk_start_time > 300:     # 每隔5分钟获取一次磁盘使用情况
-                disk_usage = self.get_used_disk_rate()
-                if disk_usage:
-                    post_data['disk_usage'] = disk_usage    # 磁盘使用率，不带%号
-                    disk_start_time = time.time()
-
-                    if self.maxDiskUsage < disk_usage:
-                        msg = f"{self.IP} 当前系统磁盘空间使用率为{disk_usage/100:.2f}%，请注意磁盘空间"
-                        logger.warning(msg)
-                        if self.isDiskAlert and disk_flag:
-                            disk_flag = False  # 标志符置为False，防止连续不断的发送邮件
-                            thread = threading.Thread(target=notification, args=(msg,))  # 开启线程发送邮件通知
-                            thread.start()
-                    else:
-                        disk_flag = True
-
             if self.is_system:     # 开始监控
                 try:
                     res = self.get_system_cpu_io_speed()   # 获取系统CPU、内存和磁盘IO、带宽
@@ -355,12 +304,11 @@ class PerMon(object):
                             self.last_cpu_io.pop(0)
 
                         self.last_cpu_io.append(res['cpu'])
-                        cpu_usage = sum(self.last_cpu_io) / len(self.last_cpu_io)
-                        post_data['cpu_usage'] = cpu_usage      # CPU使用率，带%号
-                        post_data['mem_usage'] = 1 - res['mem'] / self.total_mem    # 内存使用率，不带%号
+                        self.cpu_usage = sum(self.last_cpu_io) / len(self.last_cpu_io)     # CPU使用率，带%号
+                        self.mem_usage = 1 - res['mem'] / self.total_mem    # 内存使用率，不带%号
 
-                        if cpu_usage > self.maxCPU:
-                            msg = f'{self.IP} 当前CPU平均使用率为{cpu_usage}%，CPU使用率过高'
+                        if self.cpu_usage > self.maxCPU:
+                            msg = f'{self.IP} 当前CPU平均使用率为{self.cpu_usage}%，CPU使用率过高'
                             logger.warning(msg)
                             if self.isCPUAlert and cpu_flag:
                                 cpu_flag = False    # 标志符置为False，防止连续不断的发送邮件
@@ -549,13 +497,7 @@ class PerMon(object):
 
                 break
 
-        result = os.popen('cat /proc/meminfo |grep -E "MemAvailable|MemFree"|tr -s " "').readlines()   # 执行命令，获取系统剩余内存
-        logger.debug(f'系统剩余内存为：{result}')
-        for res in result:
-            if 'MemFree' in res:
-                mem = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
-            if 'MemAvailable' in res:
-                mem_available = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+        mem, mem_available = self.get_free_memory()
 
         if bps1 and bps2:
             data1 = bps1[0].split(':')[1].strip().split(' ')
@@ -572,6 +514,23 @@ class PerMon(object):
         return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'disk_d': disk_d, 'cpu': cpu, 'iowait': iowait,
                 'mem': mem, 'mem_available': mem_available, 'rece': rece, 'trans': trans, 'network': network,
                 'tcp': tcp, 'retrans': Retrans_ratio}
+
+    @staticmethod
+    def get_free_memory():
+        """
+        获取系统内存
+        :return: 剩余内存和可用内存
+        """
+        mem, mem_available = 0.0, 0.0
+        result = os.popen('cat /proc/meminfo |grep -E "MemAvailable|MemFree"|tr -s " "').readlines()  # 执行命令，获取系统剩余内存
+        logger.debug(f'系统剩余内存为：{result}')
+        for res in result:
+            if 'MemFree' in res:
+                mem = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+            if 'MemAvailable' in res:
+                mem_available = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+
+        return mem, mem_available
 
     '''def get_handle(pid):
         """
@@ -881,44 +840,68 @@ class PerMon(object):
         else:
             logger.info('没有停止监控的端口')
 
-    def register_and_clear_port(self, flag=None):
+    def register_agent(self, disk_flag=True):
         """
-        已弃用，该功能已放在 self.write_system_cpu_mem_and_register_clear 函数中执行
         定时任务，总共有两个，一个是向服务端注册本机，一个是清理已经停止监控的过期端口
+        disk_flag: 控制磁盘空间使用率过高时是否邮件通知标志
         :param
         :return:
         """
-        pass
-        '''url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
-
+        url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
         header = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate",
             "Content-Type": "application/json; charset=UTF-8"}
-
         post_data = {
             'host': self.IP,
             'port': cfg.getServer('port'),
             'system': self.system_version,
             'cpu': self.cpu_cores,
+            'cpu_usage': self.cpu_usage,
             'nic': self.nic,
             'network_speed': self.network_speed,
-            'mem': round(self.total_mem*100, 2),
-            'disk_size': self.total_disk,
+            'mem': round(self.total_mem, 2),
+            'mem_usage': self.mem_usage,
+            'disk_size': self.total_disk_h,
+            'disk_usage': self.get_used_disk_rate(),
             'disks': ','.join(self.all_disk)
         }
+        start_time = time.time()
+        disk_start_time = time.time()
 
-        clear_time = time.time()
         while True:
             try:
-                res = requests.post(url=url, json=post_data, headers=header)
-                if time.time() - clear_time > 600:
-                    self.clear_port()
-                    clear_time = time.time()
-            except Exception as err:
-                logger.error(err)
+                if time.time() - start_time > 8:    # 每隔8秒注册本机
+                    post_data['cpu_usage'] = self.cpu_usage
+                    post_data['mem_usage'] = self.mem_usage
+                    res = requests.post(url=url, json=post_data, headers=header)
+                    logger.info(f"客户端注册结果：{res.content.decode('unicode_escape')}")
+                    start_time = time.time()
+                    if time.strftime('%H:%M') == self.timeSetting:  # 每天定时清理一次过期的端口
+                        logger.debug('正常清理停止监控的端口')
+                        self.clear_port()
 
-            time.sleep(5)'''
+                if time.time() - disk_start_time > 300:     # 每隔5分钟获取一次磁盘使用情况
+                    disk_usage = self.get_used_disk_rate()
+                    if disk_usage:
+                        post_data['disk_usage'] = disk_usage    # 磁盘使用率，不带%号
+                        disk_start_time = time.time()
+
+                        if self.maxDiskUsage < disk_usage:
+                            msg = f"{self.IP} 当前系统磁盘空间使用率为{disk_usage/100:.2f}%，请注意磁盘空间"
+                            logger.warning(msg)
+                            if self.isDiskAlert and disk_flag:
+                                disk_flag = False  # 标志符置为False，防止连续不断的发送邮件
+                                thread = threading.Thread(target=notification, args=(msg,))  # 开启线程发送邮件通知
+                                thread.start()
+                        else:
+                            disk_flag = True
+
+                time.sleep(5)
+
+            except(Exception):
+                logger.error(traceback.format_exc())
+                time.sleep(1)
 
     def clear_cache(self):
         """

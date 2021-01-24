@@ -85,10 +85,14 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                       f"type='system' tz('Asia/Shanghai')"
                 logger.info(f'执行sql：{sql}')
                 datas = connection.query(sql)
-                for data in datas.get_points():
-                    post_data['nic'].append(data['net'])
-                    post_data['rec'].append(data['rec'])
-                    post_data['trans'].append(data['trans'])
+                if datas:
+                    for data in datas.get_points():
+                        post_data['nic'].append(data['net'])
+                        post_data['rec'].append(data['rec'])
+                        post_data['trans'].append(data['trans'])
+                else:
+                    res['message'] = '未查询到系统监控数据，请检查磁盘号，或者时间设置！'
+                    res['code'] = 0
 
         if pid:     # 读取和进程号相关的CPU使用率、内存使用大小和jvm变化数据
             pass

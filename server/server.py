@@ -208,7 +208,7 @@ async def plot_monitor(request):
                     res['flag'] = 0
                 return web.json_response(res)
 
-            if type_ == 'pid':		# 如果选择进程号，则可视化端口的CPU、内存，统计系统的IO和带宽
+            '''if type_ == 'pid':		# 如果选择进程号，则可视化端口的CPU、内存，统计系统的IO和带宽
                 res = draw_data_from_db(host=host, pid=port_pid, startTime=start_time, endTime=end_time, disk=disk)
                 if res['code'] == 0:
                     raise Exception(res['message'])
@@ -216,7 +216,7 @@ async def plot_monitor(request):
                                                 f'getGC/{port_pid}')})
                 if res['gc'][0] == -1 and res['gc'][2] == -1:
                     res['flag'] = 0
-                return web.json_response(res)
+                return web.json_response(res)'''
 
             if type_ == 'system':		# 如果选择系统，则可视化系统的CPU、内存、IO和带宽
                 res = draw_data_from_db(host=host, startTime=start_time, endTime=end_time, system=1, disk=disk)

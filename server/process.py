@@ -64,7 +64,7 @@ class Process(object):
         while True:
             time.sleep(5)
             for i in range(len(self._slaves['ip'])):
-                if time.time() - self._slaves['time'][i] > 8:
+                if time.time() - self._slaves['time'][i] > 12:
                     ip = self._slaves['ip'].pop(i)
                     self._slaves['port'].pop(i)
                     self._slaves['system'].pop(i)
