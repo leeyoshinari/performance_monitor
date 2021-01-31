@@ -90,11 +90,13 @@ async def visualize(request):
 
 
 async def course_zh_CN(request):
-    return aiohttp_jinja2.render_template('course_zh_CN.html', request, context={'server_context': cfg.getServer('server_context')})
+    return aiohttp_jinja2.render_template('course_zh_CN.html', request,
+                                          context={'server_context': cfg.getServer('server_context')})
 
 
 async def course_en(request):
-    return aiohttp_jinja2.render_template('course_en.html', request, context={'server_context': cfg.getServer('server_context')})
+    return aiohttp_jinja2.render_template('course_en.html', request,
+                                          context={'server_context': cfg.getServer('server_context')})
 
 
 async def registers(request):
