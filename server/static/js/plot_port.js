@@ -1,9 +1,9 @@
 function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, tcp, time_wait, close_wait, is_jvm, iodelay, rkbs, wkbs, net) {
-    // 以下是使用快速排序算法排序
+    // Quick sort
     /*let cpu_sorted = quickSort(cpu);
     let IO_sorted = quickSort(IO);
 	let net_sorted = quickSort(net);*/
-	// 以下是使用默认的排序方法，冒泡排序
+	// Bubble Sort
 	let cpu_sorted = [...cpu];
 	//let wait_cpu_sorted = [...wait_cpu];
     let iodelay_sorted = [...iodelay];
@@ -15,7 +15,6 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
     wkbs_sorted.sort(function (a, b) {return a - b});
     iodelay_sorted.sort(function (a, b) {return a - b});
     net_sorted.sort(function (a, b) {return a - b});
-	// 以上是冒泡排序方法
 
     let start_time = Date.parse(new Date(x_label[0]));
     let end_time = Date.parse(new Date(x_label[x_label.length - 1]));
@@ -399,7 +398,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
         let start_index = myChart.getOption().dataZoom[0].startValue;
         let end_index = myChart.getOption().dataZoom[0].endValue;
         
-		// 以下是使用默认的排序方法，冒泡排序
+		// Bubble Sort
         let cpu_sorted = cpu.slice(start_index, end_index);
         let iodelay_sorted = iodelay.slice(start_index, end_index);
         let rkbs_sorted = rkbs.slice(start_index, end_index);
@@ -410,9 +409,8 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
         rkbs_sorted.sort();
         wkbs_sorted.sort();
         net_sorted.sort();
-		// 以上是冒泡排序方法
 		
-		// 以下是使用快速排序算法排序
+		// Quick sort
         /*let cpu_sorted = quickSort(cpu.slice(start_index, end_index));
         let IO_sorted = quickSort(IO.slice(start_index, end_index));
 		let net_sorted = quickSort(net.slice(start_index, end_index));*/

@@ -11,7 +11,7 @@ from logger import logger, cfg, handle_exception
 @handle_exception()
 def sendEmail(msg):
     """
-    邮件通知
+     Send email
     :param msg: email content
     :return:
     """
@@ -25,7 +25,7 @@ def sendEmail(msg):
     subject = cfg.getEmail('subject')
     s = "{0}".format(msg)
 
-    message = MIMEText(s, 'plain', 'utf-8')  # 中文参数需要‘utf-8’
+    message = MIMEText(s, 'plain', 'utf-8')  # Chinese required 'utf-8'
     message['Subject'] = Header(subject, 'utf-8')
     message['From'] = Header(sender_name)
     message['To'] = Header(receiver_name, 'utf-8')
@@ -35,10 +35,10 @@ def sendEmail(msg):
     except socket.error:
         smtp = smtplib.SMTP(host, 25)
 
-    smtp.login(sender_email, password)  # 如需隐藏密码，可替换password，例如'123456'，然后打包即可
+    smtp.login(sender_email, password)  # If you need to hide the password, you can modify "password", and then package it.
     smtp.sendmail(sender_email, receiver_email, message.as_string())
     smtp.quit()
-    logger.info('邮件发送成功, 请查收')
+    logger.info('Send email successfully!')
 
 
 if __name__ == '__main__':

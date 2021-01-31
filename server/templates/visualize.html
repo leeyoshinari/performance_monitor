@@ -2,39 +2,39 @@
 
 {% block content %}
 <div align="center" style="width: 100%; height: 27px;">
-    主机：<select id="host" style="width: 8%; height: 26px; margin-right: 20px;" onchange="show_port_disk()">
+    Server: <select id="host" style="width: 8%; height: 26px; margin-right: 20px;" onchange="show_port_disk()">
             {% for foo in ip %}
                 <option value="{{ foo }}">{{ foo }}</option>
             {% endfor %}
     </select>
-    类型: <select id="type" style="width: 6%; height: 26px; margin-right: 20px;" onchange="clear_port()">
-        <option value="system" selected="selected">系统</option>
-        <option value="port">端口</option>
+    Type: <select id="type" style="width: 6%; height: 26px; margin-right: 20px;" onchange="clear_port()">
+        <option value="system" selected="selected">System</option>
+        <option value="port">Port</option>
     </select>
-    端口号: <select id="port" style="width: 6%; height: 26px; margin-right: 20px;"></select>
-    磁盘号: <select id="disk" style="width: 6%; height: 26px; margin-right: 20px;">
+    Port: <select id="port" style="width: 6%; height: 26px; margin-right: 20px;"></select>
+    Disk: <select id="disk" style="width: 6%; height: 26px; margin-right: 20px;">
             {% for disk in disks[0] %}
                 <option value="{{ disk }}">{{ disk }}</option>
             {% endfor %}
     </select>
-    开始时间: <input type="text" name="starttime" id="starttime" style="margin-right: 20px; width: 10%;" value="{{ starttime }}">
-    结束时间: <input type="text" name="endtime" id="endtime" style="margin-right: 20px; width: 10%;" value="{{ endtime }}">
-    <button type="button" id="MonitorList" style="width: 5%;">&nbsp;画&nbsp;&nbsp;&nbsp;图&nbsp;</button>
+    StartTime: <input type="text" name="starttime" id="starttime" style="margin-right: 20px; width: 10%;" value="{{ starttime }}">
+    EndTime: <input type="text" name="endtime" id="endtime" style="margin-right: 20px; width: 10%;" value="{{ endtime }}">
+    <button type="button" id="MonitorList" style="width: 5%;">&nbsp;Visualize&nbsp;</button>
 </div>
 <div id="figure" style="width: 95%;height:1100px;margin: 0 auto;"></div>
 <div id="container" style="width: 89.911%; margin:0 auto">
     <div id="container1" style="display: none;">
-        <h4 align="center">百分位数</h4>
+        <h4 align="center">Percentiles</h4>
         <table width="90%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
             <tr style="align: center; margin: auto; background-color: #99CCFF">
-                <td width="10%" style="text-align: center;">百分位</td>
+                <td width="10%" style="text-align: center;">Percentile</td>
                 <td width="10%" style="text-align: center;">CPU(%)</td>
-                <td width="10%" style="text-align: center;">磁盘读(Mb/s)</td>
-                <td width="10%" style="text-align: center;">磁盘写(Mb/s)</td>
-                <td width="10%" style="text-align: center;">磁盘IO(%)</td>
-                <td width="10%" style="text-align: center;">网络收(Mb/s)</td>
-                <td width="10%" style="text-align: center;">网络发(Mb/s)</td>
-                <td width="10%" style="text-align: center;">带宽(%)</td>
+                <td width="10%" style="text-align: center;">Read(Mb/s)</td>
+                <td width="10%" style="text-align: center;">Write(Mb/s)</td>
+                <td width="10%" style="text-align: center;">IO(%)</td>
+                <td width="10%" style="text-align: center;">Recv(Mb/s)</td>
+                <td width="10%" style="text-align: center;">Tran(Mb/s)</td>
+                <td width="10%" style="text-align: center;">Net(%)</td>
             </tr>
             {% for row in row_name %}
                 <tr align="center">
@@ -52,13 +52,13 @@
     </div>
 
     <div id="container2" style="float: left; margin-left: 10px; margin-top: 15px; margin-bottom: 66px; display: none;">
-        <h4 align="center">垃圾回收</h4>
+        <h4 align="center">Garbage Collection</h4>
         <table width="50%" cellpadding="6" cellspacing="0" border="1" align="center" id="gc">
             <tr style="align: center; margin: auto; background-color: #99CCFF">
                 <td width="10%" style="text-align: center;">GC</td>
-                <td width="10%" style="text-align: center;">次数</td>
-                <td width="10%" style="text-align: center;">时间(s)</td>
-                <td width="10%" style="text-align: center;">频率(s/次)</td>
+                <td width="10%" style="text-align: center;">Times</td>
+                <td width="10%" style="text-align: center;">time(s)</td>
+                <td width="10%" style="text-align: center;">Frequency(s/times)</td>
             </tr>
             <tr align="center">
                 <td>YGC</td>
@@ -98,7 +98,7 @@
                 port = parseInt(num, 10);
                 if (type === 'port' || type === 'pid') {
                     if (isNaN(port) || port < 1) {
-                        $.Toast('请选择端口号！', 'error');
+                        $.Toast('Please select a port!', 'error');
                         return;
                     }
                 }

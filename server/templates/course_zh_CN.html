@@ -1,0 +1,144 @@
+{% extends "template.html" %}
+
+{% block page_content %}
+<div class="page-header">
+    <h2>介绍</h2><br>
+    <div style="text-align: right;">语言: <a href="{{ server_context }}/course_zh_CN">zh-CN</a>, <a href="{{ server_context }}/course"> en</a></div>
+    <h4>项目地址：<a href="https://github.com/leeyoshinari/performance_monitor" target="_blank">请点我</a>，欢迎Star，欢迎Fork。如有bug或建议，可在<a href="https://github.com/leeyoshinari/performance_monitor/issues" target="_blank">Issue</a>中提出；如果您修改了bug，欢迎Merge。</h4><br>
+    <h4>已完成如下功能<br></h4>
+    <ol>
+        <p>
+            1、监控整个服务器的CPU使用率、io wait、内存大小、磁盘IO、网络带宽和TCP连接数<br>
+            2、监控指定端口的CPU使用率、上下文切换、内存占用大小、磁盘读写速率和TCP连接数<br>
+            3、针对java应用，可以监控jvm大小和垃圾回收情况；当Full GC频率过高时，可发送邮件提醒<br>
+            4、当系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
+            5、可随时启动/停止监控指定端口<br>
+            6、当端口重启后，可自动重新监控<br>
+            7、支持运维监控，端口停止后，可发送邮件提醒<br>
+            8、可直接在服务端停止客户端<br>
+            9、可按照指定时间段可视化监控结果<br>
+            10、自动按照百分位数计算出CPU、磁盘IO和带宽的数据<br>
+            11、数据采样频率最高可达约1次/s，可设置任意采样频率<br>
+            12、可直接在页面查看服务器当前资源（CPU、内存、磁盘）使用情况<br>
+            13、可同时管理监控多台服务器<br>
+            14、服务端停止后，不影响客户端监控<br>
+        </p>
+    </ol>
+    <h4>实现过程</h4>
+    <ol>
+        <p>
+            1、服务端后端使用基于协程的http框架<code>aiohttp</code><br>
+            2、服务端前端使用<code>jinjia2</code>模板渲染<br>
+            3、数据可视化采用<code>echarts</code>，可降低服务端压力<br>
+            4、采用线程池+队列的方式实现同时监控多个端口<br>
+            5、客户端每隔8s向服务端注册本机IP和端口，以及服务器信息<br>
+            6、服务端每隔10s会查询所有已注册的客户端的状态<br>
+            7、使用InfluxDB数据库存储监控数据；数据可设置自动过期时间<br>
+            8、为保证监控结果准确性，直接使用Linux系统命令获取数据，且可视化时未做任何曲线拟合处理
+        </p>
+    </ol>
+    <h2>使用</h2>
+    <ol>
+        <li>
+            <p>克隆 performance_monitor</p>
+            <pre><code><span>git</span> clone https://github.com/leeyoshinari/performance_monitor.git</code></pre>
+            <p>
+                server文件夹是服务端，只需部署一个即可；agent文件夹是客户端，部署在需要监控的服务器上<br>
+            </p>
+        </li>
+        <li>
+            <p>分别修改server和agent文件夹里的配置文件 <code>config.ini</code></p>
+        </li>
+        <li>
+            <p>部署InfluxDB数据库。CentOS安装过程如下：</p>
+            <p>
+                （1）下载并安装<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>yum localinstall influxdb-1.8.3.x86_64.rpm</code> <br>
+                （2）启动<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>systemctl enable influxdb</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>systemctl start influxdb</code> <br>
+                （3）修改配置<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>vim /etc/influxdb/influxdb.conf</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;第256行左右，修改端口：<code>bind-address = ":8086"</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;第265行左右，不打印日志：<code>log-enabled = false</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;重启 <br>
+                （4）创建数据库<br>
+                    &ensp;&ensp;&ensp;&ensp;<code>create database test</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>use test</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>create user root with password '123456'</code> <br>
+                    &ensp;&ensp;&ensp;&ensp;<code>grant all privileges on test to root</code> <br>
+            </p>
+        </li>
+        <li>
+            <p>分别运行server和agent文件夹中的<code>server.py</code></p>
+            <pre><code><span>nohup</span> python3 server.py <span>&amp;</span></code></pre>
+        </li>
+        <li>
+            <p>页面访问<br><br>
+                （1）客户端启动后，输入<code>http://ip:port</code>
+                可以看到页面显示服务器的系统、CPU、内存、磁盘号和网络等信息<br>
+                <img width="100%" src="{{ server_context }}/static/agent.jpg" alt="在这里插入图片描述">
+            </p><br>
+            <p>（2）服务端启动后，输入<code>http://ip:port/上下文</code>
+                进入首页，页面展示已经监控的服务器的IP、系统、CPU、内存、磁盘、带宽等数据<br>
+                <img width="100%" src="{{ server_context }}/static/home.jpg" alt="在这里插入图片描述"><br>
+                &ensp;&ensp;&ensp;&ensp;点击列表中的IP，即可以看到客户端服务器的一些信息。
+            </p><br>
+            <p>（3）点击监控列表，显示当前已经监控的所有端口<br>
+                &ensp;&ensp;&ensp;&ensp;点击开始监控按钮，即可在指定的服务器上开始监控指定的端口；点击停止监控按钮，即可在指定的服务器上停止监控指定的端口；点击获取监控列表按钮，可以查看当前服务器已经监控的端口<br>
+                <img width="100%" src="{{ server_context }}/static/monitor.jpg" alt="在这里插入图片描述">
+            </p><br>
+            <p>（4）点击可视化，可以看到可视化页面；点击画图按钮，即可将指定服务器上的系统或端口的监控数据可视化<br>
+                <img width="100%" src="{{ server_context }}/static/visual.jpg" alt="在这里插入图片描述"><br>
+                &ensp;&ensp;&ensp;&ensp;1.在主机下拉列表中选择不同的IP，即可可视化不同IP的监控数据；<br>
+                &ensp;&ensp;&ensp;&ensp;2.如果类型选择<code>系统</code>，如上图所示，依次是系统CPU使用率（最大值和平均值）、系统剩余内存（最小值）、系统指定磁盘的读、写和IO（最大值）、系统网络收发及带宽使用率（最大值）；<code>百分位数表格</code>中统计的是系统的CPU、IO和带宽的百分位数；<br>
+                &ensp;&ensp;&ensp;&ensp;3.如果类型选择<code>端口</code>，需要选择端口，可视化的图和上图类似，依次是端口的CPU使用率（最大值和平均值）、端口的内存（最大值）和JVM（最大值，仅java应用）；<code>百分位数表格</code>中统计的是端口CPU、系统磁盘IO和系统带宽的百分位数；<code>垃圾回收表格</code>中统计的是应用GC信息（仅java应用），如没有该表格，说明不是java服务；<br>
+                &ensp;&ensp;&ensp;&ensp;4.可视化时，需要查看应用使用的磁盘号，然后在下拉列表中选择对应的磁盘号即可；通过<code>df -h 文件名</code>查看应用使用的磁盘号，如果下拉列表中没有你查到的磁盘号，可通过<code>df -h</code>查看文件系统Filesystem，然后<code>ll Filesystem 例如：ll /dev/sda1</code>即可显示磁盘号；<br>
+                &ensp;&ensp;&ensp;&ensp;5.开始时间和结束时间，默认是最近10分钟的时间段；可选择任意时间段，精确到秒；
+            </p>
+        </li>
+    </ol>
+    <h2>打包</h2>
+    <p>&ensp;&ensp;&ensp;&ensp;pyinstaller既可以将python脚本打包成Windows环境下的可执行文件，也可以打包成Linux环境下的可执行文件。打包完成后，可快速在其他环境上部署该监控服务，而不需要安装python3.7+环境和第三方包。<br></p>
+    <p>&ensp;&ensp;&ensp;&ensp;pyinstaller安装过程自行百度，下面直接进行打包：</p>
+    <ol>
+        <li>
+            <p>打包server<br>
+                (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
+                (2)进入server文件夹，开始打包：
+            </p>
+            <pre><code>pyinstaller -F server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request</code></pre>
+            <p>
+                <code>打包过程可能提示缺少一些模块，请按照提示安装对应的模块</code><br>
+                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist</code>即可找到可执行文件<code>server</code>;<br>
+                (4)将配置文件<code>config.ini</code>拷贝到<code>dist</code>文件夹下，并修改配置文件；<br>
+                (5)将模板文件<code>templates</code>和静态文件<code>static</code>拷贝到<code>dist</code>文件夹下；<br>
+                (6)将<code>dist</code>整个文件夹拷贝到其他环境，启动server
+            </p>
+            <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
+        </li>
+        <li>
+            <p>打包agent<br>
+                (1)安装好python环境，安装第三方包，确保程序可以正常运行；<br>
+                (2)进入agent文件夹，开始打包：
+            </p>
+            <pre><code>pyinstaller -F server.py -p performance_monitor.py -p logger.py -p common.py -p config.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import common --hidden-import config</code></pre>
+            <p>
+                (3)打包完成后，在当前路径下会生成dist文件夹，进入<code>dist</code>即可找到可执行文件<code>server</code>;<br>
+                (4)将配置文件<code>config.ini</code>拷贝到<code>dist</code>文件夹下，并修改配置文件；<br>
+                (5)将<code>dist</code>整个文件夹拷贝到其他环境，启动server
+            </p>
+            <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
+            <code>由于agent需要在待监控的服务器上运行，在CentOS系统X86架构的服务器上打包完成的可执行文件，只能运行在CentOS系统X86架构的服务器上；其他系统和架构的服务器需要重新打包</code>
+        </li>
+    </ol>
+    <h2>注意</h2>
+    <ol>
+        <li>服务器必须支持以下命令：<code>jstat</code>、<code>iostat</code>、<code>netstat</code>，如不支持，请安装。</li>
+        <li>服务器上的sysstat必须是新版本，当前测试使用的版本是12，如不支持，请<a href="http://sebastien.godard.pagesperso-orange.fr/download.html">下载安装</a>。</li>
+        <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
+        <li>当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统<code>CentOS</code>、<code>Ubuntu</code>、<code>中标麒麟</code>、<code>银河麒麟</code>，支持<code>X86_64</code>和<code>ARM</code>架构。</li>
+    </ol>
+</div>
+{% endblock %}

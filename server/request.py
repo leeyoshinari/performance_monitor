@@ -11,13 +11,13 @@ class Request(object):
         pass
 
     def get(self, ip, port, interface, timeout):
-        """get请求"""
+        """get"""
         url = 'http://{}:{}/{}'.format(ip, port, interface)
         res = requests.get(url=url, timeout=timeout)
         return res
 
     def post(self, ip, port, interface, json, headers, timeout):
-        """post请求"""
+        """post"""
         if headers is None:
             headers = {
                 "Accept": "application/json, text/plain, */*",
@@ -30,7 +30,6 @@ class Request(object):
 
     @handle_exception()
     def request(self, method, ip, port, interface, json=None, headers=None, timeout=None):
-        """请求入口，目前仅支持get和post请求，其他请求可自行添加"""
         if timeout is None:
             timeout = 3
 
@@ -39,8 +38,8 @@ class Request(object):
         elif method == 'post':
             res = self.post(ip, port, interface, json, headers, timeout)
         else:
-            logger.error('暂不支持其他请求方式')
-            raise Exception('暂不支持其他请求方式')
+            logger.error('Other request methods are not supported!')
+            raise Exception('Other request methods are not supported!')
 
         return res
 

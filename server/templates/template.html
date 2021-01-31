@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>服务器资源监控</title>
+        <title>Server Monitoring</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="..{{ server_context }}/static/favicon.ico" rel="shortcut icon" type="image/x-icon">
 
@@ -10,7 +10,7 @@
         <link href="..{{ server_context }}/static/css/toast.style.css" rel="stylesheet">
 
         {% block scripts %}
-        <script src="..{{ server_context }}/static/js/echarts.js"></script>
+        <script src="..{{ server_context }}/static/js/echarts.common.js"></script>
         <script src="..{{ server_context }}/static/js/jquery.js"></script>
         <script src="..{{ server_context }}/static/js/bootstrap.js"></script>
         <script src="..{{ server_context }}/static/js/toast.script.js"></script>
@@ -26,22 +26,22 @@
                     <div class="container">
                         <div class="navbar-header">
                             <a class="navbar-brand" href="{{ server_context }}/home">
-                                主页
+                                Home
                             </a>
                         </div>
                         <div class="navbar-left">
                             <a class="navbar-brand" href="{{ server_context }}/startMonitor">
-                                开始监控
+                                MonitorList
                             </a>
                         </div>
                         <div class="navbar-left">
                             <a class="navbar-brand" href="{{ server_context }}/Visualize">
-                                结果可视化
+                                Visualize
                             </a>
                         </div>
                         <div class="navbar-left">
                             <a class="navbar-brand" href="{{ server_context }}/course">
-                                教程
+                                Course
                             </a>
                         </div>
                     </div>

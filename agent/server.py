@@ -17,20 +17,20 @@ HOST = cfg.getServer('host') if cfg.getServer('host') else get_ip()
 
 async def index(request):
     """
-    首页，浏览器访问 http://ip:port 即可显示服务器基本资源
+    Home, basic data can be displayed by visiting http://ip:port
     :param request:
     :return:
     """
     return web.Response(
-        body=f'当前服务器系统版本为{permon.system_version}，{permon.cpu_info}，总内存为{permon.total_mem}G，'
-             f'使用的网卡为{permon.nic}，系统带宽为{permon.network_speed}Mb/s，共有{len(permon.all_disk)}个磁盘，'
-             f'磁盘总大小为{permon.total_disk_h}，磁盘号分别为{"、".join(permon.all_disk)}。如需停止监控客户端，'
-             f'请访问 http://{HOST}:{cfg.getServer("port")}/stop')
+        body=f'The server system version is {permon.system_version}, {permon.cpu_info}, total memory is {permon.total_mem}G, '
+             f'the network card is {permon.nic}, bandwidth is {permon.network_speed}Mb/s, {len(permon.all_disk)} disks, '
+             f'total size of disks is {permon.total_disk_h}, disks number is {"、".join(permon.all_disk)}. '
+             f'If you need to stop the monitoring client, please visit http://{HOST}:{cfg.getServer("port")}/stop')
 
 
 async def run_monitor(request):
     """
-    开始监控接口
+    Start monitoring port
     :param request:
     :return:
     """
@@ -43,47 +43,49 @@ async def run_monitor(request):
 
         if host == HOST:
             if port:
-                pid = port_to_pid(port)     # 根据端口号查询进程号
+                pid = port_to_pid(port)
                 if pid is None:
-                    logger.warning(f"端口 {port} 未启动！")
+                    logger.warning(f"Port {port} is not started!")
                     return web.json_response({
-                        'code': 1, 'msg': f"端口 {port} 未启动！", 'data': {'host': host, 'port': port, 'pid': None}})
+                        'code': 1, 'msg': f"Port {port} is not started!", 'data': {'host': host, 'port': port, 'pid': None}})
 
-                if is_run == '0':   # 如果是停止监控
-                    if port in permon.stop['port']:     # 端口是否监控过
+                if is_run == '0':   # stop monitoring
+                    if port in permon.stop['port']:     # whether the port has been monitored.
                         permon.stop = {'port': port, 'pid': pid, 'net': network, 'is_run': 0}
-                        logger.info('停止监控成功！')
+                        logger.info('Stop monitoring successfully!')
                         return web.json_response({
-                            'code': 0, 'msg': '停止监控成功！', 'data': {'host': host, 'port': port, 'pid': pid}})
+                            'code': 0, 'msg': 'Stop monitoring successfully!', 'data':
+                                {'host': host, 'port': port, 'pid': pid}})
                     else:
-                        logger.warning(f"端口 {port} 未监控，请先监控！")
+                        logger.warning(f"The port {port} has not been monitored, please monitor it first.")
                         return web.json_response({
-                            'code': 1, 'msg': f"端口 {port} 未监控，请先监控！", 'data': {'host': host, 'port': port, 'pid': pid}})
+                            'code': 1, 'msg': f"The port {port} has not been monitored, please monitor it first.",
+                            'data': {'host': host, 'port': port, 'pid': pid}})
 
-                if is_run == '1':       # 如果是开始监控
+                if is_run == '1':       # start monitoring
                     permon.start = {'port': port, 'pid': pid, 'is_run': 1}
-                    logger.info('开始监控成功！')
+                    logger.info('Start monitoring successfully!')
                     return web.json_response({
-                        'code': 0, 'msg': '开始监控成功！', 'data': {'host': host, 'port': port, 'pid': pid}})
+                        'code': 0, 'msg': 'Start monitoring successfully!', 'data': {'host': host, 'port': port, 'pid': pid}})
 
             else:
-                logger.error('请求参数异常')
+                logger.error('Request parameter exception.')
                 return web.json_response({
-                    'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': port, 'pid': None}})
+                    'code': 2, 'msg': 'Request parameter exception.', 'data': {'host': host, 'port': port, 'pid': None}})
         else:
-            logger.error('请求参数异常')
+            logger.error('Request parameter exception.')
             return web.json_response({
-                'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': port, 'pid': None}})
+                'code': 2, 'msg': 'Request parameter exception.', 'data': {'host': host, 'port': port, 'pid': None}})
 
     except Exception as err:
         logger.error(traceback.format_exc())
         return web.json_response({
-            'code': 2, 'msg': err, 'data': {'host': HOST, 'port': None, 'pid': None}})
+            'code': 2, 'msg': str(err), 'data': {'host': HOST, 'port': None, 'pid': None}})
 
 
 async def get_monitor(request):
     """
-    获取监控端口列表
+     Get the list of monitoring ports
     :param request:
     :return:
     """
@@ -91,37 +93,37 @@ async def get_monitor(request):
     host = data.get('host')
     if host == HOST:
         msg = permon.start
-        if len(msg['port']) > 0:    # 是否监控过端口
+        if len(msg['port']) > 0:    # Whether the server has been monitored ports
             data = {'host': [host]*len(msg['port'])}
             data.update(msg)
-            return web.json_response({'code': 0, 'msg': '操作成功', 'data': data})
+            return web.json_response({'code': 0, 'msg': 'Successful!', 'data': data})
         else:
-            logger.error('暂未监控任何端口')
+            logger.error('No ports are monitored yet.')
             return web.json_response({
-                'code': 1, 'msg': '暂未监控任何端口', 'data': {'host': host, 'port': None, 'pid': None}})
+                'code': 1, 'msg': 'No ports are monitored yet', 'data': {'host': host, 'port': None, 'pid': None}})
     else:
-        logger.error('请求参数异常')
+        logger.error('Request parameter exception.')
         return web.json_response({
-            'code': 2, 'msg': '请求参数异常', 'data': {'host': host, 'port': None, 'pid': None}})
+            'code': 2, 'msg': 'Request parameter exception.', 'data': {'host': host, 'port': None, 'pid': None}})
 
 
 async def get_gc(request):
     """
-    获取java应用系统垃圾回收数据
+    Get GC data of java application
     :param request:
     :return:
     """
     port = request.match_info['port']
     try:
-        pid = port_to_pid(port)     # 根据端口号查询进程号
+        pid = port_to_pid(port)
         if pid is None:
-            logger.warning(f"端口 {port} 未启动！")
-            return web.json_response({'code': 1, 'msg': f"端口 {port} 未启动！", 'data': None})
+            logger.warning(f"Port {port} not started!")
+            return web.json_response({'code': 1, 'msg': f"Port {port} not started!", 'data': None})
 
-        result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]     # 执行jstat命令
+        result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
         res = result.strip().split(' ')
 
-        # 当前gc数据
+        # Current GC data
         ygc = int(res[12])
         ygct = float(res[13])
         fgc = int(res[14])
@@ -129,7 +131,7 @@ async def get_gc(request):
         fygc = '-'
         ffgc = 0
 
-        # 历史gc数据
+        # Historical GC data
         fgc_history = permon.FGC[port]
         fgc_time_history = permon.FGC_time[port]
         if fgc > 0:
@@ -137,7 +139,7 @@ async def get_gc(request):
                 if len(fgc_time_history) > 1:
                     ffgc = round(time.time() - fgc_time_history[-2], 2)
                 else:
-                    result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]  # 查询该进程运行时间
+                    result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]  # the running time of the process
                     runtime = int(result.strip())
                     ffgc = round(runtime / fgc, 2)
             else:
@@ -149,17 +151,17 @@ async def get_gc(request):
         logger.error(traceback.format_exc())
         ygc, ygct, fgc, fgct, fygc, ffgc = -1, -1, -1, -1, '-', -1
 
-    return web.json_response({'code': 0, 'msg': '操作成功', 'data': [ygc, ygct, fgc, fgct, fygc, ffgc]})
+    return web.json_response({'code': 0, 'msg': 'Successful!', 'data': [ygc, ygct, fgc, fgct, fygc, ffgc]})
 
 
 async def stop_monitor(request):
     pid = port_to_pid(cfg.getServer('port'))
     if pid:
         _ = os.popen(f'kill -9 {pid}')
-        logger.info('监控客户端停止成功！')
-        return web.Response(body='监控客户端停止成功！')
+        logger.info('Stop the client successfully!')
+        return web.Response(body='Stop the client successfully!')
     else:
-        return web.Response(body='监控客户端未运行！')
+        return web.Response(body='Client is not running!')
 
 
 async def main():

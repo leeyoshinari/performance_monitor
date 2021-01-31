@@ -3,31 +3,31 @@
 {% block page_content %}
 <div style="height:100%;width:100%;float:left;">
     <div align="center">
-        主机：<select id="host" style="width: 180px; height: 26px; margin-right: 20px;">
+        Server: <select id="host" style="width: 180px; height: 26px; margin-right: 20px;">
             {% for foo in ip %}
                 <option value="{{ foo }}">{{ foo }}</option>
             {% endfor %}
     </select>
-        端口：<input type="text" name="port" id="port" placeholder="请输入端口号或进程号" style="margin-right: 20px;">
+        Port: <input type="text" name="port" id="port" placeholder="Please input the port" style="margin-right: 20px;">
         <button type="button" id="runMonitor" style="margin-right: 20px;">
-            开始监控
+            StartMonitor
         </button>
         <button type="button" id="stopMonitor" style="margin-right: 20px;">
-            停止监控
+            StopMonitor
         </button>
         <button type="button" id="MonitorList">
-            获取监控列表
+            MonitorList
         </button>
     </div>
     <br><br><br>
-    <h3 align="center">端口监控列表</h3>
-    <table width="50%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
+    <h3 align="center">Monitoring List</h3>
+    <table width="60%" border="1" cellspacing="0" cellpadding="6" align="center" id="monitor">
         <tr style="align: center; margin: auto; background-color: #99CCFF">
-            <th width=20% style="text-align: center;">服务器</th>
-            <th width=17% style="text-align: center;">端口号</th>
-            <th width=18% style="text-align: center;">进程号</th>
-            <th width=18% style="text-align: center;">状态</th>
-            <th width=27% style="text-align: center;">开始监控时间</th>
+            <th width=20% style="text-align: center;">Server</th>
+            <th width=17% style="text-align: center;">Port</th>
+            <th width=18% style="text-align: center;">PID</th>
+            <th width=18% style="text-align: center;">Status</th>
+            <th width=27% style="text-align: center;">StartTime</th>
         </tr>
         {% for foo in foos['host'] %}
             <tr align='center'>
@@ -52,7 +52,7 @@
         try{
             port = parseInt(input_port, 10);
             if (isNaN(port) || port < 1) {
-                $.Toast('请输入端口号！', 'error');
+                $.Toast('Please input the port!', 'error');
                 return;
             }
         }
@@ -94,7 +94,7 @@
         try{
             port = parseInt(input_port, 10);
             if (isNaN(port) || port < 1) {
-                $.Toast('请输入端口号！', 'error');
+                $.Toast('Please input the port!', 'error');
                 return;
             }
         }
@@ -145,13 +145,13 @@
                     }
                     data = data['data'];
                     let text_row = "<tr style=\"align: center; margin: auto; background-color: #99CCFF\">\n" +
-                        "<th width=20% style=\"text-align: center;\">服务器</th>\n" +
-                        "<th width=17% style=\"text-align: center;\">端口号</th>\n" +
-                        "<th width=18% style=\"text-align: center;\">进程号</th>\n" +
-                        "<th width=18% style=\"text-align: center;\">状态</th>\n" +
-                        "<th width=27% style=\"text-align: center;\">开始监控时间</th>\n" +
+                        "<th width=20% style=\"text-align: center;\">Server</th>\n" +
+                        "<th width=17% style=\"text-align: center;\">Port</th>\n" +
+                        "<th width=18% style=\"text-align: center;\">PID</th>\n" +
+                        "<th width=18% style=\"text-align: center;\">Status</th>\n" +
+                        "<th width=27% style=\"text-align: center;\">StartTime</th>\n" +
                         "</tr>";
-                    let run_status = ['已停止', '监控中', '排队中'];
+                    let run_status = ['stopped', 'monitoring', 'queuing'];
                     for (let i=0; i<data['port'].length; i++){
                         text_row += "<tr align='center'>";
                         text_row += "<td>" + data['host'][i] + "</td>";

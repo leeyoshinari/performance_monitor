@@ -42,16 +42,16 @@ def handle_exception(errors=(Exception, ), is_return=False, is_return_error_msg=
 @handle_exception(is_return=True, default_value='127.0.0.1')
 def get_ip():
     """
-    获取当前服务器IP地址
-    :return: IP
+    Get server's IP address
+    :return: IP address
     """
     result = os.popen("hostname -I |awk '{print $1}'").readlines()
     logger.debug(result)
     if result:
         IP = result[0].strip()
-        logger.info(f'本机IP地址为：{IP}')
+        logger.info(f'The IP address is: {IP}')
     else:
-        logger.warning('未获取到服务器IP地址')
+        logger.warning('Server IP address not found!')
         IP = '127.0.0.1'
 
     return IP

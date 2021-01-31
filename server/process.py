@@ -15,14 +15,14 @@ class Process(object):
         self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': [], 'nic': [],
                         'network_speed': [], 'disk_size': [], 'mem_usage': [], 'cpu_usage': [], 'disk_usage': []}
 
-        # 设置数据库过期时间
+        # data expiration time
         conn = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
                                        cfg.getInflux('password'), cfg.getInflux('database'))
         conn.query(f'alter retention policy "autogen" on "{cfg.getInflux("database")}" duration '
                    f'{cfg.getInflux("expiryTime")}d REPLICATION 1 SHARD DURATION {cfg.getInflux("shardDuration")} default;')
-        logger.info(f'设置数据过期时间为{cfg.getInflux("expiryTime")}天。')
+        logger.info(f'Data expiration time is {cfg.getInflux("expiryTime")} days')
 
-        t = threading.Thread(target=self.check_status, args=())  # 开启线程，检查已经注册的客户端是否在线
+        t = threading.Thread(target=self.check_status, args=())  # Check the online status of the clients.
         t.start()
 
     @property
@@ -31,7 +31,7 @@ class Process(object):
 
     @slaves.setter
     def slaves(self, value):
-        logger.debug(f'客户端注册数据为{value}')
+        logger.debug(f'The client registration data is {value}')
         ip = value['host']
         if ip in self._slaves['ip']:
             ind = self._slaves['ip'].index(ip)
@@ -39,7 +39,7 @@ class Process(object):
             self._slaves['mem_usage'][ind] = value['mem_usage']
             self._slaves['disk_usage'][ind] = value['disk_usage']
             self._slaves['time'][ind] = time.time()
-            logger.info(f'{ip}服务器已注册')
+            logger.info(f'{ip} server has been registered.')
         else:
             self._slaves['ip'].append(value['host'])
             self._slaves['port'].append(value['port'])
@@ -54,11 +54,11 @@ class Process(object):
             self._slaves['cpu_usage'].append((value['cpu_usage']))
             self._slaves['mem_usage'].append((value['mem_usage']))
             self._slaves['disk_usage'].append((value['disk_usage']))
-            logger.info(f'{ip}服务器注册成功')
+            logger.info(f'{ip} server registered successfully!')
 
     def check_status(self):
         """
-        检查客户端是否在线，不在线则剔除
+         Check the online status of the clients, and remove it when offline.
         :return:
         """
         while True:
@@ -78,35 +78,36 @@ class Process(object):
                     self._slaves['cpu_usage'].pop(i)
                     self._slaves['mem_usage'].pop(i)
                     self._slaves['disk_usage'].pop(i)
-                    logger.warning(f"客户端{ip}服务器状态异常，已下线")
+                    logger.warning(f"The client server {ip} is in an abnormal state, and has been offline.")
                     break
 
     @handle_exception(is_return=True, default_value=[-1, -1, -1, -1, '-', -1])
     def get_gc(self, ip, port, interface):
         """
-        获取端口的垃圾回收数据，访问地址 http://ip:port/interface
-        :param ip: 客户端服务器IP
-        :param port: 客户端启用端口
-        :param interface: 访问接口名称
+        Get GC data of port
+        :param ip: clent IP
+        :param port: client monitoring port
+        :param interface: interface
         :return:
         """
         res = self.request.request('get', ip, port, interface)
         if res.status_code == 200:
             response = json.loads(res.content.decode())
-            logger.debug(f'获取{ip}服务器的{port}端口的gc数据为{response}')
+            logger.debug(f'The GC data of the port {port} of the server {ip} is {response}')
             if response['code'] == 0:
                 return response['data']
             else:
                 logger.error(response['msg'])
                 return [-1, -1, -1, -1, '-', -1]
         else:
-            logger.error(f'获取{ip}服务器的{port}端口的gc数据的接口响应状态码为{res.status_code}')
+            logger.error(f'The response status code of getting GC data of the '
+                         f'port {port} of the server {ip} is {res.status_code}.')
             return [-1, -1, -1, -1, '-', -1]
 
     @handle_exception(is_return=True, default_value={'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []})
     def get_monitor(self, host=None):
         """
-        获取监控端口列表接口
+         Get the list of monitoring ports.
         :return:
         """
         monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
@@ -115,29 +116,27 @@ class Process(object):
                 'host': host,
             }
             port = self._slaves['port'][self._slaves['ip'].index(host)]
-            res = self.request.request('post', host, port, 'getMonitor', json=post_data)  # 通过url获取
+            res = self.request.request('post', host, port, 'getMonitor', json=post_data)
             if res.status_code == 200:
                 response = json.loads(res.content.decode())
-                logger.debug(f'{host}服务器获取监控列表接口返回值为{response}')
+                logger.debug(f'The return value of server {host} of getting monitoring list is {response}.')
                 if response['code'] == 0:
-                    # 拼接端口监控列表
                     monitor_list['host'] += response['data']['host']
                     monitor_list['port'] += response['data']['port']
                     monitor_list['pid'] += response['data']['pid']
                     monitor_list['isRun'] += response['data']['isRun']
                     monitor_list['startTime'] += response['data']['startTime']
         else:
-            for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # 遍历所有客户端IP地址，获取端口监控列表
+            for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # Traverse all clients IP addresses
                 post_data = {
                     'host': ip,
                 }
                 try:
-                    res = self.request.request('post', ip, port, 'getMonitor', json=post_data)  # 通过url获取
+                    res = self.request.request('post', ip, port, 'getMonitor', json=post_data)
                     if res.status_code == 200:
                         response = json.loads(res.content.decode())
-                        logger.debug(f'{ip}服务器获取监控列表接口返回值为{response}')
+                        logger.debug(f'The return value of server {ip} of getting monitoring list is {response}')
                         if response['code'] == 0:
-                            # 拼接端口监控列表
                             monitor_list['host'] += response['data']['host']
                             monitor_list['port'] += response['data']['port']
                             monitor_list['pid'] += response['data']['pid']

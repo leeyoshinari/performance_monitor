@@ -1,5 +1,5 @@
 function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_available, IO, disk_r, disk_w, disk_d, net, rec, trans, tcp, retrans) {
-    // 以下是使用快速排序算法排序
+    // Quick sort
     /*let cpu_sorted = quickSort(cpu);
     let IO_sorted = quickSort(IO);
     let disk_r_sorted = quickSort(disk_r);
@@ -8,7 +8,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
     let rec_sorted = quickSort(rec);
     let trans_sorted = quickSort(trans);*/
 
-    // 以下是使用默认的排序方法，冒泡排序
+    // Bubble Sort
     let cpu_sorted = [...cpu];
     let iowait_sorted = [...iowait];
     let IO_sorted = [...IO];
@@ -28,7 +28,6 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
     net_sorted.sort(function (a, b) {return a - b});
     rec_sorted.sort(function (a, b) {return a - b});
     trans_sorted.sort(function (a, b) {return a - b});
-    // 以上是冒泡排序方法
 
     let start_time = Date.parse(new Date(x_label[0]));
     let end_time = Date.parse(new Date(x_label[x_label.length - 1]));
@@ -490,7 +489,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
         let tcp_zoom = tcp.slice(start_index, end_index);
         let retrans_zoom = retrans.slice(start_index, end_index);
 
-        // 以下是使用默认的排序方法，冒泡排序
+        // Bubble Sort
         let cpu_sorted = cpu.slice(start_index, end_index);
         let iowait_sorted = iowait.slice(start_index, end_index);
         let IO_sorted = IO.slice(start_index, end_index);
@@ -507,9 +506,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
         net_sorted.sort(function (a, b) {return a - b});
         rec_sorted.sort(function (a, b) {return a - b});
         trans_sorted.sort(function (a, b) {return a - b});
-        // 以上是冒泡排序方法
 
-        // 以下是使用快速排序算法排序
+        // Quick Sort
         /*let cpu_sorted = quickSort(cpu.slice(start_index, end_index));
         let IO_sorted = quickSort(IO.slice(start_index, end_index));
         let disk_r_sorted = quickSort(disk_r.slice(start_index, end_index));

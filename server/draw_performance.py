@@ -2,7 +2,6 @@
 # -*- coding:utf-8 -*-
 # Author: leeyoshinari
 import time
-import datetime
 import traceback
 import influxdb
 from logger import logger, cfg
@@ -10,14 +9,14 @@ from logger import logger, cfg
 
 def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, system=None, disk=None):
     """
-    从hbase数据库中读取数据并画图
-    :param host: 客户端服务器IP，必传参数
-    :param port: 端口号，即画该端口号的图；可选参数，和pid、system参数互斥，三选一
-    :param pid: 进程号，即画该进程号的图；可选参数，和port、system参数互斥，三选一
-    :param startTime: 画图数据开始时间；可选参数
-    :param endTime: 画图数据截止时间；可选参数
-    :param system: 画整个系统CPU和内存图，可选参数，和port、pid参数互斥，三选一
-    :param disk: 磁盘号，查看指定磁盘号的IO，可选参数
+    Get data from InfluxDB, and visualize
+    :param host: client IP, required
+    :param port: port, visualize port data; optional, choose one from port, pid and system
+    :param pid: pid, visualize pid data; optional, choose one from port, pid and system
+    :param startTime: Start time; optional
+    :param endTime: end time; optional
+    :param system: visualize system data; optional, choose one from port, pid and system
+    :param disk: disk number; optional
     :return:
     """
     post_data = {
@@ -42,25 +41,25 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
         'retrans': [],
         'disk': disk}
 
-    res = {'code': 1, 'flag': 1, 'message': '查询成功'}
+    res = {'code': 1, 'flag': 1, 'message': 'Successful!'}
 
     connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
-                                         cfg.getInflux('password'), cfg.getInflux('database'))   # 创建数据库连接
+                                         cfg.getInflux('password'), cfg.getInflux('database'))
 
     try:
-        if startTime and endTime:     # 如果存在开始时间和结束时间
+        if startTime and endTime:     # If there is a start time and an end time
             pass
-        elif startTime is None and endTime is None:   # 如果开始时间和结束时间都不存在，则使用默认时间，即查询所有数据
+        elif startTime is None and endTime is None:  # If the start time and end time do not exist, use the default time.
             startTime = '2020-05-20 20:20:20'
             endTime = time.strftime('%Y-%m-%d %H:%M:%S')
-        else:   # 如果结束时间不存在，则使用当前时间
+        else:   # If the end time does not exist, the current time is used
             endTime = time.strftime('%Y-%m-%d %H:%M:%S')
 
         s_time = time.time()
-        if port:    # 读取和端口号相关的CPU使用率、内存使用大小和jvm变化数据
+        if port:
             sql = f"select cpu, wait_cpu, mem, tcp, jvm, rKbs, wKbs, iodelay, close_wait, time_wait from \"{host}\" " \
                   f"where time>'{startTime}' and time<'{endTime}' and type='{port}' tz('Asia/Shanghai')"
-            logger.info(f'执行sql：{sql}')
+            logger.info(f'Execute sql: {sql}')
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'port'
@@ -77,13 +76,14 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                     post_data['close_wait'].append(data['close_wait'])
                     post_data['time_wait'].append(data['time_wait'])
             else:
-                res['message'] = f'未查询到{port}端口的监控数据，请检查端口是否已监控，或者时间设置是否正确！'
+                res['message'] = f'The monitoring data of the port {port} is not queried, ' \
+                                 f'please check the port or time setting.'
                 res['code'] = 0
 
-            if disk:  # 读取磁盘IO数据
+            if disk:
                 sql = f"select rec, trans, net from \"{host}\" where time>'{startTime}' and time<'{endTime}' and " \
                       f"type='system' tz('Asia/Shanghai')"
-                logger.info(f'执行sql：{sql}')
+                logger.info(f'Execute sql: {sql}')
                 datas = connection.query(sql)
                 if datas:
                     for data in datas.get_points():
@@ -91,13 +91,13 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                         post_data['rec'].append(data['rec'])
                         post_data['trans'].append(data['trans'])
                 else:
-                    res['message'] = '未查询到系统监控数据，请检查磁盘号，或者时间设置！'
+                    res['message'] = 'No monitoring data is found, please check the disk number or time setting.'
                     res['code'] = 0
 
-        if pid:     # 读取和进程号相关的CPU使用率、内存使用大小和jvm变化数据
+        if pid:
             pass
 
-        if system and disk:      # 读取整个系统的CPU使用率、剩余内存大小
+        if system and disk:
             disk_n = disk.replace('-', '')
             disk_r = disk_n + '_r'
             disk_w = disk_n + '_w'
@@ -105,7 +105,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
             sql = f"select cpu, iowait, mem, mem_available, {disk_n}, {disk_r}, {disk_w}, {disk_d}, rec, trans, " \
                   f"net, tcp, retrans from \"{host}\" where time>'{startTime}' and time<'{endTime}' and " \
                   f"type='system' tz('Asia/Shanghai')"
-            logger.info(f'执行sql：{sql}')
+            logger.info(f'Execute sql: {sql}')
             datas = connection.query(sql)
             if datas:
                 post_data['types'] = 'system'
@@ -126,16 +126,14 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                     post_data['retrans'].append(data['retrans'])
 
             else:
-                res['message'] = '未查询到系统监控数据，请检查磁盘号，或者时间设置！'
+                res['message'] = 'No monitoring data is found, please check the disk number or time setting.'
                 res['code'] = 0
 
         res.update({'post_data': post_data})
-        logger.info(f'查询数据库耗时：{time.time() - s_time}')
+        logger.info(f'Time consuming to query is {time.time() - s_time}')
 
-        # s_time = time.time()
-        # lines = get_lines(post_data)      # 计算百分位数，75%、90%、95%、99%
+        # lines = get_lines(post_data)      # Calculate percentile, 75%, 90%, 95%, 99%
         # res.update(lines)
-        # logger.info(f'计算百分位数耗时：{time.time() - s_time}')
 
     except Exception as err:
         logger.error(traceback.format_exc())
@@ -148,8 +146,8 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
 
 def get_lines(datas):
     """
-    计算cpu、磁盘、带宽的百分位数
-    :param datas: CPU使用率(%)
+    Calculate percentile
+    :param datas
     :return:
     """
     cpu = datas['cpu']
@@ -186,29 +184,3 @@ def get_lines(datas):
               round(nic[int(len(nic) * 0.99)], 3)]
 
     return {'line': [line75, line90, line95, line99]}
-
-
-def utc2local(utc_time):
-    """
-    UTC时间转北京时间
-    influexdb数据库的时间戳是UTC格式，例如：2020-02-02T02:02:02.20200202Z。按照"%Y-%m-%dT%H:%M:%S.%fZ"格式化UTC时间戳时，
-    只能匹配小数点后6位，大于6位无法匹配，故根据"."分割，然后转换
-    :param utc_time: UTC时间
-    :return: 北京时间
-    """
-    local_format = "%Y-%m-%d %H:%M:%S"
-    utc_format = "%Y-%m-%dT%H:%M:%S"
-    local_time = datetime.datetime.strptime(utc_time.split('.')[0], utc_format) + datetime.timedelta(hours=8)
-    return local_time.strftime(local_format)
-
-
-def local2utc(local_time):
-    """
-    北京时间转UTC时间
-    :param local_time: 北京时间
-    :return: UTC时间
-    """
-    local_format = "%Y-%m-%d %H:%M:%S"
-    utc_format = "%Y-%m-%dT%H:%M:%S.%fZ"
-    utc_time = datetime.datetime.strptime(local_time, local_format) - datetime.timedelta(hours=8)
-    return utc_time.strftime(utc_format)
