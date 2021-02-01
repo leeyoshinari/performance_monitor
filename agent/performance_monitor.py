@@ -629,7 +629,7 @@ class PerMon(object):
 
         if cpu_model and cpu_num and cpu_core:
             self.cpu_info = f'{cpu_num} CPU(s), {cpu_core} core(s) pre CPU, total {self.cpu_cores} cores, ' \
-                            f'CPU model is {cpu_model} .'
+                            f'CPU model is {cpu_model} '
         else:
             self.cpu_info = f'total CPU cores is {self.cpu_cores}'
 
