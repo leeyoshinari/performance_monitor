@@ -19,13 +19,13 @@
     </select>
     StartTime: <input type="text" name="starttime" id="starttime" style="margin-right: 20px; width: 10%;" value="{{ starttime }}">
     EndTime: <input type="text" name="endtime" id="endtime" style="margin-right: 20px; width: 10%;" value="{{ endtime }}">
-    <button type="button" id="MonitorList" style="width: 5%;">&nbsp;Visualize&nbsp;</button>
+    <button type="button" id="MonitorList" style="width: 6%;">&nbsp;Visualize&nbsp;</button>
 </div>
 <div id="figure" style="width: 95%;height:1100px;margin: 0 auto;"></div>
 <div id="container" style="width: 89.911%; margin:0 auto">
     <div id="container1" style="display: none;">
         <h4 align="center">Percentiles</h4>
-        <table width="90%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
+        <table width="100%" cellspacing="0" border="1" cellpadding="6" align="center" id="percentile">
             <tr style="align: center; margin: auto; background-color: #99CCFF">
                 <td width="10%" style="text-align: center;">Percentile</td>
                 <td width="10%" style="text-align: center;">CPU(%)</td>
@@ -51,9 +51,9 @@
         </table>
     </div>
 
-    <div id="container2" style="float: left; margin-left: 10px; margin-top: 15px; margin-bottom: 66px; display: none;">
+    <div id="container2" style="float: left; width: 36%; margin-left: 3%; margin-top: 15px; margin-bottom: 66px; display: none;">
         <h4 align="center">Garbage Collection</h4>
-        <table width="50%" cellpadding="6" cellspacing="0" border="1" align="center" id="gc">
+        <table width="90%" cellpadding="6" cellspacing="0" border="1" align="center" id="gc">
             <tr style="align: center; margin: auto; background-color: #99CCFF">
                 <td width="10%" style="text-align: center;">GC</td>
                 <td width="10%" style="text-align: center;">Times</td>
@@ -139,9 +139,10 @@
 
                     if (data['flag'] === 1) {
                         percentile.style['float'] = 'left';
-                        percentile.style['margin-left'] = '20px';
+                        percentile.style['margin-left'] = '6%';
                         percentile.style['display'] = '';
-                        table1.style['width'] = '90%';
+                        percentile.style['width'] = '50%';
+                        table1.style['width'] = '100%';
                         gc.style['display'] = '';
 
                         table2.rows[1].cells[1].innerHTML = data['gc'][0];
@@ -154,6 +155,7 @@
                     else {
                         percentile.style['float'] = '';
                         percentile.style['margin-left'] = '';
+                        percentile.style['width'] = '';
                         percentile.style['display'] = '';
                         table1.style['width'] = '50%';
                         gc.style['display'] = 'none';

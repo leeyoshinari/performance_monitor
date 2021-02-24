@@ -453,7 +453,7 @@ class PerMon(object):
         if self.FGC[str(port)] == 0:    # If the times of FGC is 0, reset FGC time.
             self.FGC_time[str(port)] = []
 
-        return mem / 1024 / 1024
+        return mem / 1048576    # 1048576 = 1024 * 1024
 
     @handle_exception(is_return=True, default_value={})
     def get_system_cpu_io_speed(self):
@@ -514,11 +514,12 @@ class PerMon(object):
         if bps1 and bps2:
             data1 = bps1[0].split(':')[1].strip().split(' ')
             data2 = bps2[0].split(':')[1].strip().split(' ')
-            rece = (int(data2[0]) - int(data1[0])) / 1024 / 1024
-            trans = (int(data2[8]) - int(data1[8])) / 1024 / 1024
-            # 800 = 8 * 100, Why multiply by 8,
+            rece = int(data2[0]) - int(data1[0])
+            trans = int(data2[8]) - int(data1[8])
+            # 800 = 8 * 100, Why multiply by 8, 1048576 = 1024 * 1024
+            # 7.62939453125e-4 = 800 / 1048576
             # Because the bandwidth of ethernet divided by 8 is the maximum rate supported by the ethernet.
-            network = 800 * (rece + trans) / self.network_speed
+            network = 7.62939453125e-4 * (rece + trans) / 2 / self.network_speed
             logger.debug(f'The bandwidth of ethernet is: Receive {rece}Mb/s, Transmit {trans}Mb/s, Ratio {network}%')
 
         tcp, Retrans_ratio = self.get_tcp()
@@ -538,9 +539,9 @@ class PerMon(object):
         logger.debug(f'The free memory is: {result}')
         for res in result:
             if 'MemFree' in res:
-                mem = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+                mem = float(res.split(':')[-1].split('k')[0].strip()) / 1048576     # 1048576 = 1024 * 1024
             if 'MemAvailable' in res:
-                mem_available = float(res.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+                mem_available = float(res.split(':')[-1].split('k')[0].strip()) / 1048576   # 1048576 = 1024 * 1024
 
         return mem, mem_available
 
@@ -640,7 +641,7 @@ class PerMon(object):
         :return:
         """
         result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
-        self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1024 / 1024
+        self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1048576   # 1048576 = 1024 * 1024
         self.total_mem_100 = self.total_mem / 100
         logger.info(f'The total memory is {self.total_mem}G')
 
