@@ -78,7 +78,7 @@ Before packaging, you must ensure that the python code can run normally.<br>
     ```
     pyinstaller -F server.py -p draw_performance.py -p config.py -p Email.py -p logger.py -p process.py -p request.py -p __init__.py --hidden-import draw_performance --hidden-import config --hidden-import logger --hidden-import Email --hidden-import process --hidden-import request
     ```
-    (2) Enter `dist` folde, find the executable file `server`,<br>
+    (2) Enter `dist` folder, find the executable file `server`,<br>
     (3) Copy `config.ini` to the `dist` folder,<br>
     (4) Copy `templates` and `static` to the `dist` folder,<br>
     (5) Start server
@@ -91,7 +91,7 @@ Before packaging, you must ensure that the python code can run normally.<br>
     ```shell
     pyinstaller -F server.py -p performance_monitor.py -p logger.py -p config.py -p common.py -p __init__.py --hidden-import logger --hidden-import performance_monitor --hidden-import common --hidden-import config
     ```
-    (2) Enter `dist` folde, find the executable file `server`,<br>
+    (2) Enter `dist` folder, find the executable file `server`,<br>
     (3) Copy `config.ini` to the `dist` folder,<br>
     (4) Copy the `dist` folder to other clients, and start server
     ```shell
@@ -100,7 +100,7 @@ Before packaging, you must ensure that the python code can run normally.<br>
    NOTE: Since the `agent` needs to run on the server to be monitored, the executable file packaged on the server of the CentOS system X86 architecture can only run on the server of the CentOS system X86 architecture; servers of other system and architecture need to be repackaged `agent`. <br>
 
 ## Note
-1. The server must support the following commands: `ps`, `jstat`, `iostat`, `pidstat` and `netstat`, if not, please install it. 
+1. The server must support the following commands: `ps`, `jstat`, `iostat`, `pidstat` and `netstat`, if not, please install them. 
 
 2. The version of sysstat must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download the latest version.
 
