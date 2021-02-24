@@ -67,7 +67,7 @@
    (3) Click MonitorList tab to see the monitoring page. Select server and enter the port, then click the startMonitor button to start monitoring the port on the selected server; click the stopMonitor button to stop monitoring the port on the selected server.<br>
    ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/monitor.jpg)
    
-   (4) Click Visualize tab to see the visualization page. Select server, type, disk, startTime and endTime, then click the Visualize button to viaualize the monitoring data.<br>
+   (4) Click Visualize tab to see the visualization page. Select server, type, disk, startTime and endTime, then click the Visualize button to visualize the monitoring data.<br>
    ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/visual.jpg)
    
 ## Package
