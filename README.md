@@ -102,11 +102,13 @@ Before packaging, you must ensure that the python code can run normally.<br>
 ## Note
 1. The server must support the following commands: `ps`, `jstat`, `iostat`, `pidstat` and `netstat`, if not, please install them. 
 
-2. The version of sysstat must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download the latest version.
+2. The network card of server must be in full duplex mode, if not, the network usage will be incorrect.
 
-3. If you don’t know how to install Python3.7+ on Linux server, please [click me](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85).
+3. The version of sysstat must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download the latest version.
 
-4. The code can be run on almost any linux system that can run python. The tested systems have `CentOS`, `Ubuntu`, `KylinOS`, `NeoKylin`, support `X86_64` and `ARM` architecture.
+4. If you don’t know how to install Python3.7+ on Linux server, please [click me](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85).
+
+5. The code can be run on almost any linux system that can run python. The tested systems have `CentOS`, `Ubuntu`, `KylinOS`, `NeoKylin`, support `X86_64` and `ARM` architecture.
 
 ## Requirements
 1. aiohttp>=3.6.2

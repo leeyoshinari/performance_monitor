@@ -501,9 +501,9 @@ class PerMon(object):
                     disk_line = disk_res[j].strip().split(' ')
                     disk_num = disk_line[0].replace('-', '')
                     disk.update({disk_num: float(disk_line[-1])})      # IO
-                    disk_r.update({disk_num + '_r': float(disk_line[2])})     # Read Mb/s
-                    disk_w.update({disk_num + '_w': float(disk_line[8])})     # Write Mb/s
-                    disk_d.update({disk_num + '_d': float(disk_line[14])})     # Mb/s
+                    disk_r.update({disk_num + '_r': float(disk_line[2])})     # Read MB/s
+                    disk_w.update({disk_num + '_w': float(disk_line[8])})     # Write MB/s
+                    disk_d.update({disk_num + '_d': float(disk_line[14])})     # MB/s
 
                 logger.debug(f'The result of disks are: IO: {disk}, Read: {disk_r}, Write: {disk_w}')
 
@@ -514,13 +514,13 @@ class PerMon(object):
         if bps1 and bps2:
             data1 = bps1[0].split(':')[1].strip().split(' ')
             data2 = bps2[0].split(':')[1].strip().split(' ')
-            rece = int(data2[0]) - int(data1[0])
-            trans = int(data2[8]) - int(data1[8])
-            # 800 = 8 * 100, Why multiply by 8, 1048576 = 1024 * 1024
-            # 7.62939453125e-4 = 800 / 1048576
-            # Because the bandwidth of ethernet divided by 8 is the maximum rate supported by the ethernet.
-            network = 7.62939453125e-4 * (rece + trans) / 2 / self.network_speed
-            logger.debug(f'The bandwidth of ethernet is: Receive {rece}Mb/s, Transmit {trans}Mb/s, Ratio {network}%')
+            rece = (int(data2[0]) - int(data1[0])) / 1048576
+            trans = (int(data2[8]) - int(data1[8])) / 1048576
+            # 400 = 8 * 100 / 2
+            # Why multiply by 8, because 1MB/s = 8Mb/s.
+            # Why divided by 2, because the network card is in full duplex mode.
+            network = 400 * (rece + trans) / self.network_speed
+            logger.debug(f'The bandwidth of ethernet is: Receive {rece}MB/s, Transmit {trans}MB/s, Ratio {network}%')
 
         tcp, Retrans_ratio = self.get_tcp()
 

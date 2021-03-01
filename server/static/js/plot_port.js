@@ -48,7 +48,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 },
             },
             {
-                text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration,
+                text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'MB/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'MB/s, Duration: ' + duration,
                 x: 'center',
                 y: 700,
                 textStyle: {
@@ -114,7 +114,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 icon: 'line'
             },
             {
-                data: ['rMb/s', 'wMb/s', 'IO_Delay'],
+                data: ['rMB/s', 'wMB/s', 'IO_Delay'],
                 x: 'center',
                 y: 725,
                 icon: 'line'
@@ -218,7 +218,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
             {gridIndex: 1},
             {
                 gridIndex: 2,
-                name: 'Speed(Mb/s)',
+                name: 'Speed(MB/s)',
                 type: 'value',
                 max: Math.max(rkbs_sorted.slice(-1)[0], wkbs_sorted.slice(-1)[0]).toFixed(2)
             },
@@ -291,7 +291,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 data: []
             },
             {
-                name: 'rMb/s',
+                name: 'rMB/s',
                 type: 'line',
                 xAxisIndex: 2,
                 yAxisIndex: 4,
@@ -303,7 +303,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 data: rkbs
             },
             {
-                name: 'wMb/s',
+                name: 'wMB/s',
                 type: 'line',
                 xAxisIndex: 2,
                 yAxisIndex: 4,
@@ -433,7 +433,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
             title: [
                 {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
                 {text: 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G; JVM(G), Max: ' + findMax(jvm).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                {text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                {text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'MB/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
                 {text: 'TCP, TCP: ' + findMax(tcp).toFixed(2) + ', Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}}
             ]});
         } else {
@@ -441,7 +441,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 title: [
                     {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
                     {text: 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                    {text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                    {text: 'IO, IOdelay: ' + iodelay_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + rkbs_sorted.slice(-1)[0].toFixed(2) + 'MB/s, Max Write: ' + wkbs_sorted.slice(-1)[0].toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
                     {text: 'TCP, TCP: ' + findMax(tcp).toFixed(2) + ', Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}}
                 ]});}
 
@@ -469,7 +469,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
 }
 
 function findMax(arr) {
-    let len = arr.length
+    let len = arr.length;
     let max = arr[0];
     while (len--) {
         if (arr[len] > max) {
@@ -480,7 +480,7 @@ function findMax(arr) {
 }
 
 function findMin(arr) {
-    let len = arr.length
+    let len = arr.length;
     let min = arr[0];
     while (len--) {
         if (arr[len] < min) {
@@ -497,7 +497,7 @@ function quickSort(arr){
     let temp = arr.pop();
     let left = [];
     let right = [];
-    for(let i=0;i<arr.length;i++){
+    for(let i=0; i<arr.length; i++){
         if(arr[i]<temp){
             left.push(arr[i]);
         }else{

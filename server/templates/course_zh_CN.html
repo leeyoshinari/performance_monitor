@@ -136,6 +136,7 @@
     <h2>注意</h2>
     <ol>
         <li>服务器必须支持以下命令：<code>jstat</code>、<code>iostat</code>、<code>netstat</code>，如不支持，请安装。</li>
+        <li>服务器网卡必须设置成全双工模式，设置成其他模式将会导致网络带宽使用率计算不正确。</li>
         <li>服务器上的sysstat必须是新版本，当前测试使用的版本是12，如不支持，请<a href="http://sebastien.godard.pagesperso-orange.fr/download.html">下载安装</a>。</li>
         <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
         <li>当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统<code>CentOS</code>、<code>Ubuntu</code>、<code>中标麒麟</code>、<code>银河麒麟</code>，支持<code>X86_64</code>和<code>ARM</code>架构。</li>

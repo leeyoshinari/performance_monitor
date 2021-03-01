@@ -61,7 +61,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 }
             },
             {
-                text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + disk_r_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + disk_w_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration,
+                text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration,
                 x: 'center',
                 y: 700,
                 textStyle: {
@@ -69,7 +69,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 }
             },
             {
-                text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Max Rec: ' + rec_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Trans: ' + trans_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration,
+                text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Rec: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration,
                 x: 'center',
                 y: 1050,
                 textStyle: {
@@ -141,13 +141,13 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 icon: 'line'
             },
             {
-                data: ['rMb/s', 'wMb/s', 'IO'],
+                data: ['rMB/s', 'wMB/s', 'IO'],
                 x: 'center',
                 y: 725,
                 icon: 'line'
             },
             {
-                data: ['rMb/s', 'tMb/s', 'Net'],
+                data: ['rMB/s', 'tMB/s', 'Net'],
                 x: 'center',
                 y: 1075,
                 icon: 'line'
@@ -265,7 +265,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
             {gridIndex: 1},
             {
                 gridIndex: 2,
-                name: 'Speed(Mb/s)',
+                name: 'Speed(MB/s)',
                 type: 'value',
                 max: Math.max(disk_r_sorted.slice(-1)[0], disk_w_sorted.slice(-1)[0]).toFixed(2)
             },
@@ -277,7 +277,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
             },
             {
                 gridIndex: 3,
-                name: 'Speed(Mb/s)',
+                name: 'Speed(MB/s)',
                 type: 'value',
                 max: Math.max(rec_sorted.slice(-1)[0], trans_sorted.slice(-1)[0]).toFixed(2)
             },
@@ -351,7 +351,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 data: mem
             },
             {
-                name: 'rMb/s',
+                name: 'rMB/s',
                 type: 'line',
                 xAxisIndex: 2,
                 yAxisIndex: 4,
@@ -363,7 +363,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 data: disk_r
             },
             {
-                name: 'wMb/s',
+                name: 'wMB/s',
                 type: 'line',
                 xAxisIndex: 2,
                 yAxisIndex: 4,
@@ -387,7 +387,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 data: IO
             },
             {
-                name: 'rMb/s',
+                name: 'rMB/s',
                 type: 'line',
                 xAxisIndex: 3,
                 yAxisIndex: 6,
@@ -399,7 +399,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 data: rec
             },
             {
-                name: 'tMb/s',
+                name: 'tMB/s',
                 type: 'line',
                 xAxisIndex: 3,
                 yAxisIndex: 6,
@@ -532,8 +532,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
             title: [
                 {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line CPU: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 90%Line IOWait: ' + iowait_sorted[parseInt(0.9 * iowait_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
                 {text: 'Memory(G), Min Available:: ' + findMin(mem_a_zoom).toFixed(2) + 'G, Min Free:: ' + findMin(mem_zoom).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                {text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Max Read: ' + disk_r_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Write: ' + disk_w_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
-                {text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Max Rec: ' + rec_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Max Trans: ' + trans_sorted.slice(-1)[0].toFixed(2) + 'Mb/s, Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
+                {text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                {text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Rec: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
                 {text: 'TCP, Max TCP: ' + findMax(tcp_zoom) + ', TCP Retrans: '+ findMax(retrans_zoom).toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}}]});
 
         tables1.rows[1].cells[1].innerHTML = cpu_sorted[parseInt(0.75 * cpu_sorted.length)].toFixed(2);
@@ -568,7 +568,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
 }
 
 function findMax(arr) {
-    let len = arr.length
+    let len = arr.length;
     let max = arr[0];
     while (len--) {
         if (arr[len] > max) {
@@ -579,7 +579,7 @@ function findMax(arr) {
 }
 
 function findMin(arr) {
-    let len = arr.length
+    let len = arr.length;
     let min = arr[0];
     while (len--) {
         if (arr[len] < min) {
@@ -587,6 +587,15 @@ function findMin(arr) {
         }
     }
     return min;
+}
+
+function average(arr) {
+    let Sum = 0;
+    let total = arr.length;
+    for (let i=0; i<total; i++) {
+        Sum = Sum + arr[i];
+    }
+    return Sum / total;
 }
 
 function quickSort(arr){
