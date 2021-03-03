@@ -4,7 +4,7 @@
 
 import os
 import traceback
-from logger import logger
+from logger import logger, cfg
 
 
 def handle_exception(errors=(Exception, ), is_return=False, is_return_error_msg=False, default_value=None):
@@ -45,13 +45,16 @@ def get_ip():
     Get server's IP address
     :return: IP address
     """
-    result = os.popen("hostname -I |awk '{print $1}'").readlines()
-    logger.debug(result)
-    if result:
-        IP = result[0].strip()
-        logger.info(f'The IP address is: {IP}')
+    if cfg.getServer('host'):
+        IP = cfg.getServer('host')
     else:
-        logger.warning('Server IP address not found!')
-        IP = '127.0.0.1'
+        result = os.popen("hostname -I |awk '{print $1}'").readlines()
+        logger.debug(result)
+        if result:
+            IP = result[0].strip()
+            logger.info(f'The IP address is: {IP}')
+        else:
+            logger.warning('Server IP address not found!')
+            IP = '127.0.0.1'
 
     return IP
