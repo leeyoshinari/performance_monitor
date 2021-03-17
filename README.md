@@ -110,6 +110,8 @@ Before packaging, you must ensure that the python code can run normally.<br>
 
 5. The code can be run on almost any linux system that can run python. The tested systems have `CentOS`, `Ubuntu`, `KylinOS`, `NeoKylin`, support `X86_64` and `ARM` architecture.
 
+6. If you encounter [the problem #8](https://github.com/leeyoshinari/performance_monitor/issues/8) , please rename `draw_performance1.py` to `draw_performance.py`, and rename `performance_monitor1.py` to `performance_monitor.py`. I'm very reluctant to use this method to solve the problem, but I can't find other solutions, if you know, please tell me, thank you very much!
+
 ## Requirements
 1. aiohttp>=3.6.2
 2. aiohttp_jinja2>=1.2.0

@@ -116,15 +116,17 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 ## 注意
 1. 服务器必须支持以下命令：`jstat`、`iostat`、`netstat`，如不支持，请安装。
 
-2. sysstat的版本必须是12+，目前测试过12的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html)
+2. sysstat的版本必须是12+，目前测试过12的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 。
 
-3. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85)。
+3. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85) 。
 
 4. 如需查看最新的操作文档，可在运行程序后，查看教程即可。
 
 5. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。
 
 6. 当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统`CentOS`、`Ubuntu`、`中标麒麟`、`银河麒麟`，支持`X86_64`和`ARM`架构。
+
+7. 如果你遇到了[这个问题 #8](https://github.com/leeyoshinari/performance_monitor/issues/8) ，请把`draw_performance1.py`重命名成`draw_performance.py`，把`performance_monitor1.py`重命名成`performance_monitor.py`。如果你知道这个问题的解决方法，麻烦告诉我，万分感谢。
 
 ## Requirements
 1. aiohttp>=3.6.2
