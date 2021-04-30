@@ -45,9 +45,6 @@
             </p>
         </li>
         <li>
-            <p>Respectively modify the configuration files <code>config.ini</code> in the server and agent folders. </p>
-        </li>
-        <li>
             <p>Deploy InfluxDB, installation steps on CentOS are as follows:</p>
             <p>
                 (1) Download and install<br>
@@ -67,6 +64,12 @@
                     &ensp;&ensp;&ensp;&ensp;<code>create user root with password '123456'</code> <br>
                     &ensp;&ensp;&ensp;&ensp;<code>grant all privileges on test to root</code> <br>
             </p>
+        </li>
+        <li>
+            <p>Respectively modify the configuration files <code>config.ini</code> in the server and agent folders. </p>
+        </li>
+        <li>
+            <p>Check the version of <code>sysstat</code>. Respectively use commands <code>iostat -V</code> and <code>pidstat -V</code>, the version of <code>12.4.0</code> has been tested, if not, please<a href="http://sebastien.godard.pagesperso-orange.fr/download.html"> click me </a>to download it. </p>
         </li>
         <li>
             <p>Respectively run <code>server.py</code> in server and agent folders.</p>
@@ -126,7 +129,7 @@
     <h2>Note</h2>
     <ol>
         <li>The server must support the following commands: <code>ps</code>, <code>jstat</code>, <code>pidstat</code>, <code>iostat</code> and <code>netstat</code>, if not, please install it.</li>
-        <li>The version of sysstat must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please<a href="http://sebastien.godard.pagesperso-orange.fr/download.html"> click me </a>to download the latest version.</li>
+        <li>The version of <code>sysstat</code> must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please<a href="http://sebastien.godard.pagesperso-orange.fr/download.html"> click me </a>to download the latest version.</li>
         <li>The network card of server must be in full duplex mode, if not, the network usage will be incorrect.</li>
         <li>The code can be run on almost any linux system that can run python. The tested systems have <code>CentOS</code>, <code>Ubuntu</code>, <code>KylinOS</code>, <code>NeoKylin</code>, support <code>X86_64</code> and <code>ARM</code> architecture.</li>
     </ol>

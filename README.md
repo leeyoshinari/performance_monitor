@@ -32,9 +32,7 @@
    ```
    The server folder is the Server, and only one needs to be deployed; the agent folder is Client, and deployed on the servers that need to be monitored.<br>
 
-2. Respectively modify the configuration files `config.ini` in the server and agent folders.<br>
-
-3. Deploy InfluxDB, installation steps on CentOS are as follows:<br>
+2. Deploy InfluxDB, installation steps on CentOS are as follows:<br>
     (1) Download and install<br>
         `wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm` <br>
         `yum localinstall influxdb-1.8.3.x86_64.rpm` <br>
@@ -52,7 +50,11 @@
         `create user root with password '123456'` create user and password <br>
         `grant all privileges on test to root` grant privileges <br>
    
-4. Respectively run `server.py` in server and agent folders.
+3. Respectively modify the configuration files `config.ini` in the server and agent folders.<br>
+
+4. Check the version of `sysstat`. Respectively use commands `iostat -V` and `pidstat -V`, the version of `12.4.0` has been tested, if not, please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download it.
+
+5. Respectively run `server.py` in server and agent folders.
    ```shell
    nohup python3 server.py &
    ```
@@ -110,7 +112,7 @@ Before packaging, you must ensure that the python code can run normally.<br>
 
 5. The code can be run on almost any linux system that can run python. The tested systems have `CentOS`, `Ubuntu`, `KylinOS`, `NeoKylin`, support `X86_64` and `ARM` architecture.
 
-6. If you encounter [the problem #8](https://github.com/leeyoshinari/performance_monitor/issues/8) , please rename `draw_performance1.py` to `draw_performance.py`, and rename `performance_monitor1.py` to `performance_monitor.py`. I'm very reluctant to use this method to solve the problem, but I can't find other solutions, if you know, please tell me, thank you very much!
+6. If you encounter [the issue #8](https://github.com/leeyoshinari/performance_monitor/issues/8) , please rename `draw_performance1.py` to `draw_performance.py`, and rename `performance_monitor1.py` to `performance_monitor.py`. I'm very reluctant to use this method to solve this issue, but I can't find other solutions, if you know, please tell me, thank you very much!
 
 ## Requirements
 1. aiohttp>=3.6.2
