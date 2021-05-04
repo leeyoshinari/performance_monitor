@@ -76,7 +76,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                     post_data['close_wait'].append(data['close_wait'])
                     post_data['time_wait'].append(data['time_wait'])
             else:
-                res['message'] = f'The monitoring data of the port {port} is not queried, ' \
+                res['message'] = f'No monitoring data of the port {port} is found, ' \
                                  f'please check the port or time setting.'
                 res['code'] = 0
 

@@ -62,6 +62,7 @@ class PerMon(object):
         self.total_disk = 1     # total disk size, unit: M
         self.total_disk_h = 0     # total disk size, unit:T or G
         self.network_speed = cfg.getServer('nicSpeed')  # bandwidth
+        self.Retrans_num = self.get_RetransSegs()   # TCP retrans number
 
         self.get_system_version()
         self.get_cpu_cores()
@@ -278,7 +279,7 @@ class PerMon(object):
                      'trans': 0.0,
                      'net': 0.0,
                      'tcp': 0,
-                     'retrans': 0.0
+                     'retrans': 0
                  }}]
         for disk in self.all_disk:
             # The system disks exists in the format of 'sda-1'. Since influxdb cannot recognize the '-', need to replace it.
@@ -564,22 +565,23 @@ class PerMon(object):
 
         return handles'''
 
-    @handle_exception(is_return=True, default_value=(0, 0.0))
+    @handle_exception(is_return=True, default_value=(0, 0))
     def get_tcp(self):
         """
         Get the number of TCP and calculate the retransmission rate
         :return:
         """
         tcp = 0
-        Retrans_ratio = 0.0
+        Retrans = 0
         if self.isTCP:
             result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
             tcps = result[-1].strip().split(' ')
             logger.debug(f'The TCP is: {tcps}')
             tcp = int(tcps[9])      # TCP connections
-            Retrans_ratio = (int(tcps[-4]) / int(tcps[-5])) * 100     # TCP retransmission ratio
+            Retrans = int(tcps[-4]) - self.Retrans_num
+            self.Retrans_num = int(tcps[-4])
 
-        return tcp, Retrans_ratio
+        return tcp, Retrans
 
     @handle_exception(is_return=True, default_value={})
     def get_port_tcp(self, port):
@@ -795,6 +797,21 @@ class PerMon(object):
 
         logger.info(f'system release/kernel version is {self.system_version}')
 
+    @handle_exception(is_return=True, default_value=0)
+    def get_RetransSegs(self):
+        """
+            Get the number of TCP RetransSegs
+            :return:
+        """
+        Retrans = 0
+        if self.isTCP:
+            result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
+            tcps = result[-1].strip().split(' ')
+            logger.debug(f'The TCP is: {tcps}')
+            Retrans = int(tcps[-4])
+
+        return Retrans
+
     def is_java_server(self, port):
         """
         Determine whether the port is java service
@@ -821,7 +838,22 @@ class PerMon(object):
             version = os.popen("iostat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
             v = int(version.strip())
             if v < 12:
-                msg = 'The sysstat version is too low, please upgrade to version 12+, download link: ' \
+                msg = 'The iostat version is too low, please upgrade to version 12+, download link: ' \
+                      'http://sebastien.godard.pagesperso-orange.fr/download.html'
+                logger.error(msg)
+                raise Exception(msg)
+        except IndexError:
+            logger.error(traceback.format_exc())
+            msg = 'Please upgrade sysstat to version 12+, download link: ' \
+                  'http://sebastien.godard.pagesperso-orange.fr/download.html'
+            logger.error(msg)
+            raise Exception(msg)
+
+        try:
+            version = os.popen("pidstat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
+            v = int(version.strip())
+            if v < 12:
+                msg = 'The pidstat version is too low, please upgrade to version 12+, download link: ' \
                       'http://sebastien.godard.pagesperso-orange.fr/download.html'
                 logger.error(msg)
                 raise Exception(msg)

@@ -99,10 +99,10 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
             }
         },
 
-        color: ['red', 'blue', 'red', 'blue', 'orange', 'blue', 'red', 'orange', 'blue', 'red'],
+        color: ['red', 'red', 'blue', 'orange', 'blue', 'red', 'orange', 'blue', 'red'],
         legend: [
             {
-                data: ['CPU', 'Wait_CPU'],
+                data: ['CPU'],
                 x: 'center',
                 y: 25,
                 icon: 'line'
@@ -232,14 +232,9 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 gridIndex: 3,
                 name: 'TCP',
                 type: 'value',
-                max: Math.max(findMax(time_wait), findMax(close_wait)).toFixed(2)
+                max: (findMax(tcp) + 1).toFixed(2)
             },
-            {
-                gridIndex: 3,
-                name: 'TCP',
-                type: 'value',
-                max: findMax(tcp).toFixed(2),
-            }
+            {gridIndex: 3}
         ],
         series: [
             {
@@ -254,7 +249,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 },
                 data: cpu
             },
-            {
+            /*{
                 name: 'Wait_CPU',
                 type: 'line',
                 xAxisIndex: 0,
@@ -265,7 +260,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                     color: 'blue'
                 },
                 data: wait_cpu
-            },
+            },*/
             {
                 name: 'Memory',
                 type: 'line',
@@ -354,7 +349,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
                 name: 'TCP',
                 type: 'line',
                 xAxisIndex: 3,
-                yAxisIndex: 7,
+                yAxisIndex: 6,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,

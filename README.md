@@ -19,7 +19,7 @@
 
 #### Implement
 1. Framework: `aiohttp`.<br>
-2. Template rendering: `jinjia2`.<br>
+2. Template rendering: `jinja2`.<br>
 3. Visualization: `echarts`.<br>
 4. Thread pool and queue to monitor.<br>
 5. Database: `InfluxDB`.<br>

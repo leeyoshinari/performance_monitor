@@ -77,7 +77,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 }
             },
             {
-                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans).toFixed(2) + '%, Duration: ' + duration,
+                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans) + '%, Duration: ' + duration,
                 x: 'center',
                 y: 1400,
                 textStyle: {
@@ -291,13 +291,13 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 gridIndex: 4,
                 name: 'TCP',
                 type: 'value',
-                max: (findMax(tcp) * 1.02).toFixed(2)
+                max: (findMax(tcp) + 1)
             },
             {
                 gridIndex: 4,
-                name: 'TCP Retrans(%)',
+                name: 'TCP Retrans',
                 type: 'value',
-                max: (findMax(retrans) * 1.2).toFixed(2)
+                max: (findMax(retrans) + 1)
             }
         ],
         series: [
