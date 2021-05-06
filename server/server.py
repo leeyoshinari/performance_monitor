@@ -229,8 +229,8 @@ async def plot_monitor(request):
             logger.error(traceback.format_exc())
             return web.json_response({'code': 0, 'message': str(err)})
     else:
-        logger.error(f'{host} client may not be registered.')
-        return web.json_response({'code': 0, 'message': f'{host} client may not be registered.'})
+        logger.error(f'{host} agent may not register.')
+        return web.json_response({'code': 0, 'message': f'{host} agent may not register.'})
 
 
 async def get_port_disk(request):
@@ -249,7 +249,7 @@ async def get_port_disk(request):
             logger.error(traceback.format_exc())
             return web.json_response({'code': 2, 'msg': "System Exception", 'data': err})
     else:
-        return web.json_response({'code': 1, 'msg': f"{host} client may not be registered.", 'data': None})
+        return web.json_response({'code': 1, 'msg': f"{host} agent may not register.", 'data': None})
 
 
 async def notice(request):

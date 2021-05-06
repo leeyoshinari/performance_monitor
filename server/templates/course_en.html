@@ -15,13 +15,13 @@
             5. Start or Stop monitoring specified port at any time.<br>
             6. When the port restarts, it can automatically re-monitor.<br>
             7. Support Operational monitoring, when the port stopped, an email alert will be sent.<br>
-            8. Stopping the Client directly on the Server.<br>
+            8. Stopping the Agent directly on the Server.<br>
             9. Monitoring data can be visualized according to the specified time period.<br>
             10. Calculate the percentiles of the CPU, Disk IO, and Network.<br>
             11. Monitoring data sampling frequency is up to about 1 time/sec, and any frequency can be set.<br>
             12. The real-time usage of server(CPU, Memory, and Disk) can be viewed directly on the page.<br>
-            13. A Server can manager multiple Clients at the same time.<br>
-            14. If Server is stopped, it doesn't affect the monitoring of Client.<br>
+            13. A Server can manager multiple Agents at the same time.<br>
+            14. If Server is stopped, it doesn't affect the monitoring of Agent.<br>
         </p>
     </ol>
     <h4>Implement</h4>
@@ -41,7 +41,7 @@
             <p>Clone performance_monitor</p>
             <pre><code><span>git</span> clone https://github.com/leeyoshinari/performance_monitor.git</code></pre>
             <p>
-                The server folder is the Server, and only one needs to be deployed; the agent folder is Client, and deployed on the servers that need to be monitored.<br>
+                The server folder is the Server, and only one needs to be deployed; the agent folder is Agent, and deployed on the servers that need to be monitored.<br>
             </p>
         </li>
         <li>
@@ -77,14 +77,14 @@
         </li>
         <li>
             <p>Visit pages<br><br>
-                (1) After client is started, visit <code>http://ip:port</code>
+                (1) After Agent is started, visit <code>http://ip:port</code>
                 , you can see the server's data(CPU, Meeory, Disk, Network, etc.).<br>
                 <img width="100%" src="{{ server_context }}/static/agent.jpg" alt="">
             </p><br>
             <p>(2) After server is started, visit <code>http://ip:port/<strong>context</strong></code>
-                , you can see some informations about clients.<br>
+                , you can see some informations about Agents.<br>
                 <img width="100%" src="{{ server_context }}/static/home.jpg" alt=""><br>
-                &ensp;&ensp;&ensp;&ensp;Click the IP in the list, some information of the client will be shown.
+                &ensp;&ensp;&ensp;&ensp;Click the IP in the list, some information of the Agent will be shown.
             </p><br>
             <p>(3) Click MonitorList tab to see the monitoring page. <br>
                 &ensp;&ensp;&ensp;&ensp;Select server and enter the port, then click the startMonitor button to start monitoring the port on the selected server; click the stopMonitor button to stop monitoring the port on the selected server.<br>
@@ -96,7 +96,7 @@
         </li>
     </ol>
     <h2>Package</h2>
-    <p>&ensp;&ensp;&ensp;&ensp;Using <code>pyinstaller</code> to package python code. After packaging, it can be quickly deployed agent on other clients without installing python3.7+ and third-party packages.<br></p>
+    <p>&ensp;&ensp;&ensp;&ensp;Using <code>pyinstaller</code> to package python code. After packaging, it can be quickly deployed agent on other servers without installing python3.7+ and third-party packages.<br></p>
     <p>&ensp;&ensp;&ensp;&ensp;Before packaging, you must ensure that the python code can run normally.</p>
     <ol>
         <li>
@@ -120,7 +120,7 @@
             <p>
                 (2) Enter <code>dist</code> folde, find the executable file <code>server</code>,<br>
                 (3) Copy <code>config.ini</code> to the <code>dist</code> folder,<br>
-                (4) Copy the <code>dist</code> folder to other clients, and start server
+                (4) Copy the <code>dist</code> folder to other servers, and start server
             </p>
             <pre><code><span>nohup</span> ./server <span>&amp;</span></code></pre>
             <code>NOTE: Since the <code>agent</code> needs to run on the server to be monitored, the executable file packaged on the server of the CentOS system X86 architecture can only run on the server of the CentOS system X86 architecture; servers of other system and architecture need to be repackaged <code>agent</code>.</code>

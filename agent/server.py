@@ -25,7 +25,7 @@ async def index(request):
         body=f'The server system version is {permon.system_version}, {permon.cpu_info}, total memory is {permon.total_mem}G, '
              f'the network card is {permon.nic}, bandwidth is {permon.network_speed}Mb/s, {len(permon.all_disk)} disks, '
              f'total size of disks is {permon.total_disk_h}, disks number is {"、".join(permon.all_disk)}. '
-             f'If you need to stop the monitoring client, please visit http://{HOST}:{cfg.getServer("port")}/stop')
+             f'If you need to stop the monitoring agent, please visit http://{HOST}:{cfg.getServer("port")}/stop')
 
 
 async def run_monitor(request):
@@ -158,10 +158,10 @@ async def stop_monitor(request):
     pid = port_to_pid(cfg.getServer('port'))
     if pid:
         _ = os.popen(f'kill -9 {pid}')
-        logger.info('Stop the client successfully!')
-        return web.Response(body='Stop the client successfully!')
+        logger.info('Stop the agent successfully!')
+        return web.Response(body='Stop the agent successfully!')
     else:
-        return web.Response(body='Client is not running!')
+        return web.Response(body='Agent is not running!')
 
 
 async def main():

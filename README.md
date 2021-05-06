@@ -9,13 +9,13 @@
 5. Start or Stop monitoring specified port at any time.<br>
 6. When the port restarts, it can automatically re-monitor.<br>
 7. Support Operational monitoring, when the port stopped, an email alert will be sent.<br>
-8. Stopping the Client directly on the Server.<br>
+8. Stopping the Agent directly on the Server.<br>
 9. Monitoring data can be visualized according to the specified time period.<br>
 10. Calculate the percentiles of the CPU, Disk IO, and Network.<br>
 11. Monitoring data sampling frequency is up to about 1 time/sec, and any frequency can be set.<br>
 12. The real-time usage of server(CPU, Memory, and Disk) can be viewed directly on the page.<br>
-13. A Server can manager multiple Clients at the same time.<br>
-14. If server is stopped, it doesn't affect the monitoring of client.
+13. A Server can manager multiple Agents at the same time.<br>
+14. If Server is stopped, it doesn't affect the monitoring of Agent.
 
 #### Implement
 1. Framework: `aiohttp`.<br>
@@ -30,7 +30,7 @@
    ```shell
    git clone https://github.com/leeyoshinari/performance_monitor.git
    ```
-   The server folder is the Server, and only one needs to be deployed; the agent folder is Client, and deployed on the servers that need to be monitored.<br>
+   The server folder is the Server, and only one needs to be deployed; the agent folder is Agent, and deployed on the servers that need to be monitored.<br>
 
 2. Deploy InfluxDB, installation steps on CentOS are as follows:<br>
     (1) Download and install<br>
@@ -60,10 +60,10 @@
    ```
 
 5. Visit pages<br>
-   (1) After client is started, visit `http://ip:port`, you can see the server's data(CPU, Meeory, Disk, Network, etc.).<br>
+   (1) After Agent is started, visit `http://ip:port`, you can see the server's data(CPU, Meeory, Disk, Network, etc.).<br>
    ![agent home](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/agent.jpg)
    
-   (2) After server is started, visit `http://ip:port/'context'`, you can see some informations about clients.<br>
+   (2) After server is started, visit `http://ip:port/'context'`, you can see some informations about Agents.<br>
    ![server home](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/home.jpg)
    
    (3) Click MonitorList tab to see the monitoring page. Select server and enter the port, then click the startMonitor button to start monitoring the port on the selected server; click the stopMonitor button to stop monitoring the port on the selected server.<br>
@@ -73,7 +73,7 @@
    ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/visual.jpg)
    
 ## Package
-Using `pyinstaller` to package python code. After packaging, it can be quickly deployed agent on other clients without installing python3.7+ and third-party packages.<br>
+Using `pyinstaller` to package python code. After packaging, it can be quickly deployed agent on other Agents without installing python3.7+ and third-party packages.<br>
 Before packaging, you must ensure that the python code can run normally.<br>
 1. Package server<br>
     (1) Enter the server folder, run:<br>
@@ -95,7 +95,7 @@ Before packaging, you must ensure that the python code can run normally.<br>
     ```
     (2) Enter `dist` folder, find the executable file `server`,<br>
     (3) Copy `config.ini` to the `dist` folder,<br>
-    (4) Copy the `dist` folder to other clients, and start server
+    (4) Copy the `dist` folder to other servers, and start server
     ```shell
     nohup ./server &
     ```
