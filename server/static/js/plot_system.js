@@ -77,7 +77,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 }
             },
             {
-                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans) + '%, Duration: ' + duration,
+                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans) + ', Duration: ' + duration,
                 x: 'center',
                 y: 1400,
                 textStyle: {
@@ -291,13 +291,13 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 gridIndex: 4,
                 name: 'TCP',
                 type: 'value',
-                max: (findMax(tcp) + 1)
+                max: (findMax(tcp) * 1.02).toFixed(1)
             },
             {
                 gridIndex: 4,
                 name: 'TCP Retrans',
                 type: 'value',
-                max: (findMax(retrans) + 1)
+                max: (findMax(retrans) * 1.2)
             }
         ],
         series: [
@@ -534,7 +534,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, mem, mem_a
                 {text: 'Memory(G), Min Available:: ' + findMin(mem_a_zoom).toFixed(2) + 'G, Min Free:: ' + findMin(mem_zoom).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
                 {text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
                 {text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Rec: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
-                {text: 'TCP, Max TCP: ' + findMax(tcp_zoom) + ', TCP Retrans: '+ findMax(retrans_zoom).toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}}]});
+                {text: 'TCP, Max TCP: ' + findMax(tcp_zoom) + ', TCP Retrans: '+ findMax(retrans_zoom) + ', Duration: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}}]});
 
         tables1.rows[1].cells[1].innerHTML = cpu_sorted[parseInt(0.75 * cpu_sorted.length)].toFixed(2);
         tables1.rows[2].cells[1].innerHTML = cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2);
