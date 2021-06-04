@@ -363,7 +363,7 @@ function plot_port(myChart, tables1, tables2, x_label, cpu, wait_cpu, mem, jvm, 
     if (is_jvm === 1){
         option['title'][1].text = 'Memory(G), Max: ' + findMax(mem).toFixed(2) + 'G; JVM(G), Max: ' + findMax(jvm).toFixed(2) + 'G, Duration: ' + duration;
         option['legend'][1].data = ['Memory', 'JVM'];
-        option['series'][3].data = jvm;
+        option['series'][2].data = jvm;
     }
 
     myChart.clear();
