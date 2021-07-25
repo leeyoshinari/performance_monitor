@@ -4,7 +4,10 @@
 <div class="page-header">
     <h2>介绍</h2><br>
     <div style="text-align: right;">语言: <a href="{{ server_context }}/course_zh_CN">zh-CN</a>, <a href="{{ server_context }}/course"> en</a></div>
-    <h4>项目地址：<a href="https://github.com/leeyoshinari/performance_monitor" target="_blank">请点我</a>，欢迎Star，欢迎Fork。如有bug或建议，可在<a href="https://github.com/leeyoshinari/performance_monitor/issues" target="_blank">Issue</a>中提出；如果您修改了bug，欢迎Merge。</h4><br>
+    <h4>项目地址：<a href="https://github.com/leeyoshinari/performance_monitor" target="_blank">请点我</a>，欢迎Star，欢迎Fork。如有bug或建议，可在<a href="https://github.com/leeyoshinari/performance_monitor/issues" target="_blank">Issue</a>中提出；如果您修改了bug，欢迎Merge。</h4>
+    <p style="margin-top: 20px; font-size: medium;">
+        <a target="_blank" href="https://mp.weixin.qq.com/s?__biz=Mzg5OTA3NDk2MQ==&amp;mid=2247483810&amp;idx=1&amp;sn=d352577de1676c9c4997cbe305f243ca&amp;chksm=c0599f5cf72e164a23c67e8782270f06561a659c2dd40c820e9b07d1d83e35d3fe7ca796e952&amp;token=59716230&amp;lang=zh_CN#rd">在这里 </a>可以看到更详细的介绍。
+    </p><br>
     <h4>已完成如下功能<br></h4>
     <ol>
         <p>
@@ -24,10 +27,6 @@
             14、服务端停止后，不影响客户端监控<br>
         </p>
     </ol>
-    <p style="margin-top: 20px; font-size: medium;">
-        如需查看整体思路和想法，
-        <a href="https://mp.weixin.qq.com/s?__biz=Mzg5OTA3NDk2MQ==&amp;mid=2247483810&amp;idx=1&amp;sn=d352577de1676c9c4997cbe305f243ca&amp;chksm=c0599f5cf72e164a23c67e8782270f06561a659c2dd40c820e9b07d1d83e35d3fe7ca796e952&amp;token=59716230&amp;lang=zh_CN#rd">请快点我。</a>
-    </p>
     <h4>实现过程</h4>
     <ol>
         <p>
@@ -147,6 +146,7 @@
         <li>服务器上的<code>sysstat</code>必须是新版本，当前测试使用的版本是12，如不支持，请<a href="http://sebastien.godard.pagesperso-orange.fr/download.html">下载安装</a>。</li>
         <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
         <li>当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统<code>CentOS</code>、<code>Ubuntu</code>、<code>中标麒麟</code>、<code>银河麒麟</code>，支持<code>X86_64</code>和<code>ARM</code>架构。</li>
+        <li>如果你遇到了<a href="https://github.com/leeyoshinari/performance_monitor/issues/8" target="_blank">这个问题 #8 </a>，请把<code>draw_performance1.py</code>重命名成<code>draw_performance.py</code>，把<code>performance_monitor1.py</code>重命名成<code>performance_monitor.py</code>。如果你知道这个问题的解决方法，麻烦告诉我，万分感谢。</li>
     </ol>
 </div>
 {% endblock %}

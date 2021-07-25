@@ -156,7 +156,7 @@ class PerMon(object):
         # Put registration and cleanup tasks in the queue
         self.monitor_task.put((self.register_agent, True))
         # Put the tasks of the monitoring system into the queue
-        self.monitor_task.put((self.write_system_cpu_mem_and_register_clear, 1))
+        self.monitor_task.put((self.write_system_cpu_mem, 1))
 
     def write_cpu_mem(self, index):
         """
@@ -256,7 +256,7 @@ class PerMon(object):
                 self._msg['isRun'][index] = 0
                 break
 
-    def write_system_cpu_mem_and_register_clear(self, is_system):
+    def write_system_cpu_mem(self, is_system):
         """
         Monitoring system. CPU, Memory, Disk IO, Network, TCP
         :param is_system:
@@ -270,6 +270,7 @@ class PerMon(object):
                  'fields': {
                      'cpu': 0.0,
                      'iowait': 0.0,
+                     'usr_cpu': 0.0,
                      'mem': 0.0,
                      'mem_available': 0.0,
                      'rec': 0.0,
@@ -307,6 +308,7 @@ class PerMon(object):
 
                         line[0]['fields']['cpu'] = res['cpu']
                         line[0]['fields']['iowait'] = res['iowait']
+                        line[0]['fields']['usr_cpu'] = res['usr_cpu']
                         line[0]['fields']['mem'] = res['mem']
                         line[0]['fields']['mem_available'] = res['mem_available']
                         line[0]['fields']['rec'] = res['rece']
@@ -370,9 +372,9 @@ class PerMon(object):
         cpu = None
         mem = None
 
-        # result = os.popen(f'top -n 1 -b -p {pid} |tr -s " "').readlines()
-        result = os.popen(f'top -n 1 -b |grep -P {pid} |tr -s " "').readlines()
-        res = [ress.strip().split(' ') for ress in result]
+        # result = os.popen(f'top -n 1 -b -p {pid}').readlines()
+        result = os.popen(f'top -n 1 -b |grep -P {pid}').readlines()
+        res = [ress.split() for ress in result]
         logger.debug(f'The CPU and Mem of pid {pid} is: {res}')
 
         for r in res:
@@ -393,26 +395,26 @@ class PerMon(object):
         pid_info = {'kB_rd': 0.0, 'kB_wr': 0.0, 'iodelay': 0.0, 'VSZ': 0.0, 'RSS': 0.0, 'mem': 0.0, 'usr_cpu': 0.0,
                     'system_cpu': 0.0, 'guest_cpu': 0.0, 'wait_cpu': 0.0, 'cpu': 0.0}
 
-        res = os.popen(f'pidstat -u -r -d -p {pid} 1 1 |tr -s " "').readlines()[::-1][:9]
+        res = os.popen(f'pidstat -u -r -d -p {pid} 1 1').readlines()[::-1][:9]
 
         if res:
             for i in range(len(res)):
                 if 'iodelay' in res[i]:
-                    io = res[i - 1].split(' ')
+                    io = res[i - 1].split()
                     pid_info['kB_rd'] = float(io[3]) / 1024    # Read from disk per second (kB)
                     pid_info['kB_wr'] = float(io[4]) / 1024   # Write to disk per second (kB)
-                    pid_info['iodelay'] = float(io[6])  # I/O delay(unit: clock cycle)
+                    # pid_info['iodelay'] = float(io[6])  # I/O delay(unit: clock cycle)
                 if 'MEM' in res[i]:
-                    memory = res[i - 1].split(' ')
+                    memory = res[i - 1].split()
                     # pid_info['VSZ'] = float(memory[5]) / 1024   # Virtual memory
                     # pid_info['RSS'] = float(memory[6]) / 1024   # Physical memory
                     pid_info['mem'] = float(memory[7]) * self.total_mem_100          # Memory size
                 if 'CPU' in res[i]:
-                    cpu_res = res[i - 1].split(' ')
+                    cpu_res = res[i - 1].split()
                     # pid_info['usr_cpu'] = float(cpu_res[3]) / self.cpu_cores
                     # pid_info['system_cpu'] = float(cpu_res[4]) / self.cpu_cores
                     # pid_info['guest_cpu'] = float(cpu_res[5]) / self.cpu_cores
-                    pid_info['wait_cpu'] = float(cpu_res[6]) / self.cpu_cores  # CPU usage waiting for context switch
+                    # pid_info['wait_cpu'] = float(cpu_res[6]) / self.cpu_cores  # CPU usage waiting for context switch
                     pid_info['cpu'] = float(cpu_res[7]) / self.cpu_cores       # CPU usage
 
             return pid_info
@@ -427,8 +429,8 @@ class PerMon(object):
         :param pid: pid
         :return: jvm(G)
         """
-        result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
-        res = result.strip().split(' ')
+        result = os.popen(f'jstat -gc {pid}').readlines()[1]
+        res = result.strip().split()
         logger.debug(f'The JVM of pid {pid} is: {res}')
         mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # calculate JVM
 
@@ -468,38 +470,38 @@ class PerMon(object):
         disk_d = {}
         cpu = None
         iowait = None
+        usr_cpu = None
         bps1 = None
         bps2 = None
         rece = None
         trans = None
         network = None
         if self.nic:
-            bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+            bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic}').readlines()
             logger.debug(f'The result of speed for the first time is: {bps1}')
 
-        result = os.popen('iostat -x -m 1 2 |tr -s " "').readlines()
+        result = os.popen('iostat -x -m 1 2').readlines()
         logger.debug(f'The result of Disks are: {result}')
 
         if self.nic:
-            bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic} |tr -s " "').readlines()
+            bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic}').readlines()
             logger.debug(f'The result of speed for the second time is: {bps2}')
 
-        result.pop(0)
+        result = result[len(result) // 2 - 1:]
         disk_res = [line.strip() for line in result if len(line) > 5]
-        disk_res = disk_res[int(len(disk_res)/2)-1:]
 
         for i in range(len(disk_res)):
             if 'avg-cpu' in disk_res[i]:
-                cpu_res = disk_res[i+1].strip().split(' ')      # Free CPU
-                if len(cpu_res) > 3:
-                    cpu = 100 - float(cpu_res[-1])      # CPU usage
-                    iowait = float(cpu_res[-3])
-                    logger.debug(f'System CPU usage rate is: {cpu}%')
-                    continue
+                cpu_res = disk_res[i+1].strip().split()      # Free CPU
+                cpu = 100 - float(cpu_res[-1])      # CPU usage
+                iowait = float(cpu_res[-3])
+                usr_cpu = float(cpu_res[0])
+                logger.debug(f'System CPU usage rate is: {cpu}%')
+                continue
 
             if 'Device' in disk_res[i]:
                 for j in range(i+1, len(disk_res)):
-                    disk_line = disk_res[j].strip().split(' ')
+                    disk_line = disk_res[j].split()
                     disk_num = disk_line[0].replace('-', '')
                     disk.update({disk_num: float(disk_line[-1])})      # IO
                     disk_r.update({disk_num + '_r': float(disk_line[2])})     # Read MB/s
@@ -513,21 +515,21 @@ class PerMon(object):
         mem, mem_available = self.get_free_memory()
 
         if bps1 and bps2:
-            data1 = bps1[0].split(':')[1].strip().split(' ')
-            data2 = bps2[0].split(':')[1].strip().split(' ')
-            rece = (int(data2[0]) - int(data1[0])) / 1048576
-            trans = (int(data2[8]) - int(data1[8])) / 1048576
+            data1 = bps1[0].split()
+            data2 = bps2[0].split()
+            rece = (int(data2[1]) - int(data1[1])) / 1048576
+            trans = (int(data2[9]) - int(data1[9])) / 1048576
             # 400 = 8 * 100 / 2
             # Why multiply by 8, because 1MB/s = 8Mb/s.
             # Why divided by 2, because the network card is in full duplex mode.
             network = 400 * (rece + trans) / self.network_speed
             logger.debug(f'The bandwidth of ethernet is: Receive {rece}MB/s, Transmit {trans}MB/s, Ratio {network}%')
 
-        tcp, Retrans_ratio = self.get_tcp()
+        tcp, Retrans = self.get_tcp()
 
         return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'disk_d': disk_d, 'cpu': cpu, 'iowait': iowait,
-                'mem': mem, 'mem_available': mem_available, 'rece': rece, 'trans': trans, 'network': network,
-                'tcp': tcp, 'retrans': Retrans_ratio}
+                'usr_cpu': usr_cpu, 'mem': mem, 'mem_available': mem_available, 'rece': rece, 'trans': trans,
+                'network': network, 'tcp': tcp, 'retrans': Retrans}
 
     @staticmethod
     def get_free_memory():
@@ -535,14 +537,18 @@ class PerMon(object):
         Get system memory
         :return: free Memory, available Memory
         """
-        mem, mem_available = 0.0, 0.0
-        result = os.popen('cat /proc/meminfo |grep -E "MemAvailable|MemFree"|tr -s " "').readlines()
+        mem, mem_available = 0, 0
+        result = os.popen('cat /proc/meminfo').readlines()
         logger.debug(f'The free memory is: {result}')
         for res in result:
             if 'MemFree' in res:
-                mem = float(res.split(':')[-1].split('k')[0].strip()) / 1048576     # 1048576 = 1024 * 1024
+                mem = int(res.split(':')[-1].split('k')[0].strip()) / 1048576     # 1048576 = 1024 * 1024
+                continue
             if 'MemAvailable' in res:
-                mem_available = float(res.split(':')[-1].split('k')[0].strip()) / 1048576   # 1048576 = 1024 * 1024
+                mem_available = int(res.split(':')[-1].split('k')[0].strip()) / 1048576   # 1048576 = 1024 * 1024
+                continue
+            if mem and mem_available:
+                break
 
         return mem, mem_available
 
@@ -570,8 +576,8 @@ class PerMon(object):
         tcp = 0
         Retrans = 0
         if self.isTCP:
-            result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
-            tcps = result[-1].strip().split(' ')
+            result = os.popen('cat /proc/net/snmp |grep Tcp').readlines()
+            tcps = result[-1].split()
             logger.debug(f'The TCP is: {tcps}')
             tcp = int(tcps[9])      # TCP connections
             Retrans = int(tcps[-4]) - self.Retrans_num
@@ -587,7 +593,7 @@ class PerMon(object):
         :return:
         """
         tcp_num = {}
-        res = os.popen(f'netstat -ant |grep {port} |tr -s " "').read()
+        res = os.popen(f'netstat -ant |grep {port}').read()
         tcp_num.update({'tcp': res.count('tcp')})
         tcp_num.update({'established': res.count('ESTABLISHED')})
         tcp_num.update({'close_wait': res.count('CLOSE_WAIT')})
@@ -642,7 +648,7 @@ class PerMon(object):
         Get Memory
         :return:
         """
-        result = os.popen('cat /proc/meminfo| grep "MemTotal"| uniq').readlines()[0]
+        result = os.popen('cat /proc/meminfo| grep "MemTotal"').readlines()[0]
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1048576   # 1048576 = 1024 * 1024
         self.total_mem_100 = self.total_mem / 100
         logger.info(f'The total memory is {self.total_mem}G')
@@ -653,13 +659,13 @@ class PerMon(object):
         Get all disks number.
         :return:
         """
-        result = os.popen('iostat -x -k |tr -s " "').readlines()
+        result = os.popen('iostat -x -k').readlines()
         if result:
             disk_res = [line.strip() for line in result if len(line) > 5]
             for i in range(len(disk_res)):
                 if 'Device' in disk_res[i]:
                     for j in range(i + 1, len(disk_res)):
-                        disk_line = disk_res[j].strip().split(' ')
+                        disk_line = disk_res[j].split()
                         self.all_disk.append(disk_line[0])
 
             logger.info(f'The system has {len(self.all_disk)} disks, disk number is {"、".join(self.all_disk)}')
@@ -675,24 +681,20 @@ class PerMon(object):
         :return:
         """
         network_card = []
-        result = os.popen('cat /proc/net/dev |tr -s " "').readlines()   # 获取网卡
+        result = os.popen('cat /proc/net/dev').readlines()   # get network data
         logger.debug(f'The result for the first time is: {result}')
         time.sleep(1)
-        result1 = os.popen('cat /proc/net/dev |tr -s " "').readlines()  # 一秒后再次获取网卡
+        result1 = os.popen('cat /proc/net/dev').readlines()  # get network data again
         logger.debug(f'The result for the second time is: {result1}')
         for i in range(len(result)):
             if ':' in result[i]:
-                title = result[i].strip().split(':')[0]
-                data = result[i].strip().split(':')[1]
-                title1 = result1[i].strip().split(':')[0]
-                data1 = result1[i].strip().split(':')[1]
-                if title == title1:
+                data = result[i].split()
+                data1 = result1[i].split()
+                if data[0] == data1[0]:
                     logger.debug(f'The first data change is {data}')
                     logger.debug(f'The second data change is {data1}')
-                    rec = data.strip().split(' ')[0]
-                    rec1 = data1.strip().split(' ')[0]
-                    if rec != rec1:     # If the data of network card changes, it means that the card is in use.
-                        network_card.append(title)
+                    if data[1] != data1[1] or data[9] != data1[9]:     # If the data of network card changes, it means that the card is in use.
+                        network_card.append(data[0].strip(':'))
 
         logger.debug(f'The data of network card is {network_card}')
         if 'lo' in network_card:    # 'lo' is 127.0.0.1, need to be deleted.
@@ -710,10 +712,10 @@ class PerMon(object):
         Get disk size
         :return:
         """
-        result = os.popen('df -m |tr -s " "').readlines()
+        result = os.popen('df -m').readlines()
         logger.debug(f'The data of disk is {result}')
         for line in result:
-            res = line.strip().split(' ')
+            res = line.split()
             if '/dev/' in res[0]:
                 size = float(res[1])
                 self.total_disk += size
@@ -736,10 +738,10 @@ class PerMon(object):
         :return:
         """
         used_disk_size = 0
-        result = os.popen('df -m |tr -s " "').readlines()
+        result = os.popen('df -m').readlines()
         logger.debug(f'The data of disk is {result}')
         for line in result:
-            res = line.strip().split(' ')
+            res = line.split()
             if '/dev/' in res[0]:
                 size = float(res[2])
                 used_disk_size += size
@@ -801,8 +803,8 @@ class PerMon(object):
         """
         Retrans = 0
         if self.isTCP:
-            result = os.popen('cat /proc/net/snmp |grep Tcp |tr -s " "').readlines()
-            tcps = result[-1].strip().split(' ')
+            result = os.popen('cat /proc/net/snmp |grep Tcp').readlines()
+            tcps = result[-1].split()
             logger.debug(f'The TCP is: {tcps}')
             Retrans = int(tcps[-4])
 
@@ -959,8 +961,8 @@ class PerMon(object):
          Cleaning up cache.
         :return:
         """
-        logger.info(f'Start Cleaning up cache: echo {self.echo} >/proc/sys/vm/drop_caches')
-        os.popen(f'echo {self.echo} >/proc/sys/vm/drop_caches')
+        logger.info(f'Start Cleaning up cache: echo {self.echo} > /proc/sys/vm/drop_caches')
+        os.popen(f'echo {self.echo} > /proc/sys/vm/drop_caches')
         logger.info('Clear the cache successfully.')
 
     def __del__(self):
@@ -975,12 +977,12 @@ def port_to_pid(port):
     :return: pid
     """
     pid = None
-    result = os.popen(f'netstat -nlp|grep {port} |tr -s " "').readlines()
+    result = os.popen(f'netstat -nlp|grep {port}').readlines()
     logger.debug(f'The result of the port {port} is {result}')
     flag = f':{port}'
     res = [line.strip() for line in result if flag in line]
     logger.debug(res[0])
-    p = res[0].split(' ')
+    p = res[0].split()
     pp = p[3].split(':')[-1]
     if str(port) == pp:
         pid = p[p.index('LISTEN') + 1].split('/')[0]

@@ -12,7 +12,7 @@ from logger import logger, cfg
 from performance_monitor import PerMon, port_to_pid
 
 permon = PerMon()
-HOST = cfg.getServer('host') if cfg.getServer('host') else get_ip()
+HOST = get_ip()
 
 
 async def index(request):

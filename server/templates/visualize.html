@@ -170,7 +170,7 @@
                     } else {
                         figure.style["height"] = '1800px';
                         let myChart = echarts.init(figure);
-                        plot_system(myChart, table1, table2, data['post_data']['cpu_time'], data['post_data']['cpu'], data['post_data']['iowait'],
+                        plot_system(myChart, table1, table2, data['post_data']['cpu_time'], data['post_data']['cpu'], data['post_data']['iowait'], data['post_data']['usr_cpu'],
                             data['post_data']['mem'], data['post_data']['mem_available'], data['post_data']['io'],
                             data['post_data']['disk_r'], data['post_data']['disk_w'], data['post_data']['disk_d'], data['post_data']['nic'],
                             data['post_data']['rec'], data['post_data']['trans'], data['post_data']['tcp'], data['post_data']['retrans'],

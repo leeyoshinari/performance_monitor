@@ -24,6 +24,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
         'cpu_time': [],
         'cpu': [],
         'iowait': [],
+        'usr_cpu': [],
         'mem': [],
         'mem_available': [],
         'jvm': [],
@@ -102,7 +103,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
             disk_r = disk_n + '_r'
             disk_w = disk_n + '_w'
             disk_d = disk_n + '_d'
-            sql = f"select cpu, iowait, mem, mem_available, {disk_n}, {disk_r}, {disk_w}, {disk_d}, rec, trans, " \
+            sql = f"select cpu, iowait, usr_cpu, mem, mem_available, {disk_n}, {disk_r}, {disk_w}, {disk_d}, rec, trans, " \
                   f"net, tcp, retrans from \"{host}\" where time>'{startTime}' and time<'{endTime}' and " \
                   f"type='system' tz('Asia/Shanghai')"
             logger.info(f'Execute sql: {sql}')
@@ -113,6 +114,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                     post_data['cpu_time'].append(data['time'][:19].replace('T', ' '))
                     post_data['cpu'].append(data['cpu'])
                     post_data['iowait'].append(data['iowait'])
+                    post_data['usr_cpu'].append(data['usr_cpu'])
                     post_data['mem'].append(data['mem'])
                     post_data['mem_available'].append(data['mem_available'])
                     post_data['rec'].append(data['rec'])
