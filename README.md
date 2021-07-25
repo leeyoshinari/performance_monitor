@@ -1,5 +1,5 @@
 # performace_monitor
-[中文文档](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/README_zh_CN.md)
+[中文文档](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/README_zh_CN.md)
 ## Introduction
 #### Completed functions<br>
 1. Monitoring the CPU usage, IO wait, Memory, Disk IO, Network, and TCP connections of the server.<br>
@@ -61,16 +61,16 @@
 
 5. Visit pages<br>
    (1) After Agent is started, visit `http://ip:port`, you can see the server's data(CPU, Meeory, Disk, Network, etc.).<br>
-   ![agent home](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/agent.jpg)
+   ![agent home](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/agent.jpg)
    
    (2) After server is started, visit `http://ip:port/'context'`, you can see some informations about Agents.<br>
-   ![server home](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/home.jpg)
+   ![server home](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/home.jpg)
    
    (3) Click MonitorList tab to see the monitoring page. Select server and enter the port, then click the startMonitor button to start monitoring the port on the selected server; click the stopMonitor button to stop monitoring the port on the selected server.<br>
-   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/monitor.jpg)
+   ![startMonitor](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/monitor.jpg)
    
    (4) Click Visualize tab to see the visualization page. Select server, type, disk, startTime and endTime, then click the Visualize button to visualize the monitoring data.<br>
-   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/master/server/static/visual.jpg)
+   ![Visualize](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/visual.jpg)
    
 ## Package
 Using `pyinstaller` to package python code. After packaging, it can be quickly deployed agent on other Agents without installing python3.7+ and third-party packages.<br>
