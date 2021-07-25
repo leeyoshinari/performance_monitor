@@ -25,7 +25,7 @@ async def index(request):
         body=f'The server system version is {permon.system_version}, {permon.cpu_info}, total memory is {permon.total_mem}G, '
              f'the network card is {permon.nic}, bandwidth is {permon.network_speed}Mb/s, {len(permon.all_disk)} disks, '
              f'total size of disks is {permon.total_disk_h}, disks number is {"、".join(permon.all_disk)}. '
-             f'If you need to stop the monitoring agent, please visit http://{HOST}:{cfg.getServer("port")}/stop')
+             f'If you need to stop the monitoring agent, please visit http://{HOST}:{cfg.getAgent("port")}/stop')
 
 
 async def run_monitor(request):
@@ -155,7 +155,7 @@ async def get_gc(request):
 
 
 async def stop_monitor(request):
-    pid = port_to_pid(cfg.getServer('port'))
+    pid = port_to_pid(cfg.getAgent('port'))
     if pid:
         _ = os.popen(f'kill -9 {pid}')
         logger.info('Stop the agent successfully!')
@@ -175,7 +175,7 @@ async def main():
 
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, HOST, cfg.getServer('port'))
+    site = web.TCPSite(runner, HOST, cfg.getAgent('port'))
     await site.start()
 
 

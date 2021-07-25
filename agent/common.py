@@ -45,8 +45,8 @@ def get_ip():
     Get server's IP address
     :return: IP address
     """
-    if cfg.getServer('host'):
-        IP = cfg.getServer('host')
+    if cfg.getAgent('host'):
+        IP = cfg.getAgent('host')
     else:
         result = os.popen("hostname -I |awk '{print $1}'").readlines()
         logger.debug(result)

@@ -17,7 +17,7 @@ from request import Request
 from draw_performance import draw_data_from_db
 
 
-master = Process()
+server = Process()
 http = Request()
 
 
@@ -49,13 +49,13 @@ async def index(request):
     :return:
     """
     return aiohttp_jinja2.render_template('home.html', request, context={
-        'ip': master.slaves['ip'], 'port': master.slaves['port'], 'system': master.slaves['system'],
-        'cpu': master.slaves['cpu'], 'mem': master.slaves['mem'], 'disk': master.slaves['disk_size'],
-        'net': master.slaves['network_speed'], 'cpu_usage': master.slaves['cpu_usage'],
-        'mem_usage': list(map(lambda x: x * 100, master.slaves['mem_usage'])),
-        'disk_usage': list(map(lambda x: x * 100, master.slaves['disk_usage'])), 'max_cpu': cfg.getMonitor('maxCPU'),
+        'ip': server.agents['ip'], 'port': server.agents['port'], 'system': server.agents['system'],
+        'cpu': server.agents['cpu'], 'mem': server.agents['mem'], 'disk': server.agents['disk_size'],
+        'net': server.agents['network_speed'], 'cpu_usage': server.agents['cpu_usage'],
+        'mem_usage': list(map(lambda x: x * 100, server.agents['mem_usage'])),
+        'disk_usage': list(map(lambda x: x * 100, server.agents['disk_usage'])), 'max_cpu': cfg.getMonitor('maxCPU'),
         'max_mem': cfg.getMonitor('maxMem'), 'max_disk': cfg.getMonitor('maxDisk'),
-        'server_context': cfg.getServer('server_context')
+        'server_context': cfg.getServer('serverContext')
     })
 
 
@@ -65,10 +65,10 @@ async def start_monitor(request):
     :param request:
     :return:
     """
-    monitor_list = master.get_monitor()
+    monitor_list = server.get_monitor()
     return aiohttp_jinja2.render_template('runMonitor.html', request, context={
-        'ip': master.slaves['ip'], 'foos': monitor_list, 'run_status': ['stopped', 'monitoring', 'queuing'],
-        'server_context': cfg.getServer('server_context')
+        'ip': server.agents['ip'], 'foos': monitor_list, 'run_status': ['stopped', 'monitoring', 'queuing'],
+        'server_context': cfg.getServer('serverContext')
     })
 
 
@@ -80,23 +80,23 @@ async def visualize(request):
     """
     starttime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()-600))
     endtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
-    if master.slaves['ip']:
-        monitor_list = master.get_monitor(host=master.slaves['ip'][0])
+    if server.agents['ip']:
+        monitor_list = server.get_monitor(host=server.agents['ip'][0])
     else:
         monitor_list = {'port': []}
     return aiohttp_jinja2.render_template('visualize.html', request, context={
-        'disks': master.slaves['disk'], 'ip': master.slaves['ip'], 'port': monitor_list['port'], 'starttime': starttime,
-        'endtime': endtime, 'row_name': ['75%', '90%', '95%', '99%'], 'server_context': cfg.getServer('server_context')})
+        'disks': server.agents['disk'], 'ip': server.agents['ip'], 'port': monitor_list['port'], 'starttime': starttime,
+        'endtime': endtime, 'row_name': ['75%', '90%', '95%', '99%'], 'server_context': cfg.getServer('serverContext')})
 
 
 async def course_zh_CN(request):
     return aiohttp_jinja2.render_template('course_zh_CN.html', request,
-                                          context={'server_context': cfg.getServer('server_context')})
+                                          context={'server_context': cfg.getServer('serverContext')})
 
 
 async def course_en(request):
     return aiohttp_jinja2.render_template('course_en.html', request,
-                                          context={'server_context': cfg.getServer('server_context')})
+                                          context={'server_context': cfg.getServer('serverContext')})
 
 
 async def registers(request):
@@ -107,7 +107,7 @@ async def registers(request):
     """
     data = await request.json()
     logger.debug(f'The request parameters are {data}')
-    master.slaves = data
+    server.agents = data
     return web.json_response({'code': 0, 'msg': 'registered successfully!', 'data': None})
 
 
@@ -128,8 +128,8 @@ async def run_monitor(request):
             'port': port,
             'isRun': is_run
         }
-        ind = master.slaves['ip'].index(host)
-        res = http.request('post', host, master.slaves['port'][ind], 'runMonitor', json=post_data)
+        ind = server.agents['ip'].index(host)
+        res = http.request('post', host, server.agents['port'][ind], 'runMonitor', json=post_data)
 
         if res.status_code == 200:
             return web.Response(body=res.content.decode())
@@ -151,7 +151,7 @@ async def get_monitor(request):
     ip = request.match_info['host']
     monitor_list = {'host': [], 'port': [], 'pid': [], 'isRun': [], 'startTime': []}
     try:
-        port = master.slaves['port'][master.slaves['ip'].index(ip)]
+        port = server.agents['port'][server.agents['ip'].index(ip)]
         post_data = {
             'host': ip,
         }
@@ -195,13 +195,13 @@ async def plot_monitor(request):
     type_ = data.get('type')
     port_pid = data.get('port')
     disk = data.get('disk')
-    if host in master.slaves['ip']:
+    if host in server.agents['ip']:
         try:
             if type_ == 'port':
                 res = draw_data_from_db(host=host, port=port_pid, startTime=start_time, endTime=end_time, disk=disk)
                 if res['code'] == 0:
                     raise Exception(res['message'])
-                res.update({'gc': master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)],
+                res.update({'gc': server.get_gc(host, server.agents['port'][server.agents['ip'].index(host)],
                                                 f'getGC/{port_pid}')})
                 if res['gc'][0] == -1 and res['gc'][2] == -1:
                     res['flag'] = 0
@@ -211,7 +211,7 @@ async def plot_monitor(request):
                 res = draw_data_from_db(host=host, pid=port_pid, startTime=start_time, endTime=end_time, disk=disk)
                 if res['code'] == 0:
                     raise Exception(res['message'])
-                res.update({'gc': master.get_gc(host, master.slaves['port'][master.slaves['ip'].index(host)],
+                res.update({'gc': server.get_gc(host, server.agents['port'][server.agents['ip'].index(host)],
                                                 f'getGC/{port_pid}')})
                 if res['gc'][0] == -1 and res['gc'][2] == -1:
                     res['flag'] = 0
@@ -240,10 +240,10 @@ async def get_port_disk(request):
     :return:
     """
     host = request.match_info['host']
-    if host in master.slaves['ip']:
+    if host in server.agents['ip']:
         try:
-            disks = master.slaves['disk'][master.slaves['ip'].index(host)]
-            monitor_list = master.get_monitor(host=host)
+            disks = server.agents['disk'][server.agents['ip'].index(host)]
+            monitor_list = server.get_monitor(host=host)
             return web.json_response({'code': 0, 'msg': 'Successful!', 'data': {'disk': disks, 'port': monitor_list['port']}})
         except Exception as err:
             logger.error(traceback.format_exc())
@@ -270,22 +270,22 @@ async def notice(request):
 async def main():
     app = web.Application()
     aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))  # Add template to search path
-    app.router.add_static(f'{cfg.getServer("server_context")}/static/',
+    app.router.add_static(f'{cfg.getServer("serverContext")}/static/',
                           path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'),
                           append_version=True)  # Add static files to the search path
 
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}', index)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/home', index)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/startMonitor', start_monitor)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/getMonitor/{{host}}', get_monitor)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/Visualize', visualize)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/course_zh_CN', course_zh_CN)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/course', course_en)
-    app.router.add_route('GET', f'{cfg.getServer("server_context")}/getPortAndDisk/{{host}}', get_port_disk)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}', index)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/home', index)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/startMonitor', start_monitor)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/getMonitor/{{host}}', get_monitor)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/Visualize', visualize)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/course_zh_CN', course_zh_CN)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/course', course_en)
+    app.router.add_route('GET', f'{cfg.getServer("serverContext")}/getPortAndDisk/{{host}}', get_port_disk)
 
     app.router.add_route('POST', '/Register', registers)
-    app.router.add_route('POST', f'{cfg.getServer("server_context")}/runMonitor', run_monitor)
-    app.router.add_route('POST', f'{cfg.getServer("server_context")}/plotMonitor', plot_monitor)
+    app.router.add_route('POST', f'{cfg.getServer("serverContext")}/runMonitor', run_monitor)
+    app.router.add_route('POST', f'{cfg.getServer("serverContext")}/plotMonitor', plot_monitor)
     app.router.add_route('POST', '/Notification', notice)
 
     runner = web.AppRunner(app)

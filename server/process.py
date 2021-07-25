@@ -12,7 +12,7 @@ from request import Request
 class Process(object):
     def __init__(self):
         self.request = Request()
-        self._slaves = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': [], 'nic': [],
+        self._agents = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': [], 'nic': [],
                         'network_speed': [], 'disk_size': [], 'mem_usage': [], 'cpu_usage': [], 'disk_usage': []}
 
         # data expiration time
@@ -26,34 +26,34 @@ class Process(object):
         t.start()
 
     @property
-    def slaves(self):
-        return self._slaves
+    def agents(self):
+        return self._agents
 
-    @slaves.setter
-    def slaves(self, value):
+    @agents.setter
+    def agents(self, value):
         logger.debug(f'The client registration data is {value}')
         ip = value['host']
-        if ip in self._slaves['ip']:
-            ind = self._slaves['ip'].index(ip)
-            self._slaves['cpu_usage'][ind] = value['cpu_usage']
-            self._slaves['mem_usage'][ind] = value['mem_usage']
-            self._slaves['disk_usage'][ind] = value['disk_usage']
-            self._slaves['time'][ind] = time.time()
+        if ip in self._agents['ip']:
+            ind = self._agents['ip'].index(ip)
+            self._agents['cpu_usage'][ind] = value['cpu_usage']
+            self._agents['mem_usage'][ind] = value['mem_usage']
+            self._agents['disk_usage'][ind] = value['disk_usage']
+            self._agents['time'][ind] = time.time()
             logger.info(f'{ip} server has been registered.')
         else:
-            self._slaves['ip'].append(value['host'])
-            self._slaves['port'].append(value['port'])
-            self._slaves['system'].append(value['system'])
-            self._slaves['cpu'].append(value['cpu'])
-            self._slaves['mem'].append(value['mem'])
-            self._slaves['time'].append(time.time())
-            self._slaves['disk'].append(value['disks'].split(','))
-            self._slaves['nic'].append(value['nic'])
-            self._slaves['disk_size'].append(value['disk_size'])
-            self._slaves['network_speed'].append(value['network_speed'])
-            self._slaves['cpu_usage'].append((value['cpu_usage']))
-            self._slaves['mem_usage'].append((value['mem_usage']))
-            self._slaves['disk_usage'].append((value['disk_usage']))
+            self._agents['ip'].append(value['host'])
+            self._agents['port'].append(value['port'])
+            self._agents['system'].append(value['system'])
+            self._agents['cpu'].append(value['cpu'])
+            self._agents['mem'].append(value['mem'])
+            self._agents['time'].append(time.time())
+            self._agents['disk'].append(value['disks'].split(','))
+            self._agents['nic'].append(value['nic'])
+            self._agents['disk_size'].append(value['disk_size'])
+            self._agents['network_speed'].append(value['network_speed'])
+            self._agents['cpu_usage'].append((value['cpu_usage']))
+            self._agents['mem_usage'].append((value['mem_usage']))
+            self._agents['disk_usage'].append((value['disk_usage']))
             logger.info(f'{ip} server registered successfully!')
 
     def check_status(self):
@@ -63,21 +63,21 @@ class Process(object):
         """
         while True:
             time.sleep(5)
-            for i in range(len(self._slaves['ip'])):
-                if time.time() - self._slaves['time'][i] > 12:
-                    ip = self._slaves['ip'].pop(i)
-                    self._slaves['port'].pop(i)
-                    self._slaves['system'].pop(i)
-                    self._slaves['cpu'].pop(i)
-                    self._slaves['mem'].pop(i)
-                    self._slaves['time'].pop(i)
-                    self._slaves['disk'].pop(i)
-                    self._slaves['nic'].pop(i)
-                    self._slaves['network_speed'].pop(i)
-                    self._slaves['disk_size'].pop(i)
-                    self._slaves['cpu_usage'].pop(i)
-                    self._slaves['mem_usage'].pop(i)
-                    self._slaves['disk_usage'].pop(i)
+            for i in range(len(self._agents['ip'])):
+                if time.time() - self._agents['time'][i] > 12:
+                    ip = self._agents['ip'].pop(i)
+                    self._agents['port'].pop(i)
+                    self._agents['system'].pop(i)
+                    self._agents['cpu'].pop(i)
+                    self._agents['mem'].pop(i)
+                    self._agents['time'].pop(i)
+                    self._agents['disk'].pop(i)
+                    self._agents['nic'].pop(i)
+                    self._agents['network_speed'].pop(i)
+                    self._agents['disk_size'].pop(i)
+                    self._agents['cpu_usage'].pop(i)
+                    self._agents['mem_usage'].pop(i)
+                    self._agents['disk_usage'].pop(i)
                     logger.warning(f"The client server {ip} is in an abnormal state, and has been offline.")
                     break
 
@@ -115,7 +115,7 @@ class Process(object):
             post_data = {
                 'host': host,
             }
-            port = self._slaves['port'][self._slaves['ip'].index(host)]
+            port = self._agents['port'][self._agents['ip'].index(host)]
             res = self.request.request('post', host, port, 'getMonitor', json=post_data)
             if res.status_code == 200:
                 response = json.loads(res.content.decode())
@@ -127,7 +127,7 @@ class Process(object):
                     monitor_list['isRun'] += response['data']['isRun']
                     monitor_list['startTime'] += response['data']['startTime']
         else:
-            for ip, port in zip(self._slaves['ip'], self._slaves['port']):  # Traverse all clients IP addresses
+            for ip, port in zip(self._agents['ip'], self._agents['port']):  # Traverse all clients IP addresses
                 post_data = {
                     'host': ip,
                 }

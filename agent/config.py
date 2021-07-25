@@ -10,17 +10,17 @@ class Config(object):
         self.cfg = configparser.ConfigParser()
         self.cfg.read('config.ini', encoding='utf-8')
 
-    def getServer(self, key):
+    def getAgent(self, key):
         if key == 'threadPool' or key == 'nicSpeed':
-            return self.cfg.getint('server', key, fallback=0)
+            return self.cfg.getint('agent', key, fallback=0)
         else:
-            return self.cfg.get('server', key, fallback=None)
+            return self.cfg.get('agent', key, fallback=None)
 
     def getInflux(self, key):
         return self.cfg.get('influx', key, fallback=None)
 
-    def getMaster(self, key):
-        return self.cfg.get('master', key, fallback=None)
+    def getServer(self, key):
+        return self.cfg.get('server', key, fallback=None)
 
     def getLogging(self, key):
         if key == 'backupCount':

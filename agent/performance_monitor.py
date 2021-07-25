@@ -21,7 +21,7 @@ class PerMon(object):
     def __init__(self):
         self.check_sysstat_version()
         self.IP = get_ip()
-        self.thread_pool = cfg.getServer('threadPool') if cfg.getServer('threadPool') >= 0 else 0
+        self.thread_pool = cfg.getAgent('threadPool') if cfg.getAgent('threadPool') >= 0 else 0
         self._msg = {'port': [], 'pid': [], 'isRun': [], 'startTime': []}   # port、pid、status、startTime
         self.is_system = cfg.getMonitor('isMonSystem')        # Whether to monitor the server system
         self.error_times = cfg.getMonitor('errorTimes')
@@ -41,8 +41,8 @@ class PerMon(object):
         self.isTCP = cfg.getMonitor('isTCP')
         self.timeSetting = cfg.getMonitor('timeSetting')
 
-        system_interval = cfg.getMonitor('system_interval')
-        port_interval = cfg.getMonitor('port_interval')
+        system_interval = cfg.getMonitor('systemInterval')
+        port_interval = cfg.getMonitor('portInterval')
         self.system_interval = max(system_interval, 1)   # If the set value is less than 1, the default is 1
         self.port_interval = max(port_interval, 1)      # If the set value is less than 1, the default is 1
         self.system_interval = self.system_interval - 1.1      # Program running time
@@ -61,7 +61,7 @@ class PerMon(object):
         self.all_disk = []      # disk number
         self.total_disk = 1     # total disk size, unit: M
         self.total_disk_h = 0     # total disk size, unit:T or G
-        self.network_speed = cfg.getServer('nicSpeed')  # bandwidth
+        self.network_speed = cfg.getAgent('nicSpeed')  # bandwidth
         self.Retrans_num = self.get_RetransSegs()   # TCP retrans number
 
         self.get_system_version()
@@ -900,14 +900,14 @@ class PerMon(object):
         :param
         :return:
         """
-        url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Register'
+        url = f'http://{cfg.getServer("host")}:{cfg.getServer("port")}/Register'
         header = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate",
             "Content-Type": "application/json; charset=UTF-8"}
         post_data = {
             'host': self.IP,
-            'port': cfg.getServer('port'),
+            'port': cfg.getAgent('port'),
             'system': self.system_version,
             'cpu': self.cpu_cores,
             'cpu_usage': self.cpu_usage,
@@ -998,7 +998,7 @@ def notification(msg):
     :param msg: Email body
     :return:
     """
-    url = f'http://{cfg.getMaster("host")}:{cfg.getMaster("port")}/Notification'
+    url = f'http://{cfg.getServer("host")}:{cfg.getServer("port")}/Notification'
 
     header = {
         "Accept": "application/json, text/plain, */*",
