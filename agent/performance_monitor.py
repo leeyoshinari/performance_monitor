@@ -605,7 +605,7 @@ class PerMon(object):
         Get CPU information
         :return:
         """
-        cpu_model = ''
+        cpu_model = None
         cpu_num = 0
         cpu_core = 0
         try:
@@ -639,6 +639,8 @@ class PerMon(object):
         if cpu_model and cpu_num and cpu_core:
             self.cpu_info = f'{cpu_num} CPU(s), {cpu_core} core(s) pre CPU, total {self.cpu_cores} cores, ' \
                             f'CPU model is {cpu_model} '
+        elif cpu_model:
+            self.cpu_info = f'total CPU cores is {self.cpu_cores}, CPU model is {cpu_model} '
         else:
             self.cpu_info = f'total CPU cores is {self.cpu_cores}'
 
