@@ -70,8 +70,9 @@
             $.ajax({
                 type: 'post',
                 url: 'runMonitor',
-                data: startMonitor,
+                data: JSON.stringify(startMonitor),
                 dataType: "json",
+                contentType: 'application/json; charset=utf-8',
                 success: function (data) {
                     if (data['code'] === 0) {
                         $.Toast(data['msg'], 'success');
@@ -112,8 +113,9 @@
             $.ajax({
                 type: 'post',
                 url: 'runMonitor',
-                data: startMonitor,
+                data: JSON.stringify(startMonitor),
                 dataType: "json",
+                contentType: 'application/json; charset=utf-8',
                 success: function (data) {
                     if (data['code'] === 0) {
                         $.Toast(data['msg'], 'success');

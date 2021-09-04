@@ -105,7 +105,7 @@ async def registers(request):
     :param request:
     :return:
     """
-    data = await request.json()
+    data = json.loads(await request.text())
     logger.debug(f'The request parameters are {data}')
     server.agents = data
     return web.json_response({'code': 0, 'msg': 'registered successfully!', 'data': None})
@@ -118,7 +118,7 @@ async def run_monitor(request):
     :return:
     """
     try:
-        data = await request.post()
+        data = json.loads(await request.text())
         logger.debug(f'The request parameters are {data}')
         host = data.get('host')
         port = data.get('port')
@@ -187,7 +187,7 @@ async def plot_monitor(request):
     :param request:
     :return:
     """
-    data = await request.post()
+    data = json.loads(await request.text())
     logger.debug(f'The request parameters are {data}')
     host = data.get('host')
     start_time = data.get('startTime')
@@ -225,7 +225,6 @@ async def plot_monitor(request):
                 return web.json_response(res)
 
         except Exception as err:
-            logger.error(err)
             logger.error(traceback.format_exc())
             return web.json_response({'code': 0, 'message': str(err)})
     else:
@@ -258,12 +257,13 @@ async def notice(request):
     :param request:
     :return:
     """
-    data = await request.json()
+    data = json.loads(await request.text())
     msg = data.get('msg')
     try:
         sendEmail(msg)
         return web.json_response({'code': 0, 'msg': 'Successful!', 'data': None})
     except Exception as err:
+        logger.error(traceback.format_exc())
         return web.json_response({'code': 1, 'msg': err, 'data': None})
 
 
