@@ -902,7 +902,7 @@ class PerMon(object):
         :param
         :return:
         """
-        url = f'http://{cfg.getServer("host")}:{cfg.getServer("port")}/Register'
+        url = f'http://{cfg.getServer("address")}/Register'
         header = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate",
@@ -1000,7 +1000,7 @@ def notification(msg):
     :param msg: Email body
     :return:
     """
-    url = f'http://{cfg.getServer("host")}:{cfg.getServer("port")}/Notification'
+    url = f'http://{cfg.getServer("address")}/Notification'
 
     header = {
         "Accept": "application/json, text/plain, */*",
