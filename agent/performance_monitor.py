@@ -844,7 +844,7 @@ class PerMon(object):
                 raise Exception(msg)
         except IndexError:
             logger.error(traceback.format_exc())
-            msg = 'Please upgrade sysstat to version 12+, download link: ' \
+            msg = 'Please install or upgrade sysstat to version 12+, download link: ' \
                   'http://sebastien.godard.pagesperso-orange.fr/download.html'
             logger.error(msg)
             raise Exception(msg)
@@ -859,7 +859,7 @@ class PerMon(object):
                 raise Exception(msg)
         except IndexError:
             logger.error(traceback.format_exc())
-            msg = 'Please upgrade sysstat to version 12+, download link: ' \
+            msg = 'Please install or upgrade sysstat to version 12+, download link: ' \
                   'http://sebastien.godard.pagesperso-orange.fr/download.html'
             logger.error(msg)
             raise Exception(msg)
