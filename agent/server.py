@@ -38,7 +38,6 @@ async def run_monitor(request):
         data = await request.json()
         host = data.get('host')
         port = data.get('port')
-        network = data.get('net')
         is_run = data.get('isRun')
 
         if host == HOST:
@@ -51,7 +50,7 @@ async def run_monitor(request):
 
                 if is_run == '0':   # stop monitoring
                     if port in permon.stop['port']:     # whether the port has been monitored.
-                        permon.stop = {'port': port, 'pid': pid, 'net': network, 'is_run': 0}
+                        permon.stop = {'port': port, 'pid': pid, 'is_run': 0}
                         logger.info('Stop monitoring successfully!')
                         return web.json_response({
                             'code': 0, 'msg': 'Stop monitoring successfully!', 'data':
