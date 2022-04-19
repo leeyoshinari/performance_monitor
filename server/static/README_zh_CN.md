@@ -1,5 +1,9 @@
 # performace_monitor
 [English](https://github.com/leeyoshinari/performance_monitor/blob/main/README.md)
+
+<font color=#FF000><h4>推荐使用：[这是一个集成服务器资源监控的 shell 工具](https://github.com/leeyoshinari/MyPlatform) ，使用它可以通过浏览器远程连接linux，并可查看服务器监控结果。欢迎使用。</h4></font>
+
+
 ## 介绍
 #### 已完成如下功能<br>
 1、监控整个服务器的CPU使用率、io wait、内存使用、磁盘IO、网络带宽和TCP连接数<br>

@@ -1,5 +1,8 @@
 # performace_monitor
 [中文文档](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/README_zh_CN.md)
+
+<font color=#FF000><h4>Recommend: [There is a shell tool that integrates server's monitor](https://github.com/leeyoshinari/MyPlatform), you can use it to ssh linux and view monitor. Welcome to use it.</h4></font>
+
 ## Introduction
 #### Completed functions<br>
 1. Monitoring the CPU usage, IO wait, Memory, Disk IO, Network, and TCP connections of the server.<br>
