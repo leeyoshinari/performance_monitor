@@ -1009,7 +1009,7 @@ class PerMon(object):
 
             except(Exception):
                 logger.error(traceback.format_exc())
-                time.sleep(1)
+                time.sleep(3)
 
     def clear_cache(self):
         """
