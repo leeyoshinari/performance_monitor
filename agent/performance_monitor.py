@@ -64,6 +64,12 @@ class PerMon(object):
         self.network_speed = cfg.getAgent('nicSpeed')  # bandwidth
         self.Retrans_num = self.get_RetransSegs()   # TCP retrans number
 
+        self.influx_host = '127.0.0.1'
+        self.influx_port = 8086
+        self.influx_username = 'root'
+        self.influx_password = '123456'
+        self.influx_database = 'test'
+
         self.get_system_version()
         self.get_cpu_cores()
         self.get_total_mem()
@@ -72,11 +78,12 @@ class PerMon(object):
         self.get_system_net_speed()
         self.get_total_disk_size()
 
+        self.get_config_from_server()
         self.monitor_task = queue.Queue()   # FIFO queue
         # thread pool, +2 is the need for monitoring system and registration service
         self.executor = ThreadPoolExecutor(self.thread_pool + 2)
-        self.client = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
-                                              cfg.getInflux('password'), cfg.getInflux('database'))  # influxdb connection
+        self.client = influxdb.InfluxDBClient(self.influx_host, self.influx_port, self.influx_username,
+                                              self.influx_password, self.influx_database)  # influxdb connection
 
         self.FGC = {}           # full gc times
         self.FGC_time = {}      # full gc time
@@ -134,6 +141,47 @@ class PerMon(object):
     def stop(self, value):
         index = self._msg['port'].index(value['port'])
         self._msg['isRun'][index] = value['is_run']
+
+    def get_config_from_server(self):
+        url = f'http://{cfg.getServer("address")}/Register'
+        header = {
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Encoding": "gzip, deflate",
+            "Content-Type": "application/json; charset=UTF-8"}
+        post_data = {
+            'host': self.IP,
+            'port': cfg.getAgent('port'),
+            'system': self.system_version,
+            'cpu': self.cpu_cores,
+            'cpu_usage': self.cpu_usage,
+            'nic': self.nic,
+            'network_speed': self.network_speed,
+            'mem': round(self.total_mem, 2),
+            'mem_usage': self.mem_usage,
+            'disk_size': self.total_disk_h,
+            'disk_usage': self.get_used_disk_rate(),
+            'disks': ','.join(self.all_disk)
+        }
+
+        while True:
+            try:
+                res = requests.post(url=url, json=post_data, headers=header)
+                logger.info(f"The result of registration is {res.content.decode('unicode_escape')}")
+                if res.status_code == 200:
+                    response_data = json.loads(res.content.decode('unicode_escape'))
+                    if response_data['code'] == 0:
+                        self.influx_host = response_data['data']['host']
+                        self.influx_port = response_data['data']['port']
+                        self.influx_username = response_data['data']['username']
+                        self.influx_password = response_data['data']['password']
+                        self.influx_database = response_data['data']['database']
+                        break
+
+                time.sleep(1)
+
+            except(Exception):
+                logger.error(traceback.format_exc())
+                time.sleep(1)
 
     def worker(self):
         """
@@ -930,7 +978,7 @@ class PerMon(object):
                     post_data['cpu_usage'] = self.cpu_usage
                     post_data['mem_usage'] = self.mem_usage
                     res = requests.post(url=url, json=post_data, headers=header)
-                    logger.info(f"The result of registration is {res.content.decode('unicode_escape')}")
+                    logger.info('Agent registers successful ~')
                     start_time = time.time()
                     if time.strftime('%H:%M') == self.timeSetting:  # clean up
                         logger.debug('Cleaning up the ports that stopped monitoring.')

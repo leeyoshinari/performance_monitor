@@ -108,7 +108,9 @@ async def registers(request):
     data = json.loads(await request.text())
     logger.debug(f'The request parameters are {data}')
     server.agents = data
-    return web.json_response({'code': 0, 'msg': 'registered successfully!', 'data': None})
+    return web.json_response({'code': 0, 'msg': 'registered successfully!', 'data': {'host': cfg.getInflux('host'),
+                              'port': cfg.getInflux('port'), 'username': cfg.getInflux('username'),
+                              'password': cfg.getInflux('password'), 'database': cfg.getInflux('database')}})
 
 
 async def run_monitor(request):
