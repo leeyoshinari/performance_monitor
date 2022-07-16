@@ -955,7 +955,7 @@ class PerMon(object):
         :param
         :return:
         """
-        url = f'http://{cfg.getServer("address")}/Register'
+        url = f'http://{cfg.getServer("address")}/register'
         header = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate",

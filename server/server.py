@@ -285,7 +285,7 @@ async def main():
     app.router.add_route('GET', f'{cfg.getServer("serverContext")}/course', course_en)
     app.router.add_route('GET', f'{cfg.getServer("serverContext")}/getPortAndDisk/{{host}}', get_port_disk)
 
-    app.router.add_route('POST', f'{cfg.getServer("serverContext")}/Register', registers)
+    app.router.add_route('POST', f'{cfg.getServer("serverContext")}/register', registers)
     app.router.add_route('POST', f'{cfg.getServer("serverContext")}/runMonitor', run_monitor)
     app.router.add_route('POST', f'{cfg.getServer("serverContext")}/plotMonitor', plot_monitor)
     app.router.add_route('POST', f'{cfg.getServer("serverContext")}/Notification', notice)
