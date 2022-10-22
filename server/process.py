@@ -24,6 +24,7 @@ class Process(object):
 
         t = threading.Thread(target=self.check_status, args=())  # Check the online status of the clients.
         t.start()
+        del conn
 
     @property
     def agents(self):

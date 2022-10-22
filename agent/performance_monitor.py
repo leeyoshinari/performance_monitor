@@ -941,7 +941,7 @@ class PerMon(object):
             del port_list
             logger.info('Successfully clean up the ports that stopped monitoring.')
         else:
-            logger.info('There is no port that stoped monitoring.')
+            logger.info('There is no port that stopped monitoring.')
 
     def register_agent(self, disk_flag=True):
         """
