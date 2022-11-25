@@ -1,7 +1,7 @@
 # performace_monitor
 [中文文档](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/README_zh_CN.md)
 
-<font color=#FF000><h4>Recommend: [There is a shell tool that integrates server monitor](https://github.com/leeyoshinari/MyPlatform), you can use it to ssh linux and view monitor. Welcome to use it.</h4></font>
+<font color=#FF000><h4>Recommend: [There is a platform that also integrates server monitor, and mainly used for performance test](https://github.com/leeyoshinari/MyPlatform),  Welcome to use it.</h4></font>
 
 ## Introduction
 #### Completed functions<br>
