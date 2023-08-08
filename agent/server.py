@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 # @Author: leeyoshinari
 
-import os
 import time
 import asyncio
 import traceback
 from aiohttp import web
 from common import get_ip
 from logger import logger, cfg
-from performance_monitor import PerMon, port_to_pid
+from performance_monitor import PerMon, port_to_pid, exec_cmd
 
 permon = PerMon()
 HOST = get_ip()
@@ -119,7 +118,7 @@ async def get_gc(request):
             logger.warning(f"Port {port} not started!")
             return web.json_response({'code': 1, 'msg': f"Port {port} not started!", 'data': None})
 
-        result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
+        result = exec_cmd(f'jstat -gc {pid} |tr -s " "')[1]
         res = result.strip().split(' ')
 
         # Current GC data
@@ -138,7 +137,7 @@ async def get_gc(request):
                 if len(fgc_time_history) > 1:
                     ffgc = round(time.time() - fgc_time_history[-2], 2)
                 else:
-                    result = os.popen(f'ps -p {pid} -o etimes').readlines()[1]  # the running time of the process
+                    result = exec_cmd(f'ps -p {pid} -o etimes')[1]  # the running time of the process
                     runtime = int(result.strip())
                     ffgc = round(runtime / fgc, 2)
             else:
@@ -156,7 +155,7 @@ async def get_gc(request):
 async def stop_monitor(request):
     pid = port_to_pid(cfg.getAgent('port'))
     if pid:
-        _ = os.popen(f'kill -9 {pid}')
+        _ = exec_cmd(f'kill -9 {pid}')
         logger.info('Stop the agent successfully!')
         return web.Response(body='Stop the agent successfully!')
     else:

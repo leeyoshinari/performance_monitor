@@ -48,7 +48,8 @@ def get_ip():
     if cfg.getAgent('host'):
         IP = cfg.getAgent('host')
     else:
-        result = os.popen("hostname -I |awk '{print $1}'").readlines()
+        with os.popen("hostname -I |awk '{print $1}'") as p:
+            result = p.readlines()
         logger.debug(result)
         if result:
             IP = result[0].strip()
@@ -56,5 +57,4 @@ def get_ip():
         else:
             logger.warning('Server IP address not found!')
             IP = '127.0.0.1'
-
     return IP

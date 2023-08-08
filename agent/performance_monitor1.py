@@ -179,7 +179,7 @@ class PerMon(object):
 
                 time.sleep(1)
 
-            except(Exception):
+            except:
                 logger.error(traceback.format_exc())
                 time.sleep(1)
 
@@ -294,7 +294,7 @@ class PerMon(object):
                     logger.info(f'cpu_and_mem: port_{port},pid_{pid},{pid_info},{jvm}')
                     run_error_times = 0    # If the monitoring command is executed successfully, reset it
 
-                except(Exception):
+                except:
                     logger.error(traceback.format_exc())
                     time.sleep(self.sleepTime)
 
@@ -407,7 +407,7 @@ class PerMon(object):
                             mem_flag = True     # If free memory is normally, reset it to True.
                             echo = True
 
-                except(Exception):
+                except:
                     logger.error(traceback.format_exc())
 
                 time.sleep(self.system_interval)
@@ -424,8 +424,8 @@ class PerMon(object):
         cpu = None
         mem = None
 
-        # result = os.popen(f'top -n 1 -b -p {pid}').readlines()
-        result = os.popen(f'top -n 1 -b |grep -P {pid}').readlines()
+        # result = exec_cmd(f'top -n 1 -b -p {pid}')
+        result = exec_cmd(f'top -n 1 -b |grep -P {pid}')
         res = [ress.split() for ress in result]
         logger.debug(f'The CPU and Mem of pid {pid} is: {res}')
 
@@ -447,7 +447,7 @@ class PerMon(object):
         pid_info = {'kB_rd': 0.0, 'kB_wr': 0.0, 'iodelay': 0.0, 'VSZ': 0.0, 'RSS': 0.0, 'mem': 0.0, 'usr_cpu': 0.0,
                     'system_cpu': 0.0, 'guest_cpu': 0.0, 'wait_cpu': 0.0, 'cpu': 0.0}
 
-        res = os.popen(f'pidstat -u -r -d -p {pid} 1 1').readlines()[::-1][:9]
+        res = exec_cmd(f'pidstat -u -r -d -p {pid} 1 1')[::-1][:9]
 
         if res:
             for i in range(len(res)):
@@ -481,7 +481,7 @@ class PerMon(object):
         :param pid: pid
         :return: jvm(G)
         """
-        result = os.popen(f'jstat -gc {pid}').readlines()[1]
+        result = exec_cmd(f'jstat -gc {pid}')[1]
         res = result.strip().split()
         logger.debug(f'The JVM of pid {pid} is: {res}')
         mem = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])     # calculate JVM
@@ -529,14 +529,14 @@ class PerMon(object):
         trans = None
         network = None
         if self.nic:
-            bps1 = os.popen(f'cat /proc/net/dev |grep {self.nic}').readlines()
+            bps1 = exec_cmd(f'cat /proc/net/dev |grep {self.nic}')
             logger.debug(f'The result of speed for the first time is: {bps1}')
 
-        result = os.popen('iostat -x -m 1 2').readlines()
+        result = exec_cmd('iostat -x -m 1 2')
         logger.debug(f'The result of Disks are: {result}')
 
         if self.nic:
-            bps2 = os.popen(f'cat /proc/net/dev |grep {self.nic}').readlines()
+            bps2 = exec_cmd(f'cat /proc/net/dev |grep {self.nic}')
             logger.debug(f'The result of speed for the second time is: {bps2}')
 
         result = result[len(result) // 2 - 1:]
@@ -590,7 +590,7 @@ class PerMon(object):
         :return: free Memory, available Memory
         """
         mem, mem_available = 0, 0
-        result = os.popen('cat /proc/meminfo').readlines()
+        result = exec_cmd('cat /proc/meminfo')
         logger.debug(f'The free memory is: {result}')
         for res in result:
             if 'MemFree' in res:
@@ -610,7 +610,7 @@ class PerMon(object):
         :param pid: pid
         :return: the number of handles
         """
-        result = os.popen("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid)).readlines()
+        result = exec_cmd("lsof -n | awk '{print $2}'| sort | uniq -c | sort -nr | " + "grep {}".format(pid))
         res = result[0].strip().split(' ')
         logger.debug(res)
         handles = None
@@ -628,7 +628,7 @@ class PerMon(object):
         tcp = 0
         Retrans = 0
         if self.isTCP:
-            result = os.popen('cat /proc/net/snmp |grep Tcp').readlines()
+            result = exec_cmd('cat /proc/net/snmp |grep Tcp')
             tcps = result[-1].split()
             logger.debug(f'The TCP is: {tcps}')
             tcp = int(tcps[9])      # TCP connections
@@ -645,7 +645,8 @@ class PerMon(object):
         :return:
         """
         tcp_num = {}
-        res = os.popen(f'netstat -ant |grep {port}').read()
+        with os.popen(f'netstat -ant |grep {port}') as p:
+            res = p.read()
         tcp_num.update({'tcp': res.count('tcp')})
         tcp_num.update({'established': res.count('ESTABLISHED')})
         tcp_num.update({'close_wait': res.count('CLOSE_WAIT')})
@@ -661,7 +662,7 @@ class PerMon(object):
         cpu_num = 0
         cpu_core = 0
         try:
-            result = os.popen('cat /proc/cpuinfo | grep "model name" |uniq').readlines()[0]
+            result = exec_cmd('cat /proc/cpuinfo | grep "model name" |uniq')[0]
             cpu_model = result.strip().split(':')[1].strip()
             logger.info(f'The CPU model is {cpu_model}')
         except Exception as err:
@@ -669,7 +670,7 @@ class PerMon(object):
             logger.error(err)
 
         try:
-            result = os.popen('cat /proc/cpuinfo | grep "physical id" | uniq | wc -l').readlines()[0]
+            result = exec_cmd('cat /proc/cpuinfo | grep "physical id" | uniq | wc -l')[0]
             cpu_num = int(result)
             logger.info(f'The number of CPU is {cpu_num}')
         except Exception as err:
@@ -677,14 +678,14 @@ class PerMon(object):
             logger.error(err)
 
         try:
-            result = os.popen('cat /proc/cpuinfo | grep "cpu cores" | uniq').readlines()[0]
+            result = exec_cmd('cat /proc/cpuinfo | grep "cpu cores" | uniq')[0]
             cpu_core = int(result.strip().split(':')[1].strip())
             logger.info(f'The number of cores per CPU is {cpu_core}')
         except Exception as err:
             logger.error('The number of cores per CPU is not found.')
             logger.error(err)
 
-        result = os.popen('cat /proc/cpuinfo| grep "processor"| wc -l').readlines()[0]
+        result = exec_cmd('cat /proc/cpuinfo| grep "processor"| wc -l')[0]
         self.cpu_cores = int(result)
         logger.info(f'The number of cores all CPU is {self.cpu_cores}')
 
@@ -702,7 +703,7 @@ class PerMon(object):
         Get Memory
         :return:
         """
-        result = os.popen('cat /proc/meminfo| grep "MemTotal"').readlines()[0]
+        result = exec_cmd('cat /proc/meminfo| grep "MemTotal"')[0]
         self.total_mem = float(result.split(':')[-1].split('k')[0].strip()) / 1048576   # 1048576 = 1024 * 1024
         self.total_mem_100 = self.total_mem / 100
         logger.info(f'The total memory is {self.total_mem}G')
@@ -713,7 +714,7 @@ class PerMon(object):
         Get all disks number.
         :return:
         """
-        result = os.popen('iostat -x -k').readlines()
+        result = exec_cmd('iostat -x -k')
         if result:
             disk_res = [line.strip() for line in result if len(line) > 5]
             for i in range(len(disk_res)):
@@ -735,10 +736,10 @@ class PerMon(object):
         :return:
         """
         network_card = []
-        result = os.popen('cat /proc/net/dev').readlines()   # get network data
+        result = exec_cmd('cat /proc/net/dev')   # get network data
         logger.debug(f'The result for the first time is: {result}')
         time.sleep(1)
-        result1 = os.popen('cat /proc/net/dev').readlines()  # get network data again
+        result1 = exec_cmd('cat /proc/net/dev')  # get network data again
         logger.debug(f'The result for the second time is: {result1}')
         for i in range(len(result)):
             if ':' in result[i]:
@@ -767,7 +768,7 @@ class PerMon(object):
         Get disk size
         :return:
         """
-        result = os.popen('df -m').readlines()
+        result = exec_cmd('df -m')
         logger.debug(f'The data of disk is {result}')
         for line in result:
             res = line.split()
@@ -793,7 +794,7 @@ class PerMon(object):
         :return:
         """
         used_disk_size = 0
-        result = os.popen('df -m').readlines()
+        result = exec_cmd('df -m')
         logger.debug(f'The data of disk is {result}')
         for line in result:
             res = line.split()
@@ -810,7 +811,7 @@ class PerMon(object):
         :return:
         """
         if self.nic:
-            result = os.popen(f'ethtool {self.nic}').readlines()
+            result = exec_cmd(f'ethtool {self.nic}')
             logger.debug(f'The bandwidth is {result}')
             for line in result:
                 if 'Speed' in line:
@@ -834,12 +835,12 @@ class PerMon(object):
         :return:
         """
         try:
-            result = os.popen('cat /etc/redhat-release').readlines()    # system release version
+            result = exec_cmd('cat /etc/redhat-release')    # system release version
             logger.debug(f'The system release version is {result}')
             self.system_version = result[0].strip()
         except Exception as err:
             logger.warning(err)
-            result = os.popen('cat /proc/version').readlines()[0]   # system kernel version
+            result = exec_cmd('cat /proc/version')[0]   # system kernel version
             logger.debug(f'The system kernel version is{result}')
             res = re.findall(r"gcc.*\((.*?)\).*GCC", result.strip())
             if res:
@@ -858,7 +859,7 @@ class PerMon(object):
         """
         Retrans = 0
         if self.isTCP:
-            result = os.popen('cat /proc/net/snmp |grep Tcp').readlines()
+            result = exec_cmd('cat /proc/net/snmp |grep Tcp')
             tcps = result[-1].split()
             logger.debug(f'The TCP is: {tcps}')
             Retrans = int(tcps[-4])
@@ -872,7 +873,7 @@ class PerMon(object):
         """
         pid = port_to_pid(port)
         try:
-            result = os.popen(f'jstat -gc {pid} |tr -s " "').readlines()[1]
+            result = exec_cmd(f'jstat -gc {pid} |tr -s " "')[1]
             res = result.strip().split(' ')
             logger.info(f'The JVM of {pid} is {res}')
             _ = float(res[2]) + float(res[3]) + float(res[5]) + float(res[7])
@@ -888,7 +889,7 @@ class PerMon(object):
         Check sysstat version
         """
         try:
-            version = os.popen("iostat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
+            version = exec_cmd("iostat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'")[0]
             v = int(version.strip())
             if v < 12:
                 msg = 'The iostat version is too low, please upgrade to version 12+, download link: ' \
@@ -903,7 +904,7 @@ class PerMon(object):
             raise Exception(msg)
 
         try:
-            version = os.popen("pidstat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'").readlines()[0]
+            version = exec_cmd("pidstat -V |grep ysstat |awk '{print $3}' |awk -F '.' '{print $1}'")[0]
             v = int(version.strip())
             if v < 12:
                 msg = 'The pidstat version is too low, please upgrade to version 12+, download link: ' \
@@ -1007,7 +1008,7 @@ class PerMon(object):
 
                 time.sleep(5)
 
-            except(Exception):
+            except:
                 logger.error(traceback.format_exc())
                 time.sleep(3)
 
@@ -1017,11 +1018,20 @@ class PerMon(object):
         :return:
         """
         logger.info(f'Start Cleaning up cache: echo {self.echo} > /proc/sys/vm/drop_caches')
-        os.popen(f'echo {self.echo} > /proc/sys/vm/drop_caches')
+        _ = exec_cmd(f'echo {self.echo} > /proc/sys/vm/drop_caches')
         logger.info('Clear the cache successfully.')
 
     def __del__(self):
         pass
+
+
+def exec_cmd(cmd):
+    try:
+        with os.popen(cmd) as p:
+            res = p.readlines()
+        return res
+    except:
+        raise
 
 
 @handle_exception(is_return=True)
@@ -1032,7 +1042,7 @@ def port_to_pid(port):
     :return: pid
     """
     pid = None
-    result = os.popen(f'netstat -nlp|grep {port}').readlines()
+    result = exec_cmd(f'netstat -nlp|grep {port}')
     logger.debug(f'The result of the port {port} is {result}')
     flag = f':{port}'
     res = [line.strip() for line in result if flag in line]
