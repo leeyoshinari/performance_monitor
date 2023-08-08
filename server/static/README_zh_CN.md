@@ -1,7 +1,7 @@
 # performace_monitor
-[English](https://github.com/leeyoshinari/performance_monitor/blob/main/README.md)
+[English](https://github.com/leeyoshinari/performance_monitor/blob/main/README.md) ![](https://visitor-badge.glitch.me/badge?page_id=leeyoshinari)
 
-<font color=#FF000><h4>推荐使用：[这是一个集成服务器资源监控的 shell 工具](https://github.com/leeyoshinari/MyPlatform) ，使用它可以通过浏览器远程连接linux，并可查看服务器监控结果。欢迎使用。</h4></font>
+<font color=#FF000><h4>推荐：[这是一个主要用于性能测试的平台，同时也集成服务器资源监控](https://github.com/leeyoshinari/MyPlatform) ，该平台支持分布式压测和全链路压测，更多功能，欢迎您来使用。</h4></font>
 
 
 ## 介绍
