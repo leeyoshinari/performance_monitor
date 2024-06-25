@@ -797,14 +797,15 @@ class PerMon(object):
                 if 'Speed' in line:
                     logger.debug(f'The bandwidth is {line}')
                     res = re.findall(r"(\d+)", line)
-                    speed = int(res[0])
-                    if 'G' in line:
-                        speed = speed * 1024
-                    if 'K' in line:
-                        speed = speed / 1024
+                    if res:
+                        speed = int(res[0])
+                        if 'G' in line:
+                            speed = speed * 1024
+                        if 'K' in line:
+                            speed = speed / 1024
 
-                    self.network_speed = speed
-                    break
+                        self.network_speed = speed
+                        break
 
             logger.info(f'The bandwidth of ethernet is {self.network_speed}Mb/s')
 
@@ -873,13 +874,13 @@ class PerMon(object):
             v = int(version.strip())
             if v < 12:
                 msg = 'The iostat version is too low, please upgrade to version 12+, download link: ' \
-                      'http://sebastien.godard.pagesperso-orange.fr/download.html'
+                      'https://sysstat.github.io/versions.html'
                 logger.error(msg)
                 raise Exception(msg)
         except IndexError:
             logger.error(traceback.format_exc())
             msg = 'Please install or upgrade sysstat to version 12+, download link: ' \
-                  'http://sebastien.godard.pagesperso-orange.fr/download.html'
+                  'https://sysstat.github.io/versions.html'
             logger.error(msg)
             raise Exception(msg)
 
@@ -888,13 +889,13 @@ class PerMon(object):
             v = int(version.strip())
             if v < 12:
                 msg = 'The pidstat version is too low, please upgrade to version 12+, download link: ' \
-                      'http://sebastien.godard.pagesperso-orange.fr/download.html'
+                      'https://sysstat.github.io/versions.html'
                 logger.error(msg)
                 raise Exception(msg)
         except IndexError:
             logger.error(traceback.format_exc())
             msg = 'Please install or upgrade sysstat to version 12+, download link: ' \
-                  'http://sebastien.godard.pagesperso-orange.fr/download.html'
+                  'https://sysstat.github.io/versions.html'
             logger.error(msg)
             raise Exception(msg)
 
