@@ -12,7 +12,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-import influxdb
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import ASYNCHRONOUS
 from common import handle_exception, get_ip
 from logger import logger, cfg
 
@@ -64,11 +65,10 @@ class PerMon(object):
         self.network_speed = cfg.getAgent('nicSpeed')  # bandwidth
         self.Retrans_num = self.get_RetransSegs()   # TCP retrans number
 
-        self.influx_host = '127.0.0.1'
-        self.influx_port = 8086
-        self.influx_username = 'root'
-        self.influx_password = '123456'
-        self.influx_database = 'test'
+        self.influx_url = 'http://127.0.0.1:8086'
+        self.influx_org = 'influxdb'
+        self.influx_token = 'ZgL0t-L5QmFq-JGQg619WRYOjQSJoMIHFebX6pHXG4guZOcyBXhghW_zVWFfzDwnJBRtS9g1mEnIhoDI05dQ=='
+        self.influx_bucket = 'influxdb'
 
         self.get_system_version()
         self.get_cpu_cores()
@@ -82,8 +82,8 @@ class PerMon(object):
         self.monitor_task = queue.Queue()   # FIFO queue
         # thread pool, +2 is the need for monitoring system and registration service
         self.executor = ThreadPoolExecutor(self.thread_pool + 2)
-        self.client = influxdb.InfluxDBClient(self.influx_host, self.influx_port, self.influx_username,
-                                              self.influx_password, self.influx_database)  # influxdb connection
+        self.client = InfluxDBClient(url=self.influx_url, token=self.influx_token, org=self.influx_org)
+        self.write_api = self.client.write_api(write_options=ASYNCHRONOUS)
 
         self.FGC = {}           # full gc times
         self.FGC_time = {}      # full gc time
@@ -170,15 +170,13 @@ class PerMon(object):
                 if res.status_code == 200:
                     response_data = json.loads(res.content.decode('unicode_escape'))
                     if response_data['code'] == 0:
-                        self.influx_host = response_data['data']['host']
-                        self.influx_port = response_data['data']['port']
-                        self.influx_username = response_data['data']['username']
-                        self.influx_password = response_data['data']['password']
-                        self.influx_database = response_data['data']['database']
+                        self.influx_url = response_data['data']['url']
+                        self.influx_org = response_data['data']['org']
+                        self.influx_token = response_data['data']['token']
+                        self.influx_bucket = response_data['data']['bucket']
                         break
 
                 time.sleep(1)
-
             except:
                 logger.error(traceback.format_exc())
                 time.sleep(1)
@@ -220,21 +218,6 @@ class PerMon(object):
         pid = self._msg['pid'][index]
         is_run_jvm = self.is_java.get(str(port), 0)
 
-        line = [{'measurement': self.IP,
-                 'tags': {'type': str(port)},
-                 'fields': {
-                     'cpu': 0.0,
-                     'wait_cpu': 0.0,
-                     'mem': 0.0,
-                     'jvm': 0.0,
-                     'rKbs': 0.0,
-                     'wKbs': 0.0,
-                     'iodelay': 0.0,
-                     'tcp': 0,
-                     'close_wait': 0,
-                     'time_wait': 0
-                 }}]
-
         while True:
             if self._msg['isRun'][index] > 0:   # Start monitoring
                 self._msg['isRun'][index] = 1   # Reset the status to monitoring
@@ -271,24 +254,23 @@ class PerMon(object):
 
                         time.sleep(self.sleepTime)
                         continue
-
-                    line[0]['fields']['cpu'] = pid_info['cpu']
-                    line[0]['fields']['wait_cpu'] = pid_info['wait_cpu']
-                    line[0]['fields']['mem'] = pid_info['mem']
-                    line[0]['fields']['rKbs'] = pid_info['kB_rd']
-                    line[0]['fields']['wKbs'] = pid_info['kB_wr']
-                    line[0]['fields']['iodelay'] = pid_info['iodelay']
-
                     tcp_num = self.get_port_tcp(port)
-                    line[0]['fields']['tcp'] = tcp_num.get('tcp', 0)
-                    line[0]['fields']['close_wait'] = tcp_num.get('close_wait', 0)
-                    line[0]['fields']['time_wait'] = tcp_num.get('time_wait', 0)
-
+                    jvm = 0
                     if is_run_jvm:
                         jvm = self.get_jvm(port, pid)     # get JVM size
-                        line[0]['fields']['jvm'] = jvm
-
-                    self.client.write_points(line)    # write database
+                    pointer = (Point(self.IP)
+                               .tag('type', str(port))
+                               .field('cpu', pid_info['cpu'])
+                               .field('wait_cpu', pid_info['wait_cpu'])
+                               .field('mem', pid_info['mem'])
+                               .field('rKbs', pid_info['kB_rd'])
+                               .field('wKbs', pid_info['kB_wr'])
+                               .field('iodelay', pid_info['iodelay'])
+                               .field('tcp', tcp_num.get('tcp', 0))
+                               .field('close_wait', tcp_num.get('close_wait', 0))
+                               .field('time_wait', tcp_num.get('time_wait', 0))
+                               .field('jvm', jvm))
+                    self.write_api.write(bucket=self.influx_bucket, org=self.influx_org, record=pointer)
                     logger.info(f'cpu_and_mem: port_{port},pid_{pid},{pid_info},{jvm}')
                     run_error_times = 0    # If the monitoring command is executed successfully, reset it
 
@@ -313,28 +295,27 @@ class PerMon(object):
         cpu_flag = True     # Flag of whether to send mail when the CPU usage is too high
         mem_flag = True     # Flag of whether to send mail when the free memory is too low
         echo = True         # Flag of whether to clean up cache
-        line = [{'measurement': self.IP,
-                 'tags': {'type': 'system'},
-                 'fields': {
-                     'cpu': 0.0,
-                     'iowait': 0.0,
-                     'usr_cpu': 0.0,
-                     'mem': 0.0,
-                     'mem_available': 0.0,
-                     'rec': 0.0,
-                     'trans': 0.0,
-                     'net': 0.0,
-                     'tcp': 0,
-                     'retrans': 0
-                 }}]
+        line = {'measurement': self.IP,
+                'fields': {
+                    'cpu': 0.0,
+                    'iowait': 0.0,
+                    'usr_cpu': 0.0,
+                    'mem': 0.0,
+                    'mem_available': 0.0,
+                    'rec': 0.0,
+                    'trans': 0.0,
+                    'net': 0.0,
+                    'tcp': 0,
+                    'retrans': 0
+                }}
         for disk in self.all_disk:
             # The system disks exists in the format of 'sda-1'. Since influxdb cannot recognize the '-', need to replace it.
             # Other formats need to be verified
             disk_n = disk.replace('-', '')
-            line[0]['fields'].update({disk_n: 0.0})
-            line[0]['fields'].update({disk_n + '_r': 0.0})
-            line[0]['fields'].update({disk_n + '_w': 0.0})
-            line[0]['fields'].update({disk_n + '_d': 0.0})
+            line['fields'].update({disk_n: 0.0})
+            line['fields'].update({disk_n + '_r': 0.0})
+            line['fields'].update({disk_n + '_w': 0.0})
+            line['fields'].update({disk_n + '_d': 0.0})
 
         while True:
             if self.is_system:
@@ -343,28 +324,32 @@ class PerMon(object):
 
                     if res['disk'] and res['cpu'] is not None and res['mem'] is not None:
                         for k, v in res['disk'].items():
-                            line[0]['fields'][k] = min(v, 100.0)
+                            line['fields'][k] = min(v, 100.0)
 
                         for k, v in res['disk_r'].items():
-                            line[0]['fields'][k] = v
+                            line['fields'][k] = v
 
                         for k, v in res['disk_w'].items():
-                            line[0]['fields'][k] = v
+                            line['fields'][k] = v
 
                         for k, v in res['disk_d'].items():
-                            line[0]['fields'][k] = v
+                            line['fields'][k] = v
 
-                        line[0]['fields']['cpu'] = res['cpu']
-                        line[0]['fields']['iowait'] = res['iowait']
-                        line[0]['fields']['usr_cpu'] = res['usr_cpu']
-                        line[0]['fields']['mem'] = res['mem']
-                        line[0]['fields']['mem_available'] = res['mem_available']
-                        line[0]['fields']['rec'] = res['rece']
-                        line[0]['fields']['trans'] = res['trans']
-                        line[0]['fields']['net'] = res['network']
-                        line[0]['fields']['tcp'] = res['tcp']
-                        line[0]['fields']['retrans'] = res['retrans']
-                        self.client.write_points(line)    # write to database
+                        line['fields']['cpu'] = res['cpu']
+                        line['fields']['iowait'] = res['iowait']
+                        line['fields']['usr_cpu'] = res['usr_cpu']
+                        line['fields']['mem'] = res['mem']
+                        line['fields']['mem_available'] = res['mem_available']
+                        line['fields']['rec'] = res['rece']
+                        line['fields']['trans'] = res['trans']
+                        line['fields']['net'] = res['network']
+                        line['fields']['tcp'] = res['tcp']
+                        line['fields']['retrans'] = res['retrans']
+                        pointer = Point(line['measurement'])
+                        pointer = pointer.tag('type', 'system')
+                        for key, value in line["fields"].items():
+                            pointer = pointer.field(key, value)
+                        self.write_api.write(bucket=self.influx_bucket, org=self.influx_org, record=pointer)
                         logger.info(f"system: CpuAndMem,{res['cpu']},{res['mem']},{res['disk']},{res['disk_r']},"
                                     f"{res['disk_w']},{res['rece']},{res['trans']},{res['network']}, "
                                     f"{res['tcp']}, {res['retrans']}")
@@ -1015,6 +1000,18 @@ class PerMon(object):
         logger.info(f'Start Cleaning up cache: echo {self.echo} > /proc/sys/vm/drop_caches')
         _ = exec_cmd(f'echo {self.echo} > /proc/sys/vm/drop_caches')
         logger.info('Clear the cache successfully.')
+
+    @staticmethod
+    def success_callback(data):
+        logger.info(f"Write Success: {data}")
+
+    @staticmethod
+    def error_callback(error):
+        logger.error(f"Write Error: {error}")
+
+    @staticmethod
+    def retry_callback(retry_interval, exception):
+        logger.error(f"Retrying in {retry_interval} seconds due to: {exception}")
 
     def __del__(self):
         pass

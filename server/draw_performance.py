@@ -3,7 +3,7 @@
 # Author: leeyoshinari
 import time
 import traceback
-import influxdb
+import influxdb_client
 from logger import logger, cfg
 
 
@@ -44,8 +44,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
 
     res = {'code': 1, 'flag': 1, 'message': 'Successful!'}
 
-    connection = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
-                                         cfg.getInflux('password'), cfg.getInflux('database'))
+    connection = influxdb_client.InfluxDBClient(url=cfg.getInflux('url'), token=cfg.getInflux('token'), org=cfg.getInflux('org'))
 
     try:
         if startTime and endTime:     # If there is a start time and an end time

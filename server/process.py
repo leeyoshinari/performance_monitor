@@ -4,7 +4,6 @@
 import time
 import json
 import threading
-import influxdb
 from logger import logger, cfg, handle_exception
 from request import Request
 
@@ -15,16 +14,8 @@ class Process(object):
         self._agents = {'ip': [], 'port': [], 'system': [], 'cpu': [], 'mem': [], 'time': [], 'disk': [], 'nic': [],
                         'network_speed': [], 'disk_size': [], 'mem_usage': [], 'cpu_usage': [], 'disk_usage': []}
 
-        # data expiration time
-        conn = influxdb.InfluxDBClient(cfg.getInflux('host'), cfg.getInflux('port'), cfg.getInflux('username'),
-                                       cfg.getInflux('password'), cfg.getInflux('database'))
-        conn.query(f'alter retention policy "autogen" on "{cfg.getInflux("database")}" duration '
-                   f'{cfg.getInflux("expiryTime")}d REPLICATION 1 SHARD DURATION {cfg.getInflux("shardDuration")} default;')
-        logger.info(f'Data expiration time is {cfg.getInflux("expiryTime")} days')
-
         t = threading.Thread(target=self.check_status, args=())  # Check the online status of the clients.
         t.start()
-        del conn
 
     @property
     def agents(self):

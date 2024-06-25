@@ -12,7 +12,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
-import influxdb
+import influxdb_client
 from common import handle_exception, get_ip
 from logger import logger, cfg
 
@@ -64,11 +64,10 @@ class PerMon(object):
         self.network_speed = cfg.getAgent('nicSpeed')  # bandwidth
         self.Retrans_num = self.get_RetransSegs()   # TCP retrans number
 
-        self.influx_host = '127.0.0.1'
-        self.influx_port = 8086
-        self.influx_username = 'root'
-        self.influx_password = '123456'
-        self.influx_database = 'test'
+        self.influx_url = 'http://127.0.0.1:8086'
+        self.influx_org = 'influxdb'
+        self.influx_token = 'ZgL0t-L5QmFq-JGQg619WRYOjQSJoMIHFebX6pHXG4guZOcyBXhghW_zVWFfzDwnJBRtS9g1mEnIhoDI05dQ=='
+        self.influx_bucket = 'influxdb'
 
         self.get_system_version()
         self.get_cpu_cores()
@@ -82,8 +81,7 @@ class PerMon(object):
         self.monitor_task = queue.Queue()   # FIFO queue
         # thread pool, +2 is the need for monitoring system and registration service
         self.executor = ThreadPoolExecutor(self.thread_pool + 2)
-        self.client = influxdb.InfluxDBClient(self.influx_host, self.influx_port, self.influx_username,
-                                              self.influx_password, self.influx_database)  # influxdb connection
+        self.client = influxdb_client.InfluxDBClient(url=self.influx_url, token=self.influx_token, org=self.influx_org)
 
         self.FGC = {}           # full gc times
         self.FGC_time = {}      # full gc time
@@ -170,11 +168,10 @@ class PerMon(object):
                 if res.status_code == 200:
                     response_data = json.loads(res.content.decode('unicode_escape'))
                     if response_data['code'] == 0:
-                        self.influx_host = response_data['data']['host']
-                        self.influx_port = response_data['data']['port']
-                        self.influx_username = response_data['data']['username']
-                        self.influx_password = response_data['data']['password']
-                        self.influx_database = response_data['data']['database']
+                        self.influx_url = response_data['data']['url']
+                        self.influx_org = response_data['data']['org']
+                        self.influx_token = response_data['data']['token']
+                        self.influx_bucket = response_data['data']['bucket']
                         break
 
                 time.sleep(1)

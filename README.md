@@ -35,23 +35,7 @@
    ```
    The server folder is the Server, and only one needs to be deployed; the agent folder is Agent, and deployed on the servers that need to be monitored.<br>
 
-2. Deploy InfluxDB, installation steps on CentOS are as follows:<br>
-    (1) Download and install<br>
-        `wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm` <br>
-        `yum localinstall influxdb-1.8.3.x86_64.rpm` <br>
-    (2) Start<br>
-        `systemctl enable influxdb` <br>
-        `systemctl start influxdb` <br>
-    (3) Modify configuration<br>
-         `vim /etc/influxdb/influxdb.conf` <br>
-         Around line 256, modify port: `bind-address = ":8086"` <br>
-         Around line 265, log disable: `log-enabled = false` <br>
-         Restart InfluxDB <br>
-    (4) Create database<br>
-        `create database test` <br>
-        `use test` <br>
-        `create user root with password '123456'` create user and password <br>
-        `grant all privileges on test to root` grant privileges <br>
+2. Deploy `InfluxDB2`, the latest version is recommended.
    
 3. Respectively modify the configuration files `config.ini` in the server and agent folders.<br>
 

@@ -14,10 +14,7 @@ class Config(object):
         return self.cfg.get('server', key, fallback='')
 
     def getInflux(self, key):
-        if key == 'expiryTime':
-            return self.cfg.getint('influx', key, fallback=15)
-        else:
-            return self.cfg.get('influx', key, fallback=None)
+        return self.cfg.get('influx', key, fallback=None)
 
     def getLogging(self, key):
         if key == 'backupCount':
