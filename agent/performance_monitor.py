@@ -143,7 +143,7 @@ class PerMon(object):
         self._msg['isRun'][index] = value['is_run']
 
     def get_config_from_server(self):
-        url = f'http://{cfg.getServer("address")}/Register'
+        url = f'http://{cfg.getServer("address")}/register'
         header = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate",
