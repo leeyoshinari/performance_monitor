@@ -39,14 +39,18 @@
    
 3. Respectively modify the configuration files `config.ini` in the server and agent folders.<br>
 
-4. Check the version of `sysstat`. Respectively use commands `iostat -V` and `pidstat -V`, the version of `12.4.0` has been tested, if not, please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download it.
+4. Install packages
+    ```shell
+    pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+    ```
+5. Check the version of `sysstat`. Respectively use commands `iostat -V` and `pidstat -V`, the version of `12.4.0` has been tested, if not, please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download it.
 
-5. Respectively run `server.py` in server and agent folders.
+6. Respectively run `server.py` in server and agent folders.
    ```shell
    nohup python3 server.py &
    ```
 
-5. Visit pages<br>
+7. Visit pages<br>
    (1) After Agent is started, visit `http://ip:port`, you can see the server's data(CPU, Meeory, Disk, Network, etc.).<br>
    ![agent home](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/agent.jpg)
    
@@ -95,16 +99,5 @@ Before packaging, you must ensure that the python code can run normally.<br>
 
 3. The version of sysstat must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please [click me](http://sebastien.godard.pagesperso-orange.fr/download.html) to download the latest version.
 
-4. If you don’t know how to install Python3.7+ on Linux server, please [click me](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85).
+4. The code can be run on almost any linux system that can run python. The tested systems have `CentOS`, `Ubuntu`, `KylinOS`, `NeoKylin`, support `X86_64` and `ARM` architecture. 
 
-5. The code can be run on almost any linux system that can run python. The tested systems have `CentOS`, `Ubuntu`, `KylinOS`, `NeoKylin`, support `X86_64` and `ARM` architecture.
-
-6. If you encounter [the issue #8](https://github.com/leeyoshinari/performance_monitor/issues/8) , please rename `draw_performance1.py` to `draw_performance.py`, and rename `performance_monitor1.py` to `performance_monitor.py`. If you know how to solve this issue, please tell me, thank you very much!
-
-## Requirements
-1. aiohttp>=3.6.2
-2. aiohttp_jinja2>=1.2.0
-3. jinja2>=2.10.1
-4. influxdb>=5.2.3
-5. requests
-6. Python 3.7+

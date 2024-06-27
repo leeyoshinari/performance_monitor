@@ -48,34 +48,23 @@
    ```
    server文件夹是服务端，只需部署一个即可；agent文件夹是客户端，部署在需要监控的服务器上<br>
 
-2. 部署InfluxDB数据库。CentOS安装过程如下：<br>
-    （1）下载并安装<br>
-        `wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm` <br>
-        `yum localinstall influxdb-1.8.3.x86_64.rpm` <br>
-    （2）启动<br>
-        `systemctl enable influxdb` <br>
-        `systemctl start influxdb` <br>
-    （3）修改配置<br>
-         `vim /etc/influxdb/influxdb.conf` <br>
-         第256行左右，修改端口：`bind-address = ":8086"` <br>
-         第265行左右，不打印日志：`log-enabled = false` <br>
-         重启 <br>
-    （4）创建数据库<br>
-        `create database test` <br>
-        `use test` <br>
-        `create user root with password '123456'` 创建用户和设置密码 <br>
-        `grant all privileges on test to root` 授权数据库给指定用户 <br>
+2. 部署`InfluxDB2`数据库。建议部署最新版，`InfluxDB1.x`版本已不支持<br>
 
 3. 分别修改server和agent文件夹里的配置文件 `config.ini`
 
-4. 检查`sysstat`版本。分别使用`iostat -V`和`pidstat -V`命令，`12.4.0`版本已经测试过了，如果不是这个版本，[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 下载。
+4. 安装第三方包
+    ```shell
+    pip3 install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+    ```
 
-5. 分别运行server和agent文件夹中的`server.py`
+5. 检查`sysstat`版本。分别使用`iostat -V`和`pidstat -V`命令，`12.4.0`版本已经测试过了，如果不是这个版本，[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 下载。
+
+6. 分别运行server和agent文件夹中的`server.py`
    ```shell
    nohup python3 server.py &
    ```
 
-5. 页面访问<br>
+7. 页面访问<br>
    （1）客户端启动后，输入`http://ip:port`可以看到页面显示服务器的CPU核数、总内存和磁盘号<br>
    ![agent home](https://github.com/leeyoshinari/performance_monitor/blob/main/server/static/agent.jpg)
    
@@ -125,24 +114,12 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 ## 注意
 1. 服务器必须支持以下命令：`jstat`、`iostat`、`pidstat`、`netstat`，如不支持，请安装。
 
-2. sysstat的版本必须是12+，目前测试过12的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 。
+2. sysstat的版本必须是12+，目前测试过12的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 。 
 
-3. 如果你不知道怎么在Linux服务器上安装好Python3.7+，[请点我](https://github.com/leeyoshinari/performance_monitor/wiki/Python-3.7.x-%E5%AE%89%E8%A3%85) 。
+3. 服务器网卡必须是全双工模式，如果不是，带宽使用率计算将会不正确。 
 
-4. 服务器网卡必须是全双工模式，如果不是，带宽使用率计算将会不正确。
+4. 如需查看最新的操作文档，可在运行程序后，查看教程即可。 
 
-5. 如需查看最新的操作文档，可在运行程序后，查看教程即可。
+5. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。 
 
-6. 统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在`plot_port.js`和`plot_system.js`中按需修改；快速排序算法可能会导致堆栈溢出。
-
-7. 当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统`CentOS`、`Ubuntu`、`中标麒麟`、`银河麒麟`，支持`X86_64`和`ARM`架构。
-
-8. 如果你遇到了[这个问题 #8](https://github.com/leeyoshinari/performance_monitor/issues/8) ，请把`draw_performance1.py`重命名成`draw_performance.py`，把`performance_monitor1.py`重命名成`performance_monitor.py`。如果你知道这个问题的解决方法，麻烦告诉我，万分感谢。
-
-## Requirements
-1. aiohttp>=3.6.2
-2. aiohttp_jinja2>=1.2.0
-3. jinja2>=2.10.1
-4. influxdb>=5.2.3
-5. requests
-6. Python 3.7+
+6. 当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统`CentOS`、`Ubuntu`、`中标麒麟`、`银河麒麟`，支持`X86_64`和`ARM`架构。
