@@ -45,25 +45,7 @@
             </p>
         </li>
         <li>
-            <p>Deploy InfluxDB, installation steps on CentOS are as follows:</p>
-            <p>
-                (1) Download and install<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>yum localinstall influxdb-1.8.3.x86_64.rpm</code> <br>
-                (2) Start<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>systemctl enable influxdb</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>systemctl start influxdb</code> <br>
-                (3) Modify configuration<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>vim /etc/influxdb/influxdb.conf</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;Around line 256, modify port: <code>bind-address = ":8086"</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;Around line 265, log disable: <code>log-enabled = false</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;Restart InfluxDB <br>
-                (4) Create database<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>create database test</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>use test</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>create user root with password '123456'</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>grant all privileges on test to root</code> <br>
-            </p>
+            <p>Deploy InfluxDB2, the latest version is recommended.</p>
         </li>
         <li>
             <p>Respectively modify the configuration files <code>config.ini</code> in the server and agent folders. </p>
@@ -132,7 +114,6 @@
         <li>The version of <code>sysstat</code> must be 12+, the 12 version has been tested, other versions have not been tested, and using old version may cause data abnormalities; please<a href="http://sebastien.godard.pagesperso-orange.fr/download.html"> click me </a>to download the latest version.</li>
         <li>The network card of server must be in full duplex mode, if not, the network usage will be incorrect.</li>
         <li>The code can be run on almost any linux system that can run python. The tested systems have <code>CentOS</code>, <code>Ubuntu</code>, <code>KylinOS</code>, <code>NeoKylin</code>, support <code>X86_64</code> and <code>ARM</code> architecture.</li>
-        <li>If you encounter <a href="https://github.com/leeyoshinari/performance_monitor/issues/8" target="_blank">the issue #8 </a> , please rename <code>draw_performance1.py</code> to <code>draw_performance.py</code>, and rename <code>performance_monitor1.py</code> to <code>performance_monitor.py</code>. If you know how to solve the issue, please tell me, thank you very much!</li>
     </ol>
 </div>
 {% endblock %}

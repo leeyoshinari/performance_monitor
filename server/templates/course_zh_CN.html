@@ -50,25 +50,7 @@
             </p>
         </li>
         <li>
-            <p>部署InfluxDB数据库。CentOS安装过程如下：</p>
-            <p>
-                （1）下载并安装<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>wget https://dl.influxdata.com/influxdb/releases/influxdb-1.8.3.x86_64.rpm</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>yum localinstall influxdb-1.8.3.x86_64.rpm</code> <br>
-                （2）启动<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>systemctl enable influxdb</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>systemctl start influxdb</code> <br>
-                （3）修改配置<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>vim /etc/influxdb/influxdb.conf</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;第256行左右，修改端口：<code>bind-address = ":8086"</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;第265行左右，不打印日志：<code>log-enabled = false</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;重启 <br>
-                （4）创建数据库<br>
-                    &ensp;&ensp;&ensp;&ensp;<code>create database test</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>use test</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>create user root with password '123456'</code> <br>
-                    &ensp;&ensp;&ensp;&ensp;<code>grant all privileges on test to root</code> <br>
-            </p>
+            <p>部署InfluxDB2数据库。推荐安装最新版，已不支持InfluxDB1.x：</p>
         </li>
         <li>
             <p>分别修改server和agent文件夹里的配置文件 <code>config.ini</code></p>
@@ -146,7 +128,6 @@
         <li>服务器上的<code>sysstat</code>必须是新版本，当前测试使用的版本是12，如不支持，请<a href="http://sebastien.godard.pagesperso-orange.fr/download.html">下载安装</a>。</li>
         <li>统计监控数据时，对监控数据进行排序，使用js排序，默认使用自带的排序算法（冒泡排序）排序，如果觉得慢，可以使用快速排序算法，可在<code>plot_port.js</code>和<code>plot_system.js</code>中按需修改；快速排序算法可能会导致堆栈溢出。</li>
         <li>当前程序几乎可以运行在任何可以运行python的linux系统上，已测试过的系统<code>CentOS</code>、<code>Ubuntu</code>、<code>中标麒麟</code>、<code>银河麒麟</code>，支持<code>X86_64</code>和<code>ARM</code>架构。</li>
-        <li>如果你遇到了<a href="https://github.com/leeyoshinari/performance_monitor/issues/8" target="_blank">这个问题 #8 </a>，请把<code>draw_performance1.py</code>重命名成<code>draw_performance.py</code>，把<code>performance_monitor1.py</code>重命名成<code>performance_monitor.py</code>。如果你知道这个问题的解决方法，麻烦告诉我，万分感谢。</li>
     </ol>
 </div>
 {% endblock %}
