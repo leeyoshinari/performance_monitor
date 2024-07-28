@@ -44,6 +44,9 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
         'close_wait': [],
         'time_wait': [],
         'retrans': [],
+        'load1': [],
+        'load5': [],
+        'load15': [],
         'disk': disk}
 
     res = {'code': 1, 'flag': 1, 'message': 'Successful!'}
@@ -69,7 +72,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                 |> filter(fn: (r) => r._measurement == "{host}" and r.type == "{port}")
                 |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                 |> map(fn: (r) => ({{ r with _time: uint(v: r._time) }}))
-                |> keep(columns: ["_time", "cpu", "wait_cpu", "mem", "tcp", "jvm", "iodelay", "rKbs", "wKbs", "close_wait", "time_wait"])
+                |> keep(columns: ["_time", "cpu", "wait_cpu", "mem", "tcp", "jvm", "iodelay", "rKbs", "wKbs", "net", "rec", "trans", "close_wait", "time_wait"])
             '''
             datas = query_api.query(org=cfg.getInflux('org'), query=sql)
             if datas:
@@ -85,32 +88,15 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                         post_data['io'].append(record.values['iodelay'])
                         post_data['disk_r'].append(record.values['rKbs'])
                         post_data['disk_w'].append(record.values['wKbs'])
+                        post_data['nic'].append(record.values['net'])
+                        post_data['rec'].append(record.values['rec'])
+                        post_data['trans'].append(record.values['trans'])
                         post_data['close_wait'].append(record.values['close_wait'])
                         post_data['time_wait'].append(record.values['time_wait'])
             else:
                 res['message'] = f'No monitoring data of the port {port} is found, ' \
                                  f'please check the port or time setting.'
                 res['code'] = 0
-
-            if disk:
-                sql = f'''
-                    from(bucket: "{cfg.getInflux('bucket')}")
-                        |> range(start: {startTime}, stop: {endTime})
-                        |> filter(fn: (r) => r._measurement == "{host}" and r["type"] == "system")
-                        |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-                        |> keep(columns: ["_time", "rec", "trans", "net"])
-                    '''
-                datas = query_api.query(org=cfg.getInflux('org'), query=sql)
-                if datas:
-                    for data in datas:
-                        for record in data.records:
-                            post_data['nic'].append(record.values['net'])
-                            post_data['rec'].append(record.values['rec'])
-                            post_data['trans'].append(record.values['trans'])
-                else:
-                    res['message'] = 'No monitoring data is found, please check the disk number or time setting.'
-                    res['code'] = 0
-
         if pid:
             pass
 
@@ -125,7 +111,7 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                     |> filter(fn: (r) => r._measurement == "{host}" and r["type"] == "system")
                     |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
                     |> map(fn: (r) => ({{ r with _time: uint(v: r._time) }}))
-                    |> keep(columns: ["_time", "cpu", "iowait", "usr_cpu", "mem", "mem_available", "{disk_n}", "{disk_r}", "{disk_w}", "{disk_d}", "rec", "trans", "net", "tcp", "retrans"])
+                    |> keep(columns: ["_time", "cpu", "iowait", "usr_cpu", "mem", "mem_available", "{disk_n}", "{disk_r}", "{disk_w}", "{disk_d}", "rec", "trans", "net", "tcp", "retrans", "load1", "load5", "load15"])
                 '''
             datas = query_api.query(org=cfg.getInflux('org'), query=sql)
             if datas:
@@ -147,6 +133,9 @@ def draw_data_from_db(host, port=None, pid=None, startTime=None, endTime=None, s
                         post_data['disk_d'].append(record.values[disk_d])
                         post_data['tcp'].append(record.values['tcp'])
                         post_data['retrans'].append(record.values['retrans'])
+                        post_data['load1'].append(record.values['load1'])
+                        post_data['load5'].append(record.values['load5'])
+                        post_data['load15'].append(record.values['load15'])
 
             else:
                 res['message'] = 'No monitoring data is found, please check the disk number or time setting.'

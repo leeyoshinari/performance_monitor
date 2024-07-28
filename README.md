@@ -5,7 +5,7 @@
 
 ## Introduction
 #### Completed functions<br>
-1. Monitoring the CPU usage, IO wait, Memory, Disk IO, Network, and TCP connections of the server.<br>
+1. Monitoring the CPU usage, CPU Load, IO wait, Memory, Disk IO, Network, and TCP connections of the server.<br>
 2. Monitoring the CPU usage, Context switching, Memory, Disk read and write, and TCP connections of the specified port.<br>
 3. For Java applications, monitoring size of JVM and Garbage collection; when the frequency of Full GC is too high, an email alert will be sent.<br>
 4. When the Server CPU usage is too high, or free memory is too low, an email alert will be sent; And can clear the cache automatically.<br>

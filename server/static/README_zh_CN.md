@@ -6,7 +6,7 @@
 
 ## 介绍
 #### 已完成如下功能<br>
-1、监控整个服务器的CPU使用率、io wait、内存使用、磁盘IO、网络带宽和TCP连接数<br>
+1、监控整个服务器的CPU使用率、CPU Load、io wait、内存使用、磁盘IO、网络带宽和TCP连接数<br>
 2、监控指定端口的CPU使用率、上下文切换、内存占用大小、磁盘读写和TCP连接数<br>
 3、针对java应用，可以监控jvm大小和垃圾回收情况；当Full GC频率过高时，可发送邮件提醒<br>
 4、系统CPU使用率过高，或者剩余内存过低时，可发送邮件提醒；可设置自动清理缓存<br>
@@ -21,25 +21,8 @@
 13、可同时管理监控多台服务器<br>
 14、服务端停止后，不影响客户端监控<br>
 
-#### 实现过程
-1、使用基于协程的http框架`aiohttp`<br>
-2、服务端前端使用`jinja2`模板渲染<br>
-3、数据可视化采用`echarts`，可降低服务端压力<br>
-4、采用线程池+队列的方式实现同时监控多个端口<br>
-5、客户端每隔8s向服务端注册本机IP和端口<br>
-6、服务端每隔12s会查询所有已注册的客户端的状态<br>
-7、使用influxDB数据库存储监控数据；数据可设置自动过期时间<br>
-8、为保证监控结果准确性，直接使用Linux系统命令获取数据，且可视化时未做任何曲线拟合处理<br>
+##### 如需查看整体思路和想法，[请快点我](https://blog.ihuster.top/p/840241882.html) .
 <br>
-##### 如需查看整体思路和想法，[请快点我](https://mp.weixin.qq.com/s?__biz=Mzg5OTA3NDk2MQ==&mid=2247483810&idx=1&sn=d352577de1676c9c4997cbe305f243ca&chksm=c0599f5cf72e164a23c67e8782270f06561a659c2dd40c820e9b07d1d83e35d3fe7ca796e952&token=59716230&lang=zh_CN#rd) .
-<br>
-
-#### 项目分支
-| 分支 | 框架 | 特点 |
-| :----: | :----:| :---- |
-| [master分支](https://github.com/leeyoshinari/performance_monitor) | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用echarts画图，可降低服务端的压力<br> 3、可视化的图形可交互 |
-| [matplotlib分支](https://github.com/leeyoshinari/performance_monitor/tree/matplotlib) | aiohttp | 1、可同时监控多台服务器<br> 2、可视化时使用matplotlib画图，可降低客户端（浏览器）的压力 |
-| [single分支](https://github.com/leeyoshinari/performance_monitor/tree/single) | flask | 1、单机监控<br> 2、监控数据存放在日志中<br> 3、使用matplotlib画图 |
 
 ## 使用
 1. 克隆 performance_monitor
@@ -114,7 +97,7 @@ pyinstaller安装过程自行百度，下面直接进行打包：<br>
 ## 注意
 1. 服务器必须支持以下命令：`jstat`、`iostat`、`pidstat`、`netstat`，如不支持，请安装。
 
-2. sysstat的版本必须是12+，目前测试过12的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 。 
+2. sysstat的版本必须是12+，目前测试过12.7.5的版本，其他版本未测试过，使用老版本可能会导致数据异常；最新版本下载地址[请点我](http://sebastien.godard.pagesperso-orange.fr/download.html) 。 
 
 3. 服务器网卡必须是全双工模式，如果不是，带宽使用率计算将会不正确。 
 

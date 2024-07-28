@@ -1,4 +1,4 @@
-function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, mem, mem_available, IO, disk_r, disk_w, disk_d, net, rec, trans, tcp, retrans) {
+function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, mem, mem_available, IO, disk_r, disk_w, disk_d, net, rec, trans, tcp, retrans, load1, load5, load15) {
     // Quick sort
     /*let cpu_sorted = quickSort(cpu);
     let IO_sorted = quickSort(IO);
@@ -55,7 +55,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 }
             },
             {
-                text: 'Memory(G), Min Available: ' + findMin(mem_available).toFixed(2) + 'G, Min Free: ' + findMin(mem).toFixed(2) + 'G, Duration: ' + duration,
+                text: 'CPU Load, Avg Load1: ' + average(load1).toFixed(2) + ', Avg Load5: ' + average(load5).toFixed(2) + ', Avg Load15: ' + average(load15).toFixed(2) + ', Duration: ' + duration,
                 x: 'center',
                 y: 350,
                 textStyle: {
@@ -63,7 +63,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 }
             },
             {
-                text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration,
+                text: 'Memory(G), Min Available: ' + findMin(mem_available).toFixed(2) + 'G, Min Free: ' + findMin(mem).toFixed(2) + 'G, Duration: ' + duration,
                 x: 'center',
                 y: 700,
                 textStyle: {
@@ -71,7 +71,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 }
             },
             {
-                text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Recv: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration,
+                text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration,
                 x: 'center',
                 y: 1050,
                 textStyle: {
@@ -79,9 +79,17 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 }
             },
             {
-                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans) + ', Duration: ' + duration,
+                text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Recv: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration,
                 x: 'center',
                 y: 1400,
+                textStyle: {
+                    fontSize: 13
+                }
+            },
+            {
+                text: 'TCP, Max TCP: ' + findMax(tcp) + ', TCP Retrans: '+ findMax(retrans) + ', Duration: ' + duration,
+                x: 'center',
+                y: 1750,
                 textStyle: {
                     fontSize: 13
                 }
@@ -118,6 +126,12 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 right: '5%',
                 top: 1450,
                 height: 250
+            },
+            {
+                left: '5%',
+                right: '5%',
+                top: 1800,
+                height: 250
             }
         ],
 
@@ -128,7 +142,7 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             }
         },
 
-        color: ['red', 'blue', 'orange', 'red', 'blue', 'blue', 'orange', 'red', 'orange', 'red', 'red', 'blue'],
+        color: ['red', 'blue', 'orange', 'red', 'blue', 'orange', 'red', 'blue', 'blue', 'orange', 'red', 'orange', 'red', 'red', 'blue'],
         legend: [
             {
                 data: ['CPU', 'IOWait', 'Usr'],
@@ -137,40 +151,46 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 icon: 'line'
             },
             {
-                data: ['Available', 'Free'],
+                data: ['Load1', 'Load5', 'Load15'],
                 x: 'center',
                 y: 375,
                 icon: 'line'
             },
             {
-                data: ['rMB/s', 'wMB/s', 'IO'],
+                data: ['Available', 'Free'],
                 x: 'center',
                 y: 725,
                 icon: 'line'
             },
             {
-                data: ['rMB/s', 'tMB/s', 'Net'],
+                data: ['rMB/s', 'wMB/s', 'IO'],
                 x: 'center',
                 y: 1075,
                 icon: 'line'
             },
             {
-                data: ['TCP', 'TCP Retrans'],
+                data: ['rMB/s', 'tMB/s', 'Net'],
                 x: 'center',
                 y: 1425,
+                icon: 'line'
+            },
+            {
+                data: ['TCP', 'TCP Retrans'],
+                x: 'center',
+                y: 1775,
                 icon: 'line'
             }
         ],
 
         dataZoom: [
             {
-                xAxisIndex: [0, 1, 2, 3, 4],
+                xAxisIndex: [0, 1, 2, 3, 4, 5],
                 type: 'inside',
                 startValue: 0,
                 endValue: cpu.length
             },
             {
-                xAxisIndex: [0, 1, 2, 3, 4],
+                xAxisIndex: [0, 1, 2, 3, 4, 5],
                 type: 'slider',
                 startValue: 0,
                 endValue: cpu.length
@@ -247,6 +267,20 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                     interval: 'auto',
                     showMaxLabel: true
                 }
+            },
+            {
+                gridIndex: 5,
+                type: 'category',
+                boundaryGap: false,
+                data: x_label,
+                axisTick: {
+                    alignWithLabel: true,
+                    interval: 'auto'
+                },
+                axisLabel: {
+                    interval: 'auto',
+                    showMaxLabel: true
+                }
             }
         ],
 
@@ -260,43 +294,50 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {gridIndex: 0},
             {
                 gridIndex: 1,
-                name: 'Memory(G)',
+                name: 'Load',
                 type: 'value',
-                max: Math.max(findMax(mem) + 1, findMax(mem_available) + 1).toFixed(2)
+                max: Math.max(findMax(load1), findMax(load5), findMax(load15)).toFixed(2)
             },
             {gridIndex: 1},
             {
                 gridIndex: 2,
+                name: 'Memory(G)',
+                type: 'value',
+                max: Math.max(findMax(mem) + 1, findMax(mem_available) + 1).toFixed(2)
+            },
+            {gridIndex: 2},
+            {
+                gridIndex: 3,
                 name: 'Speed(MB/s)',
                 type: 'value',
                 max: Math.max(disk_r_sorted.slice(-1)[0], disk_w_sorted.slice(-1)[0]).toFixed(2)
             },
             {
-                gridIndex: 2,
+                gridIndex: 3,
                 name: 'IO(%)',
                 type: 'value',
                 max: IO_sorted.slice(-1)[0].toFixed(2)
             },
             {
-                gridIndex: 3,
+                gridIndex: 4,
                 name: 'Speed(MB/s)',
                 type: 'value',
                 max: Math.max(rec_sorted.slice(-1)[0], trans_sorted.slice(-1)[0]).toFixed(2)
             },
             {
-                gridIndex: 3,
+                gridIndex: 4,
                 name: 'Net(%)',
                 type: 'value',
                 max: net_sorted.slice(-1)[0].toFixed(2)
             },
             {
-                gridIndex: 4,
+                gridIndex: 5,
                 name: 'TCP',
                 type: 'value',
                 max: (findMax(tcp) * 1.02).toFixed(1)
             },
             {
-                gridIndex: 4,
+                gridIndex: 5,
                 name: 'TCP Retrans',
                 type: 'value',
                 max: (findMax(retrans) * 1.2)
@@ -340,10 +381,46 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
                 data: usr_cpu
             },
             {
-                name: 'Available',
+                name: 'Load1',
                 type: 'line',
                 xAxisIndex: 1,
                 yAxisIndex: 2,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'red'
+                },
+                data: load1
+            },
+            {
+                name: 'Load5',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 2,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'blue'
+                },
+                data: load5
+            },
+            {
+                name: 'Load15',
+                type: 'line',
+                xAxisIndex: 1,
+                yAxisIndex: 2,
+                showSymbol: false,
+                lineStyle: {
+                    width: 1,
+                    color: 'orange'
+                },
+                data: load15
+            },
+            {
+                name: 'Available',
+                type: 'line',
+                xAxisIndex: 2,
+                yAxisIndex: 4,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -354,8 +431,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'Free',
                 type: 'line',
-                xAxisIndex: 1,
-                yAxisIndex: 2,
+                xAxisIndex: 2,
+                yAxisIndex: 4,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -366,8 +443,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'rMB/s',
                 type: 'line',
-                xAxisIndex: 2,
-                yAxisIndex: 4,
+                xAxisIndex: 3,
+                yAxisIndex: 6,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -378,8 +455,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'wMB/s',
                 type: 'line',
-                xAxisIndex: 2,
-                yAxisIndex: 4,
+                xAxisIndex: 3,
+                yAxisIndex: 6,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -390,8 +467,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'IO',
                 type: 'line',
-                xAxisIndex: 2,
-                yAxisIndex: 5,
+                xAxisIndex: 3,
+                yAxisIndex: 7,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -402,8 +479,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'rMB/s',
                 type: 'line',
-                xAxisIndex: 3,
-                yAxisIndex: 6,
+                xAxisIndex: 4,
+                yAxisIndex: 8,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -414,8 +491,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'tMB/s',
                 type: 'line',
-                xAxisIndex: 3,
-                yAxisIndex: 6,
+                xAxisIndex: 4,
+                yAxisIndex: 8,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -426,8 +503,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'Net',
                 type: 'line',
-                xAxisIndex: 3,
-                yAxisIndex: 7,
+                xAxisIndex: 4,
+                yAxisIndex: 9,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -438,8 +515,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'TCP',
                 type: 'line',
-                xAxisIndex: 4,
-                yAxisIndex: 8,
+                xAxisIndex: 5,
+                yAxisIndex: 10,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -450,8 +527,8 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
             {
                 name: 'TCP Retrans',
                 type: 'line',
-                xAxisIndex: 4,
-                yAxisIndex: 9,
+                xAxisIndex: 5,
+                yAxisIndex: 11,
                 showSymbol: false,
                 lineStyle: {
                     width: 1,
@@ -512,6 +589,9 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
         let rec_sorted = rec.slice(start_index, end_index);
         let trans_sorted = trans.slice(start_index, end_index);
         let net_sorted = net.slice(start_index, end_index);
+        let load1_sorted = load1.slice(start_index, end_index);
+        let load5_sorted = load5.slice(start_index, end_index);
+        let load15_sorted = load15.slice(start_index, end_index);
         cpu_sorted.sort(function (a, b) {return a - b});
         iowait_sorted.sort(function (a, b) {return a - b});
         IO_sorted.sort(function (a, b) {return a - b});
@@ -545,10 +625,11 @@ function plot_system(myChart, tables1, tables2, x_label, cpu, iowait, usr_cpu, m
         myChart.setOption({
             title: [
                 {text: 'CPU(%), Max: ' + cpu_sorted.slice(-1)[0].toFixed(2) + '%, 90%Line CPU: ' + cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2) + '%, 90%Line IOWait: ' + iowait_sorted[parseInt(0.9 * iowait_sorted.length)].toFixed(2) + '%, Duration: ' + duration, x: 'center', y: 5, textStyle: {fontSize: 13}},
-                {text: 'Memory(G), Min Available:: ' + findMin(mem_a_zoom).toFixed(2) + 'G, Min Free:: ' + findMin(mem_zoom).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
-                {text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
-                {text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Recv: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
-                {text: 'TCP, Max TCP: ' + findMax(tcp_zoom) + ', TCP Retrans: '+ findMax(retrans_zoom) + ', Duration: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}}]});
+                {text: 'CPU Load, Avg Load1: ' + average(load1_sorted).toFixed(2) + ', Avg Load5: ' + average(load5_sorted).toFixed(2) + ', Avg Load15: ' + average(load15_sorted).toFixed(2) + ', Duration: ' + duration, x: 'center', y: 350, textStyle: {fontSize: 13}},
+                {text: 'Memory(G), Min Available:: ' + findMin(mem_a_zoom).toFixed(2) + 'G, Min Free:: ' + findMin(mem_zoom).toFixed(2) + 'G, Duration: ' + duration, x: 'center', y: 700, textStyle: {fontSize: 13}},
+                {text: 'IO, Max IO: ' + IO_sorted.slice(-1)[0].toFixed(2) + '%, Avg Read: ' + average(disk_r_sorted).toFixed(2) + 'MB/s, Avg Write: ' + average(disk_w_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 1050, textStyle: {fontSize: 13}},
+                {text: 'NetWork, Max Net: ' + net_sorted.slice(-1)[0].toFixed(2) + '%, Avg Recv: ' + average(rec_sorted).toFixed(2) + 'MB/s, Avg Trans: ' + average(trans_sorted).toFixed(2) + 'MB/s, Duration: ' + duration, x: 'center', y: 1400, textStyle: {fontSize: 13}},
+                {text: 'TCP, Max TCP: ' + findMax(tcp_zoom) + ', TCP Retrans: '+ findMax(retrans_zoom) + ', Duration: ' + duration, x: 'center', y: 1750, textStyle: {fontSize: 13}}]});
 
         tables1.rows[1].cells[1].innerHTML = cpu_sorted[parseInt(0.75 * cpu_sorted.length)].toFixed(2);
         tables1.rows[2].cells[1].innerHTML = cpu_sorted[parseInt(0.9 * cpu_sorted.length)].toFixed(2);

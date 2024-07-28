@@ -62,6 +62,9 @@ class PerMon(object):
         self.all_disk = []      # disk number
         self.total_disk = 1     # total disk size, unit: M
         self.total_disk_h = 0     # total disk size, unit:T or G
+        self.rece = 0.0
+        self.trans = 0.0
+        self.network = 0.0
         self.network_speed = cfg.getAgent('nicSpeed')  # bandwidth
         self.Retrans_num = self.get_RetransSegs()   # TCP retrans number
 
@@ -266,6 +269,9 @@ class PerMon(object):
                                .field('rKbs', pid_info['kB_rd'])
                                .field('wKbs', pid_info['kB_wr'])
                                .field('iodelay', pid_info['iodelay'])
+                               .field('net', self.network)
+                               .field('rec', self.rece)
+                               .field('trans', self.trans)
                                .field('tcp', tcp_num.get('tcp', 0))
                                .field('close_wait', tcp_num.get('close_wait', 0))
                                .field('time_wait', tcp_num.get('time_wait', 0))
@@ -306,7 +312,10 @@ class PerMon(object):
                     'trans': 0.0,
                     'net': 0.0,
                     'tcp': 0,
-                    'retrans': 0
+                    'retrans': 0,
+                    'load1': 0.0,
+                    'load5': 0.0,
+                    'load15': 0.0
                 }}
         for disk in self.all_disk:
             # The system disks exists in the format of 'sda-1'. Since influxdb cannot recognize the '-', need to replace it.
@@ -345,6 +354,9 @@ class PerMon(object):
                         line['fields']['net'] = res['network']
                         line['fields']['tcp'] = res['tcp']
                         line['fields']['retrans'] = res['retrans']
+                        line['fields']['load1'] = res['load1']
+                        line['fields']['load5'] = res['load5']
+                        line['fields']['load15'] = res['load15']
                         pointer = Point(line['measurement'])
                         pointer = pointer.tag('type', 'system')
                         for key, value in line["fields"].items():
@@ -550,19 +562,20 @@ class PerMon(object):
         if bps1 and bps2:
             data1 = bps1[0].split()
             data2 = bps2[0].split()
-            rece = (int(data2[1]) - int(data1[1])) / 1048576
-            trans = (int(data2[9]) - int(data1[9])) / 1048576
+            self.rece = (int(data2[1]) - int(data1[1])) / 1048576
+            self.trans = (int(data2[9]) - int(data1[9])) / 1048576
             # 400 = 8 * 100 / 2
             # Why multiply by 8, because 1MB/s = 8Mb/s.
             # Why divided by 2, because the network card is in full duplex mode.
-            network = 400 * (rece + trans) / self.network_speed
+            self.network = 400 * (rece + trans) / self.network_speed
             logger.debug(f'The bandwidth of ethernet is: Receive {rece}MB/s, Transmit {trans}MB/s, Ratio {network}%')
 
         tcp, Retrans = self.get_tcp()
+        load1, load5, load15 = self.get_cpu_load()
 
         return {'disk': disk, 'disk_r': disk_r, 'disk_w': disk_w, 'disk_d': disk_d, 'cpu': cpu, 'iowait': iowait,
-                'usr_cpu': usr_cpu, 'mem': mem, 'mem_available': mem_available, 'rece': rece, 'trans': trans,
-                'network': network, 'tcp': tcp, 'retrans': Retrans}
+                'usr_cpu': usr_cpu, 'mem': mem, 'mem_available': mem_available, 'rece': self.rece, 'trans': self.trans,
+                'network': self.network, 'tcp': tcp, 'retrans': Retrans, 'load1': load1, 'load5': load5, 'load15': load15}
 
     @staticmethod
     def get_free_memory():
@@ -584,6 +597,21 @@ class PerMon(object):
                 break
 
         return mem, mem_available
+
+    @staticmethod
+    def get_cpu_load():
+        load1 = 0.0
+        load5 = 0.0
+        load15 = 0.0
+        try:
+            res = exec_cmd('uptime')[0]
+            loads = res.split(',')
+            load15 = float(loads[-1].strip())
+            load5 = float(loads[-2].strip())
+            load1 = float(loads[-3].strip())
+        except:
+            logger.error(traceback.format_exc())
+        return load1, load5, load15
 
     '''def get_handle(pid):
         """
