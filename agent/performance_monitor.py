@@ -608,7 +608,7 @@ class PerMon(object):
             loads = res.split(',')
             load15 = float(loads[-1].strip())
             load5 = float(loads[-2].strip())
-            load1 = float(loads[-3].strip())
+            load1 = float(loads[-3].split(':')[-1].strip())
         except:
             logger.error(traceback.format_exc())
         return load1, load5, load15
