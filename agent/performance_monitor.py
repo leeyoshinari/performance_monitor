@@ -567,8 +567,8 @@ class PerMon(object):
             # 400 = 8 * 100 / 2
             # Why multiply by 8, because 1MB/s = 8Mb/s.
             # Why divided by 2, because the network card is in full duplex mode.
-            self.network = 400 * (rece + trans) / self.network_speed
-            logger.debug(f'The bandwidth of ethernet is: Receive {rece}MB/s, Transmit {trans}MB/s, Ratio {network}%')
+            self.network = 400 * (self.rece + self.trans) / self.network_speed
+            logger.debug(f'The bandwidth of ethernet is: Receive {self.rece}MB/s, Transmit {self.trans}MB/s, Ratio {self.network}%')
 
         tcp, Retrans = self.get_tcp()
         load1, load5, load15 = self.get_cpu_load()
