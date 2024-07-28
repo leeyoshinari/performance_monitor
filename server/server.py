@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Author: leeyoshinari
 import os
+import sys
 import time
 import json
 import asyncio
@@ -16,7 +17,10 @@ from Email import sendEmail
 from request import Request
 from draw_performance import draw_data_from_db
 
-
+if hasattr(sys, 'frozen'):
+    current_path = os.path.dirname(sys.executable)
+else:
+    current_path = os.path.dirname(os.path.abspath(__file__))
 server = Process()
 http = Request()
 
@@ -271,9 +275,9 @@ async def notice(request):
 
 async def main():
     app = web.Application()
-    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader('templates'))  # Add template to search path
+    aiohttp_jinja2.setup(app, loader=jinja2.FileSystemLoader(os.path.join(current_path, 'templates')))  # Add template to search path
     app.router.add_static(f'{cfg.getServer("serverContext")}/static/',
-                          path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'),
+                          path=os.path.join(current_path, 'static'),
                           append_version=True)  # Add static files to the search path
 
     app.router.add_route('GET', f'{cfg.getServer("serverContext")}', index)
